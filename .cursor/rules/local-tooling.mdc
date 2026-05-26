@@ -1,0 +1,20 @@
+---
+description: Local Node and package manager setup for this repo
+alwaysApply: true
+---
+
+# Local Tooling
+
+- The repo pins Node with `.tool-versions`; current target is `nodejs 26.0.0` with `nodejs 24.15.0` as an asdf fallback for the local `sfw` package manager wrapper.
+- Use pnpm for workspace commands. The normal `pnpm ...` command should work; if the shell wrapper fails, run `command pnpm ...` or `asdf exec pnpm ...`.
+- `pnpm@10.19.0` is installed into the local Node 26 asdf toolchain.
+- Prefer root scripts such as `pnpm typecheck`, `pnpm seed:extract`, `pnpm import:batch-preview`, and `pnpm import:db`.
+
+## Local Database
+
+- Use `docker-compose.yml` for the local Postgres 16 database; start it with `docker compose up -d`.
+- The local database connection is `postgres://postgres:postgres@localhost:5432/etymology_graph`, matching `.env.example`.
+- The Docker service is `postgres` and the container name is `etymology-graph-postgres`; the database data persists in the `postgres_data` Docker volume.
+- If local Postgres client tools are unavailable, run `psql` through the container, for example `docker exec etymology-graph-postgres psql -U postgres -d etymology_graph`.
+- Apply the initial schema with `docker exec -i etymology-graph-postgres psql -U postgres -d etymology_graph < db/migrations/001_initial_graph.sql` before running imports.
+- For pgAdmin desktop, connect to host `localhost`, port `5432`, database `etymology_graph`, username `postgres`, password `postgres`. If pgAdmin runs in Docker, use host `host.docker.internal`.

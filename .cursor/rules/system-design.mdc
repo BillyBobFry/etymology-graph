@@ -1,0 +1,45 @@
+---
+description: System architecture for the etymology graph app
+alwaysApply: true
+---
+
+# System Design
+
+This project is a local-first etymology graph exploration tool built from Wiktionary/Wiktextract data.
+
+## Architecture
+
+- Frontend: Vue SPA, likely Vite-based, focused on search, graph exploration, and entry detail views.
+- Backend: JavaScript/TypeScript server API that serves graph queries to the SPA.
+- Database: Postgres modelled as graph-shaped relational tables, not a dedicated graph database initially.
+- Importer: streaming JSONL processor for `wikidata_downloads/raw-wiktextract-data.jsonl`; never load the full dump into memory.
+
+## API Query Architecture
+
+- Keep request handlers database-agnostic. Handlers should validate HTTP input, call graph use-case interfaces, and shape HTTP responses; they should not contain SQL, `pg` calls, Cypher, or database traversal details.
+- Model the backend boundary around graph operations such as search, ancestors, descendants, doublets, and local graph neighborhoods rather than around a generic database abstraction.
+- Put database-specific logic behind a repository/service interface, for example a `GraphRepository` implemented first by Postgres and later by a graph-native database such as Neo4j.
+- Shared graph query and response types should live in `@etymology-graph/graph` when they are useful to both API and frontend code.
+- Avoid introducing a database-neutral query DSL until the project has real evidence it needs one; prefer stable app-level graph operations with database-specific implementations.
+
+## Data Model
+
+- Represent terms as nodes, keyed by language code plus normalized word/form.
+- Represent etymological relationships as typed edges.
+- Core edge types should include inherited-from, derived-from, borrowed-from, cognate-with, doublet-of, descendant-of, and related/see-also where useful.
+- Descendant lists are supporting graph input: recursively import descendant nodes and source-directed edges, inferring `borrowed_from` or `derived_from` from tags and defaulting to `inherited_from`.
+- Preserve source metadata such as Wiktextract line number, `etymology_number`, template name, confidence/uncertainty, and raw text snippets when available.
+
+## Wiktextract Source Fields
+
+- Prefer structured fields like `etymology_templates`, `descendants`, and `derived` over parsing prose.
+- Use `descendants.raw_tags` and `descendants.tags` to infer relationship type and uncertainty when importing descendant trees.
+- Keep `etymology_text` as source/explanation text, but do not treat it as the primary structured graph source.
+- Treat uncertain or alternative etymologies as explicit metadata instead of flattening them into certain edges.
+
+## Build Order
+
+1. Build and validate the importer on a small set of known words.
+2. Store normalized nodes and edges in Postgres.
+3. Add API endpoints for search, ancestors, descendants, doublets, and local graph neighborhoods.
+4. Build the Vue graph UI on top of those API endpoints.

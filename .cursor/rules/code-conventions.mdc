@@ -1,0 +1,52 @@
+---
+alwaysApply: true
+---
+
+Always follow these rules when writing code:
+
+## General Code Shape
+
+- All functions should include a brief JSdoc explaining _why_ the function exists
+- Avoid barrel files for imports/exports
+- Prefer arrow functions by default; use the `function` keyword when hoisting improves readability
+- Use implicit returns for simple one-line functions, but switch to a block body when control flow or intermediate names make the code clearer
+
+## Security
+
+- Never commit, generate, paste, or log secrets, credentials, tokens, private keys, cookies, production data, or personal data. Treat anything that looks secret as secret.
+- Keep secrets in local environment variables or ignored local files only; document required variable names in examples without real values.
+- Before writing tests, fixtures, logs, screenshots, docs, or generated output, check that they do not contain real credentials or sensitive user data.
+- If you discover a secret in the repo, terminal output, browser state, or user-provided context, stop using it, avoid repeating it in chat, and tell the user which file or source needs cleanup without exposing the value.
+
+## Typescript
+
+- Never use `any`
+- Prefer types over interfaces
+
+## Runtime Validation
+
+- Use Zod to validate types that cannot be verified at compile-time
+
+## Local Development
+
+- This app is still in local development. Prefer clean, functioning changes over backward-compatibility shims for unshipped code; update callers, fixtures, seeds, and local data together when a better contract replaces an old one
+
+## UI Components
+
+- Build interactive UI with native semantic elements first, and follow WAI-ARIA authoring patterns when custom behavior needs ARIA
+- Use zag-js for complex reusable headless components with non-trivial state, focus, or keyboard interaction; avoid adding it for simple native controls
+
+## Vue State And Data Loading
+
+- Use VueUse composables for common browser, reactivity, and lifecycle behavior when they simplify code; avoid adding custom composables for problems VueUse already solves well
+- Use TanStack Query for server state in Vue components: API reads, caching, loading, errors, cancellation, refetching, and deduplication
+- Keep TanStack Query behind reusable data loader composables. Export the full query/options factory for each API call, and expose TanStack options to composable callers while keeping endpoint query keys and fetchers centralized
+- Use plain Vue state for local UI state such as selected controls, theme, form drafts, and transient component-only behavior
+
+## When To Extract
+
+- Extract a function when it names a meaningful domain operation, removes duplicated logic, isolates a multi-step calculation, or makes branching/error handling easier to read
+- Extract logic and state to Vue composables when it is reused, has meaningful lifecycle or watcher behavior, coordinates async/browser APIs, or makes a component hard to scan
+- Keep one-off template glue, direct property access, simple local UI state, and obvious callbacks inline where they are used
+- Do not extract one-line, single-use helper functions that only rename a property access, boolean check, or direct callback unless the extraction captures meaningful domain intent
+- Composables should expose a small, typed API of refs/computed values and actions, own their cleanup, and avoid reaching into component-specific markup or styling concerns

@@ -1,0 +1,115 @@
+import { extractSeedEntries, parseSeedTargets } from "./wiktextract.js";
+
+const defaultSeedTargets = [
+  "en:father",
+  "fr:père",
+  "de:Vater",
+  "hi:पिता",
+  "en:mother",
+  "fr:mère",
+  "de:Mutter",
+  "hi:माता",
+  "en:brother",
+  "fr:frère",
+  "de:Bruder",
+  "hi:भाई",
+  "en:name",
+  "fr:nom",
+  "de:Name",
+  "hi:नाम",
+  "en:night",
+  "fr:nuit",
+  "de:Nacht",
+  "hi:रात",
+  "en:heart",
+  "fr:cœur",
+  "de:Herz",
+  "hi:हृदय",
+  "en:two",
+  "fr:deux",
+  "de:zwei",
+  "hi:दो",
+  "en:three",
+  "fr:trois",
+  "de:drei",
+  "hi:तीन",
+  "en:seven",
+  "fr:sept",
+  "de:sieben",
+  "hi:सात",
+  "en:ten",
+  "fr:dix",
+  "de:zehn",
+  "hi:दस",
+  "en:new",
+  "fr:neuf",
+  "de:neu",
+  "hi:नव",
+  "en:king",
+  "en:royal",
+  "en:regal",
+  "fr:roi",
+  "de:Reich",
+  "hi:राजा",
+  "en:wheel",
+  "en:cycle",
+  "en:chakra",
+  "fr:roue",
+  "de:Rad",
+  "hi:चक्र",
+  "en:wine",
+  "fr:vin",
+  "de:Wein",
+  "hi:वाइन",
+  "en:sugar",
+  "fr:sucre",
+  "de:Zucker",
+  "hi:शक्कर",
+  "en:ginger",
+  "fr:gingembre",
+  "de:Ingwer",
+  "hi:अदरक",
+  "en:orange",
+  "fr:orange",
+  "de:Orange",
+  "hi:नारंगी",
+  "en:school",
+  "fr:école",
+  "de:Schule",
+  "hi:स्कूल",
+  "en:shirt",
+  "en:skirt",
+  "en:chief",
+  "en:chef",
+  "en:canal",
+  "en:channel",
+  "en:fragile",
+  "en:frail",
+  "en:ward",
+  "en:guard",
+  "en:warranty",
+  "en:guarantee",
+  "en:cattle",
+  "en:chattel",
+  "en:capital"
+];
+
+const inputPath = process.env.WIKTEXTRACT_PATH ?? "../../wikidata_downloads/raw-wiktextract-data.jsonl";
+const outputPath = process.env.SEED_OUTPUT_PATH ?? "../../wikidata_downloads/seeds/core-seed.jsonl";
+const targetSpec = process.env.SEED_TARGETS ?? defaultSeedTargets.join(",");
+const limitPerTarget = Number(process.env.SEED_LIMIT_PER_TARGET ?? 1);
+
+const targets = parseSeedTargets(targetSpec);
+
+if (targets.length === 0) {
+  throw new Error("SEED_TARGETS must include at least one word, for example en:bread,en:beer");
+}
+
+const result = await extractSeedEntries({
+  inputPath,
+  outputPath,
+  targets,
+  limitPerTarget
+});
+
+console.log(result);

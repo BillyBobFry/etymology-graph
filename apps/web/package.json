@@ -1,0 +1,32 @@
+{
+  "name": "@etymology-graph/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "typecheck": "vue-tsc -b",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@etymology-graph/graph": "workspace:*",
+    "@lucide/vue": "^1.16.0",
+    "@tanstack/vue-query": "^5.100.14",
+    "@vueuse/core": "^14.3.0",
+    "@zag-js/combobox": "^1.41.0",
+    "@zag-js/menu": "^1.41.0",
+    "@zag-js/popover": "^1.41.0",
+    "@zag-js/vue": "^1.41.0",
+    "d3-force": "^3.0.0",
+    "vue": "^3.5.34",
+    "vue-router": "^5.0.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/d3-force": "^3.0.10",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "tailwindcss": "^4.3.0",
+    "vite": "^8.0.14",
+    "vue-tsc": "^3.3.1"
+  }
+}

@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-label: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --color-background: var(--theme-background);
+  --color-surface: var(--theme-surface);
+  --color-surface-muted: var(--theme-surface-muted);
+  --color-surface-raised: var(--theme-surface-raised);
+  --color-text: var(--theme-text);
+  --color-text-muted: var(--theme-text-muted);
+  --color-border: var(--theme-border);
+  --color-border-strong: var(--theme-border-strong);
+  --color-accent: var(--theme-accent);
+  --color-accent-contrast: var(--theme-accent-contrast);
+  --color-accent-soft: var(--theme-accent-soft);
+  --color-danger: var(--theme-danger);
+  --color-graph-node: var(--theme-graph-node);
+  --color-graph-root: var(--theme-graph-root);
+  --color-graph-edge: var(--theme-graph-edge);
+  --color-ancestor: var(--theme-ancestor);
+  --color-descendant: var(--theme-descendant);
+  --color-borrowed: var(--theme-borrowed);
+  --shadow-paper: 0 1px 2px color-mix(in oklch, var(--theme-text) 10%, transparent);
+  --shadow-panel: 0 2px 8px -6px color-mix(in oklch, var(--theme-text) 18%, transparent);
+  --shadow-overlay: 0 8px 18px -14px color-mix(in oklch, var(--theme-text) 28%, transparent);
+}
+
+:root {
+  color-scheme: light;
+  --theme-background: oklch(0.96 0.027 88);
+  --theme-surface: oklch(0.99 0.012 88);
+  --theme-surface-muted: oklch(0.93 0.027 86);
+  --theme-surface-raised: oklch(1 0.006 88);
+  --theme-text: oklch(0.24 0.035 68);
+  --theme-text-muted: oklch(0.47 0.035 70);
+  --theme-border: oklch(0.82 0.03 82);
+  --theme-border-strong: oklch(0.65 0.055 79);
+  --theme-accent: oklch(0.47 0.105 156);
+  --theme-accent-contrast: oklch(0.99 0.01 88);
+  --theme-accent-soft: oklch(0.9 0.07 151);
+  --theme-danger: oklch(0.47 0.16 30);
+  --theme-graph-node: oklch(0.99 0.01 88);
+  --theme-graph-root: oklch(0.27 0.055 75);
+  --theme-graph-edge: oklch(0.43 0.04 74);
+  --theme-ancestor: oklch(0.54 0.09 154);
+  --theme-descendant: oklch(0.56 0.12 229);
+  --theme-borrowed: oklch(0.6 0.12 45);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+    --theme-background: oklch(0.17 0.026 74);
+    --theme-surface: oklch(0.22 0.026 73);
+    --theme-surface-muted: oklch(0.27 0.028 72);
+    --theme-surface-raised: oklch(0.25 0.03 73);
+    --theme-text: oklch(0.9 0.024 86);
+    --theme-text-muted: oklch(0.72 0.032 84);
+    --theme-border: oklch(0.35 0.035 74);
+    --theme-border-strong: oklch(0.49 0.055 78);
+    --theme-accent: oklch(0.69 0.105 153);
+    --theme-accent-contrast: oklch(0.16 0.026 74);
+    --theme-accent-soft: oklch(0.31 0.052 151);
+    --theme-danger: oklch(0.73 0.13 31);
+    --theme-graph-node: oklch(0.27 0.028 73);
+    --theme-graph-root: oklch(0.8 0.09 148);
+    --theme-graph-edge: oklch(0.73 0.032 84);
+    --theme-ancestor: oklch(0.72 0.105 153);
+    --theme-descendant: oklch(0.71 0.1 230);
+    --theme-borrowed: oklch(0.76 0.13 55);
+  }
+}
+
+:root.dark {
+  color-scheme: dark;
+  --theme-background: oklch(0.17 0.026 74);
+  --theme-surface: oklch(0.22 0.026 73);
+  --theme-surface-muted: oklch(0.27 0.028 72);
+  --theme-surface-raised: oklch(0.25 0.03 73);
+  --theme-text: oklch(0.9 0.024 86);
+  --theme-text-muted: oklch(0.72 0.032 84);
+  --theme-border: oklch(0.35 0.035 74);
+  --theme-border-strong: oklch(0.49 0.055 78);
+  --theme-accent: oklch(0.69 0.105 153);
+  --theme-accent-contrast: oklch(0.16 0.026 74);
+  --theme-accent-soft: oklch(0.31 0.052 151);
+  --theme-danger: oklch(0.73 0.13 31);
+  --theme-graph-node: oklch(0.27 0.028 73);
+  --theme-graph-root: oklch(0.8 0.09 148);
+  --theme-graph-edge: oklch(0.73 0.032 84);
+  --theme-ancestor: oklch(0.72 0.105 153);
+  --theme-descendant: oklch(0.71 0.1 230);
+  --theme-borrowed: oklch(0.76 0.13 55);
+}
+
+:root.light {
+  color-scheme: light;
+}
+
+@layer base {
+  body {
+    @apply min-h-screen bg-background font-sans text-text antialiased;
+    background-image:
+      linear-gradient(color-mix(in oklch, var(--theme-border) 18%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklch, var(--theme-border) 18%, transparent) 1px, transparent 1px),
+      radial-gradient(ellipse at 18% 8%, color-mix(in oklch, var(--theme-accent) 10%, transparent), transparent 32rem),
+      radial-gradient(ellipse at 88% 18%, color-mix(in oklch, var(--theme-borrowed) 10%, transparent), transparent 28rem),
+      linear-gradient(180deg, var(--theme-background), color-mix(in oklch, var(--theme-background) 82%, black));
+    background-position:
+      -1px -1px,
+      -1px -1px,
+      0 0,
+      0 0,
+      0 0;
+    background-size:
+      96px 96px,
+      96px 96px,
+      auto,
+      auto,
+      auto;
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+
+  button:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}

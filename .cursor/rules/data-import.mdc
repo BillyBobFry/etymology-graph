@@ -1,0 +1,56 @@
+---
+description: Wiktextract data import and graph data model guidance
+alwaysApply: true
+---
+
+# Data Import And Graph Model
+
+This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Postgres model for etymology exploration.
+
+## Source Data
+
+- The raw dump lives at `wikidata_downloads/raw-wiktextract-data.jsonl` and is about 21GB; never read it all into memory.
+- Treat the dump as JSONL: one dictionary entry per line. Use streaming reads, bounded samples, and resumable batch imports.
+- Prefer streaming checkpoints over physically splitting the dump. Only create chunk files when parallel import or failed-segment replay needs them.
+- The raw dump is local-only and gitignored. Do not bake it into app bundles, tests, or deployment artifacts.
+
+## Trusted Wiktextract Fields
+
+- Prefer structured `etymology_templates`, `descendants`, and `derived` fields over parsing `etymology_text`.
+- Keep `etymology_text` for explanation, source display, and fallback investigation, not as the primary graph source.
+- Preserve `word`, `lang`, `lang_code`, `pos`, `etymology_number`, template names, descendant tags, source line number, and useful raw snippets.
+- For entries with multiple etymologies, keep `etymology_number` attached to nodes/edges so distinct histories do not collapse.
+
+## Nodes
+
+- Model terms as nodes keyed by language code plus normalized word/form.
+- Store both original display form and normalized form. Normalize with NFC, trimming, and locale-aware lowercase.
+- Reconstructed proto-forms such as `*bʰrewh₁-` are valid nodes and should retain their leading `*`.
+- Avoid over-merging homographs across languages, parts of speech, or distinct etymology sections until the import rules justify it.
+
+## Edges
+
+- Model etymological relationships as typed directed edges with source metadata.
+- Current core edge types are `inherited_from`, `derived_from`, `borrowed_from`, `cognate_with`, `doublet_of`, `descendant_of`, `related_to`, and `see_also`.
+- Template mappings should include `inh -> inherited_from`, `der -> derived_from`, `bor/borrowed -> borrowed_from`, `cog -> cognate_with`, and `doublet -> doublet_of`.
+- Walk Wiktextract `descendants` recursively; each nested descendant should create a node and an edge from the descendant child to its immediate parent.
+- Infer descendant edge types from `raw_tags` and `tags` when possible, such as `borrowed -> borrowed_from` and `derived -> derived_from`; default to `inherited_from` when no better tag signal exists.
+- Preserve uncertainty and alternatives explicitly. Do not flatten "possibly", "perhaps", "alternatively", or competing etymologies into certain edges.
+- For ancestor and descendant-derived edges, direction should be from the current/descendant term to its source term. Descendant queries can traverse those edges in reverse.
+
+## Import Strategy
+
+1. Validate on small known fixtures first, especially `bread`, `beer`, `father`, `wine`, and `cheese`.
+2. Extract local seed JSONL files with `pnpm seed:extract`; generated seeds live under `wikidata_downloads/seeds/`.
+3. Preview resumable batch traversal with `pnpm import:batch-preview` before adding new write behavior.
+4. Import seed data with `pnpm import:db`, which reads `.env`, upserts nodes first, then edges, and commits per batch.
+5. Store checkpoints under `wikidata_downloads/checkpoints/` with source path, next line number, next byte offset, batch size, processed counts, and update time.
+6. Track malformed records and skipped templates separately instead of silently discarding import problems.
+7. Keep graph extraction logic in `packages/importer` and shared graph constants/types in `packages/graph`.
+8. Add database indexes for node lookup by `(lang_code, normalized_word)` and edge traversal by both endpoints and edge type.
+
+## Current Import Commands
+
+- Default seed extraction writes `wikidata_downloads/seeds/core-seed.jsonl` from `SEED_TARGETS`, defaulting to `en:bread,en:beer,en:father,en:wine,en:cheese`.
+- Database import defaults to `IMPORT_INPUT_PATH=../../wikidata_downloads/seeds/core-seed.jsonl` and `IMPORT_CHECKPOINT_PATH=../../wikidata_downloads/checkpoints/import-db.json`.
+- Before importing into a fresh database, load `db/migrations/001_initial_graph.sql` against `DATABASE_URL`.

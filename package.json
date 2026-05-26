@@ -1,0 +1,21 @@
+{
+  "name": "etymology-graph",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:start": "docker compose up -d postgres",
+    "dev": "pnpm --filter @etymology-graph/graph build && pnpm --parallel --filter @etymology-graph/api --filter @etymology-graph/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm --filter @etymology-graph/graph build && pnpm -r typecheck",
+    "import:sample": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer import:sample",
+    "seed:extract": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer seed:extract",
+    "seed:languages": "pnpm --filter @etymology-graph/importer seed:languages",
+    "import:batch-preview": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer import:batch-preview",
+    "import:db": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer import:db"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
+  }
+}
