@@ -1,16 +1,34 @@
 <script setup lang="ts">
+import { Moon } from "@lucide/vue";
 import { computed, onMounted, ref } from "vue";
-import { RouterLink, RouterView } from "vue-router";
+import { RouterLink, RouterView, useRoute } from "vue-router";
 
-import Button from "./uiComponents/Button.vue";
+import IconButton from "./uiComponents/IconButton.vue";
 
 type ThemePreference = "light" | "dark";
 
+const route = useRoute();
 const themePreference = ref<ThemePreference>("light");
 
-const themeToggleLabel = computed(() =>
-  themePreference.value === "dark" ? "Use light mode" : "Use dark mode"
+const isEtymologyRoute = computed(
+  () => route.name === "etymology-search" || route.name === "etymology"
 );
+
+const isDoubletsRoute = computed(
+  () => route.name === "doublets-search" || route.name === "doublets"
+);
+
+const sectionLinkBaseClass =
+  "border-b-2 px-0.5 pb-1 font-label text-xs font-black uppercase tracking-[0.14em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background";
+
+/** Gives primary section links a consistent selected state across search and detail routes. */
+const sectionLinkClass = (active: boolean): string => {
+  if (active) {
+    return `${sectionLinkBaseClass} border-accent text-accent`;
+  }
+
+  return `${sectionLinkBaseClass} border-transparent text-text-muted hover:border-border-strong hover:text-text`;
+};
 
 onMounted(() => {
   applyThemePreference(readStoredThemePreference() ?? preferredSystemTheme(), false);
@@ -51,30 +69,42 @@ function preferredSystemTheme(): ThemePreference {
 
 <template>
   <div class="min-h-screen">
-    <header class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 pt-6">
-      <nav class="flex flex-wrap items-center gap-x-5 gap-y-2" aria-label="Primary navigation">
+    <header class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-6 pt-6">
+      <div class="flex flex-wrap items-baseline gap-x-7 gap-y-3">
         <RouterLink
-          class="font-label text-sm font-black uppercase tracking-[0.12em] text-text-muted transition hover:text-accent"
+          class="font-label text-base font-black uppercase tracking-[0.16em] text-text transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background"
           :to="{ name: 'home' }"
         >
           Etymology Graph
         </RouterLink>
-        <RouterLink
-          class="font-label text-xs font-black uppercase tracking-[0.12em] text-text-muted transition hover:text-accent"
-          :to="{ name: 'doublets-search' }"
-        >
-          Doublets
-        </RouterLink>
-      </nav>
-      <Button
-        class="shrink-0 rounded-full"
+        <nav class="flex items-center gap-5" aria-label="Primary sections">
+          <RouterLink
+            :class="sectionLinkClass(isEtymologyRoute)"
+            :to="{ name: 'etymology-search' }"
+            :aria-current="isEtymologyRoute ? 'location' : undefined"
+          >
+            Etymology
+          </RouterLink>
+          <RouterLink
+            :class="sectionLinkClass(isDoubletsRoute)"
+            :to="{ name: 'doublets-search' }"
+            :aria-current="isDoubletsRoute ? 'location' : undefined"
+          >
+            Doublets
+          </RouterLink>
+        </nav>
+      </div>
+      <IconButton
+        label="Dark mode"
+        class="shrink-0"
         variant="secondary"
         size="sm"
-        :aria-label="themeToggleLabel"
+        :active="themePreference === 'dark'"
+        :aria-pressed="themePreference === 'dark'"
         @click="toggleTheme"
       >
-        {{ themePreference === "dark" ? "Light mode" : "Dark mode" }}
-      </Button>
+        <Moon :size="16" stroke-width="2.75" aria-hidden="true" />
+      </IconButton>
     </header>
     <RouterView />
   </div>

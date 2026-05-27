@@ -1,108 +1,20 @@
+import { dedupeTargetSpecs, resolveSeedProfiles } from "./seed-profiles.js";
 import { extractSeedEntries, parseSeedTargets } from "./wiktextract.js";
 
-const defaultSeedTargets = [
-  "en:father",
-  "fr:père",
-  "de:Vater",
-  "hi:पिता",
-  "en:mother",
-  "fr:mère",
-  "de:Mutter",
-  "hi:माता",
-  "en:brother",
-  "fr:frère",
-  "de:Bruder",
-  "hi:भाई",
-  "en:name",
-  "fr:nom",
-  "de:Name",
-  "hi:नाम",
-  "en:night",
-  "fr:nuit",
-  "de:Nacht",
-  "hi:रात",
-  "en:heart",
-  "fr:cœur",
-  "de:Herz",
-  "hi:हृदय",
-  "en:two",
-  "fr:deux",
-  "de:zwei",
-  "hi:दो",
-  "en:three",
-  "fr:trois",
-  "de:drei",
-  "hi:तीन",
-  "en:seven",
-  "fr:sept",
-  "de:sieben",
-  "hi:सात",
-  "en:ten",
-  "fr:dix",
-  "de:zehn",
-  "hi:दस",
-  "en:new",
-  "fr:neuf",
-  "de:neu",
-  "hi:नव",
-  "en:king",
-  "en:royal",
-  "en:regal",
-  "fr:roi",
-  "de:Reich",
-  "hi:राजा",
-  "en:wheel",
-  "en:cycle",
-  "en:chakra",
-  "fr:roue",
-  "de:Rad",
-  "hi:चक्र",
-  "en:wine",
-  "fr:vin",
-  "de:Wein",
-  "hi:वाइन",
-  "en:sugar",
-  "fr:sucre",
-  "de:Zucker",
-  "hi:शक्कर",
-  "en:ginger",
-  "fr:gingembre",
-  "de:Ingwer",
-  "hi:अदरक",
-  "en:orange",
-  "fr:orange",
-  "de:Orange",
-  "hi:नारंगी",
-  "en:school",
-  "fr:école",
-  "de:Schule",
-  "hi:स्कूल",
-  "en:shirt",
-  "en:skirt",
-  "en:chief",
-  "en:chef",
-  "en:canal",
-  "en:channel",
-  "en:fragile",
-  "en:frail",
-  "en:ward",
-  "en:guard",
-  "en:warranty",
-  "en:guarantee",
-  "en:cattle",
-  "en:chattel",
-  "en:capital"
-];
-
 const inputPath = process.env.WIKTEXTRACT_PATH ?? "../../wikidata_downloads/raw-wiktextract-data.jsonl";
-const outputPath = process.env.SEED_OUTPUT_PATH ?? "../../wikidata_downloads/seeds/core-seed.jsonl";
-const targetSpec = process.env.SEED_TARGETS ?? defaultSeedTargets.join(",");
+const profileSpec = process.env.SEED_PROFILE ?? "core";
+const outputPath = process.env.SEED_OUTPUT_PATH ?? `../../wikidata_downloads/seeds/${seedOutputName(profileSpec)}.jsonl`;
+const targetSpec = resolveTargetSpec({
+  profileSpec,
+  targetSpec: process.env.SEED_TARGETS,
+  targetMode: process.env.SEED_TARGETS_MODE ?? "append"
+});
 const limitPerTarget = Number(process.env.SEED_LIMIT_PER_TARGET ?? 1);
 
 const targets = parseSeedTargets(targetSpec);
 
 if (targets.length === 0) {
-  throw new Error("SEED_TARGETS must include at least one word, for example en:bread,en:beer");
+  throw new Error("Seed extraction must include at least one target from SEED_PROFILE or SEED_TARGETS");
 }
 
 const result = await extractSeedEntries({
@@ -112,4 +24,49 @@ const result = await extractSeedEntries({
   limitPerTarget
 });
 
-console.log(result);
+console.log({
+  profileSpec,
+  targetCount: targets.length,
+  result
+});
+
+type ResolveTargetSpecOptions = {
+  profileSpec: string;
+  targetSpec?: string;
+  targetMode: string;
+};
+
+/** Resolves the profile defaults and optional ad hoc targets into one seed target string. */
+function resolveTargetSpec(options: ResolveTargetSpecOptions): string {
+  const explicitTargets = options.targetSpec ? parseTargetSpec(options.targetSpec) : [];
+
+  switch (options.targetMode) {
+    case "append": {
+      const profileTargets = resolveSeedProfiles(options.profileSpec).targetSpecs;
+      return dedupeTargetSpecs([...profileTargets, ...explicitTargets]).join(",");
+    }
+    case "replace":
+      return dedupeTargetSpecs(explicitTargets).join(",");
+    default:
+      throw new Error('SEED_TARGETS_MODE must be either "append" or "replace"');
+  }
+}
+
+/** Parses the environment target string before the graph importer converts specs into match objects. */
+function parseTargetSpec(targetSpec: string): string[] {
+  return targetSpec
+    .split(",")
+    .map((target) => target.trim())
+    .filter((target) => target.length > 0);
+}
+
+/** Creates a readable default seed filename from the selected profile list. */
+function seedOutputName(profileSpec: string): string {
+  const profileSlug = profileSpec
+    .split(",")
+    .map((profileName) => profileName.trim())
+    .filter((profileName) => profileName.length > 0)
+    .join("-");
+
+  return `${profileSlug || "custom"}-seed`;
+}

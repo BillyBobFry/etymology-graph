@@ -20,6 +20,8 @@
   --color-graph-node: var(--theme-graph-node);
   --color-graph-root: var(--theme-graph-root);
   --color-graph-edge: var(--theme-graph-edge);
+  --color-inherited: var(--theme-inherited);
+  --color-derived: var(--theme-derived);
   --color-ancestor: var(--theme-ancestor);
   --color-descendant: var(--theme-descendant);
   --color-borrowed: var(--theme-borrowed);
@@ -45,9 +47,11 @@
   --theme-graph-node: oklch(0.99 0.01 88);
   --theme-graph-root: oklch(0.27 0.055 75);
   --theme-graph-edge: oklch(0.43 0.04 74);
+  --theme-inherited: oklch(0.5 0.12 150);
+  --theme-derived: oklch(0.5 0.11 245);
   --theme-ancestor: oklch(0.54 0.09 154);
   --theme-descendant: oklch(0.56 0.12 229);
-  --theme-borrowed: oklch(0.6 0.12 45);
+  --theme-borrowed: oklch(0.58 0.14 45);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -68,9 +72,11 @@
     --theme-graph-node: oklch(0.27 0.028 73);
     --theme-graph-root: oklch(0.8 0.09 148);
     --theme-graph-edge: oklch(0.73 0.032 84);
+    --theme-inherited: oklch(0.72 0.13 150);
+    --theme-derived: oklch(0.72 0.12 245);
     --theme-ancestor: oklch(0.72 0.105 153);
     --theme-descendant: oklch(0.71 0.1 230);
-    --theme-borrowed: oklch(0.76 0.13 55);
+    --theme-borrowed: oklch(0.76 0.15 55);
   }
 }
 
@@ -91,9 +97,11 @@
   --theme-graph-node: oklch(0.27 0.028 73);
   --theme-graph-root: oklch(0.8 0.09 148);
   --theme-graph-edge: oklch(0.73 0.032 84);
+  --theme-inherited: oklch(0.72 0.13 150);
+  --theme-derived: oklch(0.72 0.12 245);
   --theme-ancestor: oklch(0.72 0.105 153);
   --theme-descendant: oklch(0.71 0.1 230);
-  --theme-borrowed: oklch(0.76 0.13 55);
+  --theme-borrowed: oklch(0.76 0.15 55);
 }
 
 :root.light {

@@ -30,8 +30,22 @@ Extract a focused local seed file from the full JSONL dump:
 pnpm seed:extract
 ```
 
-Defaults write known development words to `wikidata_downloads/seeds/core-seed.jsonl`. Override with
-`SEED_TARGETS=en:bread,en:beer`, `SEED_LIMIT_PER_TARGET=2`, or `SEED_OUTPUT_PATH=...`.
+Defaults use `SEED_PROFILE=core` and write known development words to
+`wikidata_downloads/seeds/core-seed.jsonl`. Profiles live in
+`packages/importer/src/seed-profiles.ts`; available profiles include `core`, `loanwords`, `doublets`,
+`broadStress`, `highDescendantCandidates`, and `stress`.
+
+Use a larger stress profile when you want to exercise the API and graph UI with thousands of imported
+nodes:
+
+```bash
+pnpm seed:extract:stress
+pnpm import:batch-preview:stress
+pnpm import:db:stress
+```
+
+`SEED_TARGETS` can still add ad hoc words to a profile. Set `SEED_TARGETS_MODE=replace` when you want
+to ignore the selected profile entirely.
 
 Exercise resumable batch processing against a seed JSONL file:
 

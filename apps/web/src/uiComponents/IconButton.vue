@@ -1,6 +1,6 @@
 <script setup lang="ts">
 type IconButtonVariant = "ghost" | "secondary";
-type IconButtonSize = "sm" | "md";
+type IconButtonSize = "xs" | "sm" | "md";
 type IconButtonType = "button" | "submit" | "reset";
 
 withDefaults(
@@ -9,8 +9,8 @@ withDefaults(
     variant?: IconButtonVariant;
     size?: IconButtonSize;
     type?: IconButtonType;
-    disabled?: boolean;
-    active?: boolean;
+    disabled?: boolean | 'true' | 'false';
+    active?: boolean | 'true' | 'false';
   }>(),
   {
     variant: "ghost",
@@ -21,20 +21,18 @@ withDefaults(
   }
 );
 
-const baseClass =
-  "inline-grid shrink-0 place-items-center rounded-full border font-label font-bold leading-none transition duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed disabled:opacity-65";
 
 const variantClasses: Record<IconButtonVariant, string> = {
-  ghost: "border-transparent bg-transparent text-text hover:bg-accent-soft/55 hover:text-text",
+  ghost: "border-transparent bg-transparent text-text hover:bg-surface-muted hover:text-text",
   secondary: "border-border-strong bg-surface-muted text-text hover:border-accent hover:bg-surface-raised hover:text-accent"
 };
 
 const sizeClasses: Record<IconButtonSize, string> = {
+  xs: "size-7",
   sm: "size-8",
   md: "size-9"
 };
 
-const activeClass = "bg-surface-muted text-text";
 </script>
 
 <template>
@@ -43,7 +41,8 @@ const activeClass = "bg-surface-muted text-text";
     :disabled="disabled"
     :aria-label="label"
     :title="label"
-    :class="[baseClass, variantClasses[variant], sizeClasses[size], active ? activeClass : '']"
+    class="cursor-pointer inline-grid shrink-0 place-items-center rounded-full border font-label font-bold leading-none transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background  disabled:opacity-65"
+    :class="[variantClasses[variant], sizeClasses[size], active && 'bg-surface-muted!']"
   >
     <slot />
   </button>

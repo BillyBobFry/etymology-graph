@@ -42,17 +42,6 @@ type TriggerButtonProps = Omit<ButtonHTMLAttributes, "disabled" | "type"> & {
   type?: "button" | "submit" | "reset";
 };
 
-defineSlots<{
-  trigger(props: { triggerProps: TriggerButtonProps; isOpen: boolean }): unknown;
-  default(props: {
-    contentProps: HTMLAttributes;
-    titleProps: HTMLAttributes;
-    descriptionProps: HTMLAttributes;
-    closeTriggerProps: ButtonHTMLAttributes;
-    open: boolean;
-  }): unknown;
-}>();
-
 
 const generatedId = useId();
 const popoverId = computed(() => props.id ?? `popover-${generatedId}`);
@@ -95,7 +84,7 @@ function handleOpenChange(details: popover.OpenChangeDetails): void {
   <slot name="trigger" :trigger-props="triggerProps" :is-open="api.open" />
 
   <Teleport to="body" :disabled="!api.portalled">
-    <div v-if="api.open" v-bind="api.getPositionerProps()" class="z-1000">
+    <div v-if="api.open" v-bind="api.getPositionerProps()" class="z-1000" style="z-index: 1000">
       <div
         v-bind="api.getContentProps()"
         class="min-w-64 max-w-[calc(100vw-32px)] rounded-md border border-border-strong bg-surface-raised p-3 shadow-paper outline-none"
@@ -106,6 +95,7 @@ function handleOpenChange(details: popover.OpenChangeDetails): void {
           :description-props="api.getDescriptionProps()"
           :close-trigger-props="api.getCloseTriggerProps()"
           :open="api.open"
+          :api="api"
         />
       </div>
     </div>

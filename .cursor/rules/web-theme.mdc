@@ -25,6 +25,16 @@ alwaysApply: false
 - Keep graph-specific colors semantic. Prefer tokens such as `graph-node`, `graph-root`, `graph-edge`, `ancestor`, `descendant`, and `borrowed` for graph visualizations.
 - The app has an explicit light/dark toggle that sets `light` or `dark` on the document root and uses system preference as the initial fallback. Preserve that behavior when touching theme code.
 
+## Typography
+
+- Treat typography as a small system, not a place for per-component invention. Use the existing `font-sans` serif stack for prose, headings, entry content, graph labels, and most page text.
+- Use `font-label` only for interface chrome: buttons, form labels, navigation, tabs, badges, menu items, compact metadata labels, and uppercase section eyebrows.
+- Keep primary page headings large, heavy, and tightly tracked. Use `font-black` with negative tracking for hero/page titles only; do not apply this display treatment to cards, buttons, body text, or dense metadata.
+- Use uppercase, letter-spaced label text sparingly and consistently: `font-label`, `font-bold` or `font-black`, `uppercase`, and `tracking-[0.12em]` to `tracking-[0.16em]`. Do not invent nearby tracking values unless the surrounding component already establishes them.
+- Body copy, explanations, empty states, and source text should stay readable and quiet: normal serif text, restrained size changes, and `text-text-muted` only for secondary information.
+- Interactive text should use the shared label style rather than bespoke weights or decorative fonts. Prefer existing `Button`, `IconButton`, `TextField`, `Combobox`, `MenuItem`, and navigation patterns before adding new typography classes.
+- Do not add one-off font families, arbitrary `font-[...]`, arbitrary line-height, decorative italics, mixed-case label experiments, or raw CSS `font-family` declarations in Vue components. Add a semantic font token in `apps/web/src/styles.css` only if a distinct recurring text role genuinely needs it.
+
 ## Voice
 
 - Write UI copy in a clear, authoritative, straightforward, and unambiguous voice.

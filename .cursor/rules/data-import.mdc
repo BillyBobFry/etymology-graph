@@ -51,6 +51,9 @@ This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Po
 
 ## Current Import Commands
 
-- Default seed extraction writes `wikidata_downloads/seeds/core-seed.jsonl` from `SEED_TARGETS`, defaulting to `en:bread,en:beer,en:father,en:wine,en:cheese`.
+- Default seed extraction uses `SEED_PROFILE=core` and writes `wikidata_downloads/seeds/core-seed.jsonl`.
+- Seed profiles live in `packages/importer/src/seed-profiles.ts`; use named profiles such as `core`, `loanwords`, `doublets`, `broadStress`, `highDescendantCandidates`, and `stress` instead of storing large target lists in environment variables.
+- Use `SEED_TARGETS` only for ad hoc additions to a selected profile; set `SEED_TARGETS_MODE=replace` when intentionally ignoring profile targets.
+- For larger local UI/API stress testing, run `pnpm seed:extract:stress`, `pnpm import:batch-preview:stress`, and `pnpm import:db:stress`.
 - Database import defaults to `IMPORT_INPUT_PATH=../../wikidata_downloads/seeds/core-seed.jsonl` and `IMPORT_CHECKPOINT_PATH=../../wikidata_downloads/checkpoints/import-db.json`.
 - Before importing into a fresh database, load `db/migrations/001_initial_graph.sql` against `DATABASE_URL`.

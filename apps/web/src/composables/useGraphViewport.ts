@@ -5,6 +5,12 @@ type ViewportPoint = {
   y: number;
 };
 
+type ViewportState = {
+  panX: number;
+  panY: number;
+  zoom: number;
+};
+
 type PinchSnapshot = {
   midpoint: ViewportPoint;
   distance: number;
@@ -30,6 +36,7 @@ type GraphViewportControls = {
   zoomIn: () => void;
   zoomOut: () => void;
   resetViewport: () => void;
+  setHomeViewport: (viewport: ViewportState) => void;
   handlePointerDown: (event: PointerEvent) => void;
   handlePointerMove: (event: PointerEvent) => void;
   handlePointerUp: (event: PointerEvent) => void;
@@ -52,6 +59,7 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
   const panY = ref(0);
   const zoom = ref(1);
   const isPanning = ref(false);
+  const homeViewport = ref<ViewportState>({ panX: 0, panY: 0, zoom: 1 });
   const pointers = new Map<number, ViewportPoint>();
 
   const minZoom = options.minZoom ?? defaultMinZoom;
@@ -90,11 +98,22 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     zoomTo(zoom.value * factor, anchor);
   }
 
+  /** Sets the absolute viewport transform, used for graph-aware home positions. */
+  function setViewport(viewport: ViewportState): void {
+    panX.value = viewport.panX;
+    panY.value = viewport.panY;
+    zoom.value = clamp(viewport.zoom, minZoom, maxZoom);
+  }
+
   /** Gives pointer and keyboard users a quick way back to the original graph view. */
   function resetViewport(): void {
-    panX.value = 0;
-    panY.value = 0;
-    zoom.value = 1;
+    setViewport(homeViewport.value);
+  }
+
+  /** Updates the home transform and immediately moves the viewport there. */
+  function setHomeViewport(viewport: ViewportState): void {
+    homeViewport.value = viewport;
+    setViewport(viewport);
   }
 
   /** Zooms toward the graph center for the visible plus control and keyboard shortcut. */
@@ -312,6 +331,7 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     zoomIn,
     zoomOut,
     resetViewport,
+    setHomeViewport,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,

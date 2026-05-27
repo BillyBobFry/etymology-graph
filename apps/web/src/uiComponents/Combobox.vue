@@ -213,7 +213,7 @@ watch(() => props.closeOnEmpty && !inputValue.value.trim(), (shouldClose) => {
     </div>
 
     <Teleport to="body">
-      <div v-if="api.open" v-bind="api.getPositionerProps()" class="z-1000">
+      <div v-if="api.open" v-bind="api.getPositionerProps()" class="z-1000" style="z-index: 1000">
         <div
           v-bind="api.getContentProps()"
           class="overflow-hidden rounded-2xl border border-border-strong bg-surface-raised shadow-overlay"

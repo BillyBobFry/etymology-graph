@@ -27,7 +27,7 @@ withDefaults(
 );
 
 const baseClass =
-  "inline-flex items-center justify-center gap-2 rounded-2xl border font-label font-bold leading-none transition duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed disabled:opacity-65";
+  "inline-flex items-center justify-center gap-2 rounded-2xl border font-label font-bold leading-none transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-65";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
@@ -35,7 +35,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   secondary:
     "border-border-strong bg-surface-muted text-text hover:border-accent hover:bg-surface-raised hover:text-accent",
   ghost:
-    "border-transparent bg-transparent text-text-muted hover:bg-accent-soft/55 hover:text-text",
+    "border-transparent bg-transparent text-text-muted hover:bg-surface-muted hover:text-text",
   danger:
     "border-danger bg-danger text-accent-contrast shadow-paper hover:brightness-105"
 };

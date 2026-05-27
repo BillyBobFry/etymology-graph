@@ -6,15 +6,32 @@ alwaysApply: false
 
 # UI And UX Guidelines
 
-- Keep layouts stable. Reserve space for async content, images, graph canvases, controls, and validation messages so loading or state changes do not cause surprising layout shift.
+- Keep layouts stable. Avoid inserting or removing content above an already-rendered primary result, especially graph canvases, tables, image regions, forms, and validation blocks.
+- Prefer non-displacing feedback for secondary state changes: overlay a compact note inside the existing result frame, update a stable header/control label, use an inline badge, or place status text in an existing side/detail panel. Reserve blank vertical space only when the reserved area is intentionally part of the composition and closely matches the expected content height.
 - Show clear async states for data fetching, imports, mutations, and graph traversal. Disable or busy-mark controls when duplicate actions would be harmful.
 - Avoid loading flicker. Use a short minimum display duration only for visible skeletons or spinners when it improves perceived stability; do not artificially delay fast content updates.
 - Pair loading states with useful empty and error states. Empty states should explain what happened and offer a next action; errors should be recoverable when possible.
 - Ensure layouts work across screen sizes. Design mobile, tablet, and desktop behavior intentionally, especially for graph visualizations, side panels, forms, and long text.
-- Preserve keyboard and screen-reader usability. Interactive states should have visible focus, meaningful labels, semantic elements, and ARIA only where native semantics are insufficient.
-- Make clickable elements visibly interactive. Provide clear hover and focus states for buttons, links, selectable graph nodes, and custom controls so users can discover what can be clicked.
+- Preserve keyboard and screen-reader usability. Interactive states should have visible `focus-visible` styles for keyboard focus only, meaningful labels, semantic elements, and ARIA only where native semantics are insufficient.
+- Make clickable elements visibly interactive. Use `cursor: pointer` and provide clear hover and focus states for buttons, links, selectable graph nodes, and custom controls so users can discover what can be clicked.
 - When a popover or menu is open, its trigger should use the shared `active` button state so the open control remains visibly connected to the floating surface.
 - Follow established interaction conventions. Buttons, links, forms, menus, comboboxes, focus behavior, keyboard shortcuts, scrolling, and browser affordances should behave the way users expect unless there is a clear product reason to diverge.
 - Do not make custom UI clever at the expense of predictability. Prefer native platform behavior and familiar patterns over surprising gestures, hidden interactions, or non-standard control semantics.
 - Keep motion purposeful and modest. Use animation to clarify transitions or graph changes, and respect reduced-motion preferences for non-essential movement.
 - Prefer progressive disclosure for dense etymology data. Show the most important relationship first, then reveal metadata, source details, and raw text on demand.
+
+## Available UI Components
+
+- Prefer shared primitives from `apps/web/src/uiComponents/` before styling one-off low-level controls.
+- `Badge.vue`: use for compact, passive metadata labels such as statuses, relationship types, required markers, and non-interactive categories. Use `variant="custom"` with a caller-provided `--badge-color` when a badge should inherit a local semantic color.
+- `Button.vue`: use for text-labeled actions, form submits, destructive actions, loading states, full-width actions, and active popover/menu triggers.
+- `IconButton.vue`: use for compact icon-only actions. Always pass a clear `label`; use `active` when it controls an open or selected state.
+- `TextField.vue`: use for labeled text-like inputs with help text, required copy, validation copy, and `v-model`.
+- `TextFieldBase.vue`: use only inside higher-level input components when the label, help text, and validation wrapper are supplied elsewhere.
+- `Combobox.vue`: use when users type to filter or choose from a known option list, including search/select flows with empty states and optional custom values.
+- `Popover.vue`: use for anchored non-modal floating content such as filters, metadata panels, small forms, and disclosure surfaces.
+- `StatusNote.vue`: use for compact contextual status messages, especially non-displacing overlays inside graph/data result frames. Make persistent explanatory notes dismissible when they may obscure content.
+- `ContextMenu.vue`: use for action menus tied to a trigger or contextual graph/item target; keep options short, predictable, and keyboard accessible.
+- `MenuItem.vue`: use inside menu-like listbox surfaces to keep option, selected, highlighted, and disabled styling consistent.
+- `Divider.vue`: use for semantic horizontal separation inside grouped controls, menus, or compact panels.
+- This directory is intentionally not a complete design system. If an agent thinks a new low-level reusable component is needed, it should confirm with Will before building so he can weigh in on whether it is needed and how it should work.

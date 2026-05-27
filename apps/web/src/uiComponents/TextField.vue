@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, useId, type InputHTMLAttributes } from "vue";
+
+import Badge from "./Badge.vue";
 import TextFieldBase from "./TextFieldBase.vue";
 
 type TextFieldType = "email" | "password" | "search" | "tel" | "text" | "url";
@@ -69,9 +71,9 @@ function resolveDescribedBy(): string | undefined {
   <label class="grid gap-2 font-label text-sm font-bold text-text" :for="inputId">
     <span class="flex items-center justify-between gap-3">
       <span>{{ label }}</span>
-      <span v-if="required" class="text-xs uppercase tracking-[0.12em] text-text-muted">
+      <Badge v-if="required">
         Required
-      </span>
+      </Badge>
     </span>
 
     <TextFieldBase

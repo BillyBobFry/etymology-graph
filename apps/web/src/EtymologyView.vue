@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { usePreferredReducedMotion } from "@vueuse/core";
+import { computed, nextTick, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { type AncestorsQuery, type ChildTermsQuery, type EtymologyGraph, type GraphTraversalNode } from "@etymology-graph/graph";
@@ -9,6 +10,8 @@ import TermSearchForm from "./TermSearchForm.vue";
 import { useAncestorGraphQuery } from "./composables/useAncestorGraphQuery";
 import { useChildTermsGraphQuery } from "./composables/useChildTermsGraphQuery";
 import { mergeEtymologyGraphs } from "./mergeEtymologyGraphs";
+import { defaultStarterLangCode, etymologyStarterQueries } from "./starterQueries";
+import Button from "./uiComponents/Button.vue";
 import Divider from "./uiComponents/Divider.vue";
 
 type GraphStatus = "idle" | "loading" | "success" | "empty" | "error";
@@ -24,6 +27,9 @@ const langCode = computed(() => firstRouteParam(route.params.langCode));
 const term = computed(() => firstRouteParam(route.params.term));
 const childTermsGraphInput = ref<ChildTermsQuery | null>(null);
 const expandedGraph = ref<EtymologyGraph | null>(null);
+const graphResultRef = ref<HTMLElement | null>(null);
+const shouldScrollToNextGraph = ref(false);
+const preferredMotion = usePreferredReducedMotion();
 
 const ancestorGraphInput = computed<AncestorsQuery | null>(() => {
   if (!langCode.value || !term.value) {
@@ -89,6 +95,17 @@ const routeLabel = computed(() => {
   return `${langCode.value}:${term.value}`;
 });
 
+/** Sends known seed terms straight to their canonical English etymology route. */
+function openStarterTerm(term: string): void {
+  void router.push({
+    name: "etymology",
+    params: {
+      langCode: defaultStarterLangCode,
+      term
+    }
+  });
+}
+
 /** Extracts a single typed route parameter from Vue Router's param shape. */
 function firstRouteParam(param: string | string[] | undefined): string | null {
   if (Array.isArray(param)) {
@@ -129,9 +146,20 @@ function handleViewDoublets(node: GraphTraversalNode): void {
   });
 }
 
+/** Moves a newly loaded route result into view without affecting in-graph exploration. */
+async function scrollGraphResultIntoView(): Promise<void> {
+  await nextTick();
+
+  graphResultRef.value?.scrollIntoView({
+    block: "start",
+    behavior: preferredMotion.value === "reduce" ? "auto" : "smooth"
+  });
+}
+
 watch([langCode, term], () => {
   childTermsGraphInput.value = null;
   expandedGraph.value = null;
+  shouldScrollToNextGraph.value = Boolean(langCode.value && term.value);
 });
 
 watch(
@@ -139,6 +167,19 @@ watch(
   (graph) => {
     expandedGraph.value = graph;
   }
+);
+
+watch(
+  [graphStatus, selectedGraph],
+  ([status]) => {
+    if (status !== "success" || !shouldScrollToNextGraph.value) {
+      return;
+    }
+
+    shouldScrollToNextGraph.value = false;
+    void scrollGraphResultIntoView();
+  },
+  { flush: "post" }
 );
 
 watch(
@@ -159,12 +200,9 @@ watch(
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
         Etymology
       </p>
-      <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
+      <h1 class="text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
         {{ term ?? "Unknown term" }}
       </h1>
-      <p class="max-w-3xl text-lg leading-8 text-text-muted">
-        Exploring the ancestry graph for <span class="font-bold text-text">{{ routeLabel }}</span>.
-      </p>
     </section>
 
     <Divider />
@@ -174,7 +212,7 @@ watch(
         <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
           Explore another term
         </p>
-        <h2 class="max-w-sm text-2xl font-black tracking-[-0.03em] text-text">
+        <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
           Choose a language, then search its words
         </h2>
       </div>
@@ -190,18 +228,49 @@ watch(
 
     <Divider />
 
-    <section class="grid gap-5">
-      <p v-if="graphStatus === 'idle'" class="text-text-muted">
-        This etymology route is missing a term or language code.
-      </p>
+    <section ref="graphResultRef" class="scroll-mt-6 grid gap-5">
+      <section
+        v-if="graphStatus === 'idle' || graphStatus === 'empty'"
+        class="rounded-md border border-border bg-surface/75 p-5 shadow-paper"
+        aria-labelledby="etymology-empty-starters"
+      >
+        <p v-if="graphStatus === 'idle'" class="mb-4 text-text-muted">
+          This etymology route is missing a term or language code.
+        </p>
+        <p v-else class="mb-4 text-text-muted">
+          No ancestor graph found for {{ routeLabel }}.
+        </p>
+        <div class="mb-5">
+          <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+            Starting points
+          </p>
+          <h2 id="etymology-empty-starters" class="text-2xl font-bold leading-tight">
+            Try a known ancestry path
+          </h2>
+          <p class="mt-1 text-sm leading-6 text-text-muted">
+            These English seed terms have useful source trails in the imported graph.
+          </p>
+        </div>
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
+          <Button
+            v-for="query in etymologyStarterQueries"
+            :key="query.term"
+            variant="secondary"
+            full-width
+            @click="openStarterTerm(query.term)"
+          >
+            <span class="grid gap-1 text-left">
+              <span>{{ query.term }}</span>
+              <span class="font-sans text-sm font-normal leading-5 text-text-muted">{{ query.description }}</span>
+            </span>
+          </Button>
+        </div>
+      </section>
       <p v-else-if="graphStatus === 'loading'" class="text-text-muted">
         Loading the ancestry graph...
       </p>
       <p v-else-if="graphStatus === 'error'" class="text-danger">
         {{ graphError }}
-      </p>
-      <p v-else-if="graphStatus === 'empty'" class="text-text-muted">
-        No ancestor graph found for {{ routeLabel }}.
       </p>
       <template v-else-if="selectedGraph">
         <p v-if="childTermsStatus === 'loading'" class="text-text-muted">
@@ -210,11 +279,9 @@ watch(
         <p v-else-if="childTermsStatus === 'error'" class="text-danger">
           {{ childTermsError }}
         </p>
-        <p v-else-if="childTermsStatus === 'empty'" class="text-text-muted">
-          No direct child terms found for {{ childTermsRouteLabel }}.
-        </p>
         <GraphCanvas
           :graph="selectedGraph"
+          :root-node-id="selectedGraph.rootNodeId"
           @load-children="handleLoadChildren"
           @view-etymology="handleViewEtymology"
           @view-doublets="handleViewDoublets"

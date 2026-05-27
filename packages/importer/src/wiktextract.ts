@@ -375,9 +375,12 @@ export function previewEntry(entry: WiktextractEntry, sourceMetadata?: ImportSou
 
   const currentNode = makeNode(entry.lang_code, entry.word);
   const nodesById = new Map<string, GraphNode>([[currentNode.id, currentNode]]);
+  const treeEdges = extractTreeAncestryEdges(entry, currentNode, nodesById);
+  const templateEdges =
+    treeEdges.length > 0 ? [] : extractTemplateAncestryEdges(entry, currentNode, nodesById);
   const edges = [
-    ...extractTemplateAncestryEdges(entry, currentNode, nodesById),
-    ...extractTreeAncestryEdges(entry, currentNode, nodesById),
+    ...templateEdges,
+    ...treeEdges,
     ...extractDescendantEdges(entry, currentNode, nodesById)
   ];
   const lexicalEntries = [makeLexicalEntry(entry, currentNode, sourceMetadata)];
@@ -389,7 +392,7 @@ export function previewEntry(entry: WiktextractEntry, sourceMetadata?: ImportSou
   };
 }
 
-/** Extracts adjacent ancestry edges from sequential Wiktionary etymology templates. */
+/** Extracts adjacent ancestry edges from sequential flat Wiktionary etymology templates. */
 function extractTemplateAncestryEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
@@ -486,7 +489,7 @@ function templateTerm(template: WiktextractTemplate): { langCode: string; term: 
   const langCode = trimOptional(template.args?.["2"]);
   const term = trimOptional(template.args?.["3"]);
 
-  if (!langCode || !term) {
+  if (!langCode || !term || term === "-") {
     return undefined;
   }
 
@@ -572,26 +575,19 @@ function descendantTags(descendant: WiktextractDescendant): string[] {
 function parseEtymologyTreeTerms(expansion: string): EtymologyTreeTerm[] {
   const terms: EtymologyTreeTerm[] = [];
   const tokenPattern =
-    /"is_uncertain"\s*:\s*true|"term"\s*:\s*"([^"]+)"|"lang"\s*:\s*"([^"]+)"|"keyword"\s*:\s*"([^"]+)"/g;
+    /"term"\s*:\s*"([^"]+)"|"lang"\s*:\s*"([^"]+)"|"keyword"\s*:\s*"([^"]+)"/g;
   let pendingTerm: Partial<EtymologyTreeTerm> = {};
-  let termIsUncertain = false;
   let match: RegExpExecArray | null;
 
   while ((match = tokenPattern.exec(expansion)) !== null) {
-    const [token, term, langCode, keyword] = match;
-
-    if (token.startsWith('"is_uncertain"')) {
-      termIsUncertain = true;
-      continue;
-    }
+    const [, term, langCode, keyword] = match;
 
     if (term) {
       pendingTerm = {
         ...pendingTerm,
         term,
-        uncertain: termIsUncertain
+        uncertain: termObjectIsUncertain(expansion, match.index)
       };
-      termIsUncertain = false;
       continue;
     }
 
@@ -627,6 +623,96 @@ function parseEtymologyTreeTerms(expansion: string): EtymologyTreeTerm[] {
   }
 
   return terms;
+}
+
+/** Reads uncertainty from the same rendered Wiktextract term object as the current term token. */
+function termObjectIsUncertain(expansion: string, tokenIndex: number): boolean {
+  const objectBounds = containingObjectBounds(expansion, tokenIndex);
+
+  if (!objectBounds) {
+    return false;
+  }
+
+  return /"is_uncertain"\s*:\s*true/.test(expansion.slice(objectBounds.start, objectBounds.end + 1));
+}
+
+/** Locates the nearest brace-delimited object that contains a token in Wiktextract's rendered metadata. */
+function containingObjectBounds(source: string, tokenIndex: number): { start: number; end: number } | undefined {
+  let depth = 0;
+  let containingStart: number | undefined;
+
+  for (let index = tokenIndex; index >= 0; index -= 1) {
+    const char = source[index];
+
+    if (char === "}") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "{") {
+      if (depth === 0) {
+        containingStart = index;
+        break;
+      }
+
+      depth -= 1;
+    }
+  }
+
+  if (containingStart === undefined) {
+    return undefined;
+  }
+
+  const containingEnd = matchingCloseBrace(source, containingStart);
+  if (containingEnd === undefined) {
+    return undefined;
+  }
+
+  return { start: containingStart, end: containingEnd };
+}
+
+/** Finds the closing brace for a rendered metadata object without being confused by quoted braces. */
+function matchingCloseBrace(source: string, openBraceIndex: number): number | undefined {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = openBraceIndex; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escaped = inString;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      continue;
+    }
+
+    if (char === "{") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 /** Converts Wiktextract tree relationship keywords into the shared edge type model. */
@@ -786,7 +872,20 @@ function seedTargetMatches(target: SeedTarget, entry: WiktextractEntry): boolean
     return false;
   }
 
+  if (isCaseOnlyProperNameHomograph(target, entry.word, entry.pos)) {
+    return false;
+  }
+
   return normalizeWord(entry.word) === normalizeWord(target.word);
+}
+
+/** Keeps lowercase seed targets from being satisfied by earlier proper-name homographs. */
+function isCaseOnlyProperNameHomograph(
+  target: SeedTarget,
+  entryWord: string,
+  entryPos: string | undefined
+): boolean {
+  return entryPos === "name" && entryWord !== target.word && normalizeWord(entryWord) === normalizeWord(target.word);
 }
 
 /** Builds stable reporting keys for seed extraction counts. */

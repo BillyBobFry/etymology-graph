@@ -94,6 +94,8 @@ export async function upsertGraphBatch(client: PoolClient, batch: GraphImportBat
       );
     }
 
+    await deleteStaleRootAncestryEdges(client, lexicalEntries);
+
     for (const edge of edges) {
       await client.query(
         `
@@ -139,6 +141,25 @@ export async function upsertGraphBatch(client: PoolClient, batch: GraphImportBat
     edgeCount: edges.length,
     lexicalEntryCount: lexicalEntries.length
   };
+}
+
+/** Keeps reimports from leaving obsolete root-level ancestry edges behind. */
+async function deleteStaleRootAncestryEdges(client: PoolClient, lexicalEntries: LexicalEntry[]): Promise<void> {
+  const rootNodeIds = [...new Set(lexicalEntries.map((lexicalEntry) => lexicalEntry.nodeId))];
+
+  if (rootNodeIds.length === 0) {
+    return;
+  }
+
+  await client.query(
+    `
+      DELETE FROM graph_edges
+      WHERE source = 'wiktextract'
+        AND from_node_id = ANY($1::TEXT[])
+        AND template_name IS DISTINCT FROM 'descendants'
+    `,
+    [rootNodeIds]
+  );
 }
 
 function dedupeById<T extends { id: string }>(items: T[]): T[] {
