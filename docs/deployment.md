@@ -53,6 +53,7 @@ psql "$DATABASE_URL" -f db/migrations/001_initial_graph.sql
 psql "$DATABASE_URL" -f db/migrations/002_languages.sql
 psql "$DATABASE_URL" -f db/migrations/003_lexical_entries.sql
 psql "$DATABASE_URL" -f db/migrations/004_edge_entry_attribution.sql
+psql "$DATABASE_URL" -f db/migrations/005_traversal_query_indexes.sql
 ```
 
 Then load language names and the selected seed graph:

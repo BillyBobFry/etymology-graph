@@ -134,6 +134,9 @@ type DoubletGroupRow = BaseNodeRow & {
   entry_summaries: unknown;
 };
 
+const ancestorLanguageRootPageSize = 250;
+const ancestorLanguageMaxRootPages = 20;
+
 type DoubletGroupsCursor = {
   entryCount: number;
   ancestorId: string;
@@ -390,152 +393,181 @@ export class PostgresGraphRepository implements GraphRepository {
   public async findTermsWithAncestorLanguage(
     query: TermsWithAncestorLanguageQuery
   ): Promise<TermsWithAncestorLanguageResult> {
-    const resultLimit = query.limit + 1;
-    const result = await this.pool.query<TermsWithAncestorLanguageRow>(
-      `
-        WITH RECURSIVE
-          root_entries AS (
-            SELECT
-              lexical_entries.id,
-              lexical_entries.node_id,
-              lexical_entries.lang_code,
-              lexical_entries.word,
-              lexical_entries.normalized_word,
-              lexical_entries.pos,
-              lexical_entries.etymology_number,
-              lexical_entries.primary_ipa,
-              lexical_entries.primary_ipa_label,
-              lexical_entries.primary_gloss
-            FROM lexical_entries
-            WHERE lexical_entries.lang_code = $1
-              AND ($6::TEXT IS NULL OR lexical_entries.id > $6)
-          ),
-          ancestor_walk AS (
-            SELECT
-              root_entries.id AS root_entry_id,
-              root_entries.node_id AS node_id,
-              0 AS depth,
-              NULL::TEXT AS edge_id,
-              ARRAY[root_entries.node_id] AS path,
-              ARRAY[]::TEXT[] AS edge_path,
-              ARRAY[root_entries.id]::TEXT[] AS allowed_entry_ids
-            FROM root_entries
+    const visibleRows: TermsWithAncestorLanguageRow[] = [];
+    let cursor = query.cursor;
+    let nextCursor: string | undefined;
 
-            UNION ALL
+    for (
+      let pageIndex = 0;
+      pageIndex < ancestorLanguageMaxRootPages && visibleRows.length < query.limit;
+      pageIndex += 1
+    ) {
+      const rootPage = await this.pool.query<{ id: string }>(
+        `
+          SELECT id
+          FROM lexical_entries
+          WHERE lang_code = $1
+            AND ($2::TEXT IS NULL OR id > $2)
+          ORDER BY id
+          LIMIT $3
+        `,
+        [query.langCode, cursor ?? null, ancestorLanguageRootPageSize]
+      );
 
-            SELECT
-              ancestor_walk.root_entry_id,
-              next_edge.to_node_id AS node_id,
-              ancestor_walk.depth + 1 AS depth,
-              next_edge.id AS edge_id,
-              ancestor_walk.path || next_edge.to_node_id AS path,
-              ancestor_walk.edge_path || next_edge.id AS edge_path,
-              ancestor_walk.allowed_entry_ids || COALESCE((
-                SELECT ARRAY_AGG(candidate.id)
-                FROM lexical_entries candidate
-                WHERE candidate.node_id = ancestor_walk.node_id
-                  AND NOT candidate.id = ANY(ancestor_walk.allowed_entry_ids)
-                  AND (
-                    (
-                      SELECT COUNT(*) FROM lexical_entries
-                      WHERE lexical_entries.node_id = ancestor_walk.node_id
-                    ) = 1
-                    OR EXISTS (
-                      SELECT 1
-                      FROM graph_edges adopt_edge
-                      JOIN graph_edges seed_edge
-                        ON seed_edge.from_node_id = adopt_edge.from_node_id
-                        AND seed_edge.to_node_id = adopt_edge.to_node_id
-                        AND seed_edge.edge_type = ANY($4::TEXT[])
-                        AND seed_edge.originating_entry_id = ANY(ancestor_walk.allowed_entry_ids)
-                      WHERE adopt_edge.originating_entry_id = candidate.id
-                        AND adopt_edge.from_node_id = ancestor_walk.node_id
-                        AND adopt_edge.edge_type = ANY($4::TEXT[])
-                    )
-                  )
-              ), ARRAY[]::TEXT[]) AS allowed_entry_ids
-            FROM ancestor_walk
-            JOIN graph_edges next_edge
-              ON next_edge.from_node_id = ancestor_walk.node_id
-            WHERE ancestor_walk.depth < $3
-              AND next_edge.edge_type = ANY($4::TEXT[])
-              AND next_edge.originating_entry_id = ANY(ancestor_walk.allowed_entry_ids)
-              AND NOT next_edge.to_node_id = ANY(ancestor_walk.path)
-          ),
-          selected_matches AS (
-            SELECT DISTINCT ON (root_entries.id)
-              root_entries.id AS entry_id,
-              root_entries.node_id AS entry_node_id,
-              root_entries.lang_code AS entry_lang_code,
-              root_entries.word AS entry_word,
-              root_entries.normalized_word AS entry_normalized_word,
-              root_entries.pos AS entry_pos,
-              root_entries.etymology_number AS entry_etymology_number,
-              root_entries.primary_ipa AS entry_primary_ipa,
-              root_entries.primary_ipa_label AS entry_primary_ipa_label,
-              root_entries.primary_gloss AS entry_primary_gloss,
-              node_language.canonical_name AS node_lang_name,
-              (
-                SELECT COUNT(*)::INTEGER
-                FROM lexical_entries node_entry_count
-                WHERE node_entry_count.node_id = root_entries.node_id
-              ) AS node_entry_count,
-              ancestor_node.id AS ancestor_id,
-              ancestor_node.lang_code AS ancestor_lang_code,
-              ancestor_language.canonical_name AS ancestor_lang_name,
-              ancestor_node.word AS ancestor_word,
-              ancestor_node.normalized_word AS ancestor_normalized_word,
-              ancestor_summary.primary_ipa AS ancestor_primary_ipa,
-              ancestor_summary.primary_ipa_label AS ancestor_primary_ipa_label,
-              ancestor_summary.primary_gloss AS ancestor_primary_gloss,
-              ancestor_summary.primary_pos AS ancestor_primary_pos,
-              ancestor_summary.entry_count AS ancestor_entry_count,
-              ancestor_walk.depth,
-              ancestor_walk.edge_path AS path_edge_ids
-            FROM ancestor_walk
-            JOIN root_entries
-              ON root_entries.id = ancestor_walk.root_entry_id
-            JOIN graph_nodes ancestor_node
-              ON ancestor_node.id = ancestor_walk.node_id
-              AND ancestor_node.lang_code = $2
-            LEFT JOIN languages node_language
-              ON node_language.code = root_entries.lang_code
-            LEFT JOIN languages ancestor_language
-              ON ancestor_language.code = ancestor_node.lang_code
-            LEFT JOIN LATERAL (
+      if (rootPage.rows.length === 0) {
+        nextCursor = undefined;
+        break;
+      }
+
+      const rootEntryIds = rootPage.rows.map((row) => row.id);
+      cursor = rootEntryIds[rootEntryIds.length - 1];
+      nextCursor = rootPage.rows.length === ancestorLanguageRootPageSize ? cursor : undefined;
+
+      const result = await this.pool.query<TermsWithAncestorLanguageRow>(
+        `
+          WITH RECURSIVE
+            root_entries AS (
               SELECT
-                (ARRAY_AGG(primary_ipa ORDER BY etymology_number NULLS LAST, pos NULLS LAST)
-                  FILTER (WHERE primary_ipa IS NOT NULL AND primary_ipa <> ''))[1] AS primary_ipa,
-                (ARRAY_AGG(primary_ipa_label ORDER BY etymology_number NULLS LAST, pos NULLS LAST)
-                  FILTER (WHERE primary_ipa_label IS NOT NULL AND primary_ipa_label <> ''))[1] AS primary_ipa_label,
-                (ARRAY_AGG(primary_gloss ORDER BY etymology_number NULLS LAST, pos NULLS LAST)
-                  FILTER (WHERE primary_gloss IS NOT NULL AND primary_gloss <> ''))[1] AS primary_gloss,
-                (ARRAY_AGG(pos ORDER BY etymology_number NULLS LAST, pos NULLS LAST)
-                  FILTER (WHERE pos IS NOT NULL AND pos <> ''))[1] AS primary_pos,
-                COUNT(*)::INTEGER AS entry_count
+                lexical_entries.id,
+                lexical_entries.node_id,
+                lexical_entries.lang_code,
+                lexical_entries.word,
+                lexical_entries.normalized_word,
+                lexical_entries.pos,
+                lexical_entries.etymology_number,
+                lexical_entries.primary_ipa,
+                lexical_entries.primary_ipa_label,
+                lexical_entries.primary_gloss
               FROM lexical_entries
-              WHERE lexical_entries.node_id = ancestor_node.id
-            ) ancestor_summary ON TRUE
-            WHERE ancestor_walk.depth > 0
-            ORDER BY root_entries.id, ancestor_walk.depth, ancestor_node.lang_code, ancestor_node.normalized_word
-          )
-        SELECT *
-        FROM selected_matches
-        ORDER BY entry_id
-        LIMIT $5
-      `,
-      [
-        query.langCode,
-        query.ancestorLangCode,
-        query.maxDepth,
-        [...ANCESTOR_TRAVERSAL_EDGE_TYPES],
-        resultLimit,
-        query.cursor ?? null
-      ]
-    );
-    const visibleRows = result.rows.slice(0, query.limit);
-    const nextCursor =
-      result.rows.length > query.limit ? visibleRows[visibleRows.length - 1]?.entry_id : undefined;
+              WHERE lexical_entries.id = ANY($4::TEXT[])
+            ),
+            ancestor_walk AS (
+              SELECT
+                root_entries.id AS root_entry_id,
+                root_entries.node_id AS node_id,
+                0 AS depth,
+                NULL::TEXT AS edge_id,
+                ARRAY[root_entries.node_id] AS path,
+                ARRAY[]::TEXT[] AS edge_path,
+                ARRAY[root_entries.id]::TEXT[] AS allowed_entry_ids
+              FROM root_entries
+
+              UNION ALL
+
+              SELECT
+                ancestor_walk.root_entry_id,
+                next_edge.to_node_id AS node_id,
+                ancestor_walk.depth + 1 AS depth,
+                next_edge.id AS edge_id,
+                ancestor_walk.path || next_edge.to_node_id AS path,
+                ancestor_walk.edge_path || next_edge.id AS edge_path,
+                ancestor_walk.allowed_entry_ids || COALESCE((
+                  SELECT ARRAY_AGG(candidate.id)
+                  FROM lexical_entries candidate
+                  WHERE candidate.node_id = ancestor_walk.node_id
+                    AND NOT candidate.id = ANY(ancestor_walk.allowed_entry_ids)
+                    AND (
+                      (
+                        SELECT COUNT(*) FROM lexical_entries
+                        WHERE lexical_entries.node_id = ancestor_walk.node_id
+                      ) = 1
+                      OR EXISTS (
+                        SELECT 1
+                        FROM graph_edges adopt_edge
+                        JOIN graph_edges seed_edge
+                          ON seed_edge.from_node_id = adopt_edge.from_node_id
+                          AND seed_edge.to_node_id = adopt_edge.to_node_id
+                          AND seed_edge.edge_type = ANY($3::TEXT[])
+                          AND seed_edge.originating_entry_id = ANY(ancestor_walk.allowed_entry_ids)
+                        WHERE adopt_edge.originating_entry_id = candidate.id
+                          AND adopt_edge.from_node_id = ancestor_walk.node_id
+                          AND adopt_edge.edge_type = ANY($3::TEXT[])
+                      )
+                    )
+                ), ARRAY[]::TEXT[]) AS allowed_entry_ids
+              FROM ancestor_walk
+              JOIN graph_edges next_edge
+                ON next_edge.from_node_id = ancestor_walk.node_id
+              WHERE ancestor_walk.depth < $2
+                AND next_edge.edge_type = ANY($3::TEXT[])
+                AND next_edge.originating_entry_id = ANY(ancestor_walk.allowed_entry_ids)
+                AND NOT next_edge.to_node_id = ANY(ancestor_walk.path)
+            ),
+            selected_matches AS (
+              SELECT DISTINCT ON (root_entries.id)
+                root_entries.id AS entry_id,
+                root_entries.node_id AS entry_node_id,
+                root_entries.lang_code AS entry_lang_code,
+                root_entries.word AS entry_word,
+                root_entries.normalized_word AS entry_normalized_word,
+                root_entries.pos AS entry_pos,
+                root_entries.etymology_number AS entry_etymology_number,
+                root_entries.primary_ipa AS entry_primary_ipa,
+                root_entries.primary_ipa_label AS entry_primary_ipa_label,
+                root_entries.primary_gloss AS entry_primary_gloss,
+                node_language.canonical_name AS node_lang_name,
+                (
+                  SELECT COUNT(*)::INTEGER
+                  FROM lexical_entries node_entry_count
+                  WHERE node_entry_count.node_id = root_entries.node_id
+                ) AS node_entry_count,
+                ancestor_node.id AS ancestor_id,
+                ancestor_node.lang_code AS ancestor_lang_code,
+                ancestor_language.canonical_name AS ancestor_lang_name,
+                ancestor_node.word AS ancestor_word,
+                ancestor_node.normalized_word AS ancestor_normalized_word,
+                ancestor_summary.primary_ipa AS ancestor_primary_ipa,
+                ancestor_summary.primary_ipa_label AS ancestor_primary_ipa_label,
+                ancestor_summary.primary_gloss AS ancestor_primary_gloss,
+                ancestor_summary.primary_pos AS ancestor_primary_pos,
+                ancestor_summary.entry_count AS ancestor_entry_count,
+                ancestor_walk.depth,
+                ancestor_walk.edge_path AS path_edge_ids
+              FROM ancestor_walk
+              JOIN root_entries
+                ON root_entries.id = ancestor_walk.root_entry_id
+              JOIN graph_nodes ancestor_node
+                ON ancestor_node.id = ancestor_walk.node_id
+                AND ancestor_node.lang_code = $1
+              LEFT JOIN languages node_language
+                ON node_language.code = root_entries.lang_code
+              LEFT JOIN languages ancestor_language
+                ON ancestor_language.code = ancestor_node.lang_code
+              LEFT JOIN LATERAL (
+                SELECT
+                  (ARRAY_AGG(primary_ipa ORDER BY etymology_number NULLS LAST, pos NULLS LAST)
+                    FILTER (WHERE primary_ipa IS NOT NULL AND primary_ipa <> ''))[1] AS primary_ipa,
+                  (ARRAY_AGG(primary_ipa_label ORDER BY etymology_number NULLS LAST, pos NULLS LAST)
+                    FILTER (WHERE primary_ipa_label IS NOT NULL AND primary_ipa_label <> ''))[1] AS primary_ipa_label,
+                  (ARRAY_AGG(primary_gloss ORDER BY etymology_number NULLS LAST, pos NULLS LAST)
+                    FILTER (WHERE primary_gloss IS NOT NULL AND primary_gloss <> ''))[1] AS primary_gloss,
+                  (ARRAY_AGG(pos ORDER BY etymology_number NULLS LAST, pos NULLS LAST)
+                    FILTER (WHERE pos IS NOT NULL AND pos <> ''))[1] AS primary_pos,
+                  COUNT(*)::INTEGER AS entry_count
+                FROM lexical_entries
+                WHERE lexical_entries.node_id = ancestor_node.id
+              ) ancestor_summary ON TRUE
+              WHERE ancestor_walk.depth > 0
+              ORDER BY root_entries.id, ancestor_walk.depth, ancestor_node.lang_code, ancestor_node.normalized_word
+            )
+          SELECT *
+          FROM selected_matches
+          ORDER BY entry_id
+        `,
+        [
+          query.ancestorLangCode,
+          query.maxDepth,
+          [...ANCESTOR_TRAVERSAL_EDGE_TYPES],
+          rootEntryIds
+        ]
+      );
+
+      visibleRows.push(...result.rows.slice(0, query.limit - visibleRows.length));
+
+      if (nextCursor === undefined) {
+        break;
+      }
+    }
 
     return {
       matches: visibleRows.map(mapTermsWithAncestorLanguageRow),

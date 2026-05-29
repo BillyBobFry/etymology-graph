@@ -255,19 +255,30 @@ async function upsertLanguageMappings(client: PoolClient, languages: LanguageMap
   await client.query("BEGIN");
 
   try {
-    for (const language of languages) {
-      await client.query(
-        `
-          INSERT INTO languages (code, canonical_name, source, updated_at)
-          VALUES ($1, $2, $3, now())
-          ON CONFLICT (code) DO UPDATE SET
-            canonical_name = EXCLUDED.canonical_name,
-            source = EXCLUDED.source,
-            updated_at = EXCLUDED.updated_at
-        `,
-        [language.code, language.canonicalName, language.source]
-      );
-    }
+    await client.query(
+      `
+        INSERT INTO languages (code, canonical_name, source, updated_at)
+        SELECT code, canonical_name, source, now()
+        FROM jsonb_to_recordset($1::jsonb) AS languages(
+          code TEXT,
+          canonical_name TEXT,
+          source TEXT
+        )
+        ON CONFLICT (code) DO UPDATE SET
+          canonical_name = EXCLUDED.canonical_name,
+          source = EXCLUDED.source,
+          updated_at = EXCLUDED.updated_at
+      `,
+      [
+        JSON.stringify(
+          languages.map((language) => ({
+            code: language.code,
+            canonical_name: language.canonicalName,
+            source: language.source
+          }))
+        )
+      ]
+    );
 
     await client.query("COMMIT");
   } catch (error) {
