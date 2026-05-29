@@ -20,6 +20,23 @@ alwaysApply: false
 - Keep motion purposeful and modest. Use animation to clarify transitions or graph changes, and respect reduced-motion preferences for non-essential movement.
 - Prefer progressive disclosure for dense etymology data. Show the most important relationship first, then reveal metadata, source details, and raw text on demand.
 
+## Loading Skeletons
+
+- Use `Skeleton.vue` when a primary content frame has a predictable shape and loading would otherwise leave a large blank area, such as result lists, entry detail panels, graph side panels, and stable search result regions.
+- Prefer skeletons that preserve the final layout height and hierarchy. Match expected headings, rows, blocks, or graph reference slips closely enough to prevent layout shift without faking exact content.
+- Do not use skeletons for quick control-level feedback, background refetches, or secondary state changes inside an already-rendered result. Use button loading states, `aria-busy`, an inline label, or `StatusNote.vue` instead.
+- Keep skeletons decorative and quiet: use semantic theme tokens, modest opacity pulse, `prefers-reduced-motion`, sharp paper-like corners, and no bright shimmer sweeps or glossy gradients.
+- Pair skeleton regions with accessible loading state on the parent container, such as `aria-busy="true"` or a visually available loading label when the state is not otherwise announced.
+- Avoid loading flicker. Render skeletons only when a loading state is likely to be visible long enough to help orientation; do not delay fast successful content solely to show them.
+
+## Empty States
+
+- Empty states should explain what happened without implying the user's query is wrong. For incomplete local data, prefer copy like "No imported matches" over absolute claims like "No relationships exist."
+- Avoid raised surfaces, shadows, and result-card styling for empty states unless the empty state itself contains a primary interactive workflow. Raised treatment can make a non-result look clickable or expandable.
+- Include a recovery path whenever possible: preset searches, a reset action, a related filter change, or guidance on which control to adjust next.
+- Keep empty states quieter than successful results. Use page text, light dividers, subtle borders, or inline notes before adding large cards.
+- When offering recovery presets, filter them against available data so the empty state does not suggest impossible or unavailable choices.
+
 ## Available UI Components
 
 - Prefer shared primitives from `apps/web/src/uiComponents/` before styling one-off low-level controls.
@@ -30,6 +47,7 @@ alwaysApply: false
 - `TextFieldBase.vue`: use only inside higher-level input components when the label, help text, and validation wrapper are supplied elsewhere.
 - `Combobox.vue`: use when users type to filter or choose from a known option list, including search/select flows with empty states and optional custom values.
 - `Popover.vue`: use for anchored non-modal floating content such as filters, metadata panels, small forms, and disclosure surfaces.
+- `Skeleton.vue`: use for decorative placeholders that preserve stable loading layouts. Set accessible loading semantics on the parent region rather than on each skeleton piece.
 - `StatusNote.vue`: use for compact contextual status messages, especially non-displacing overlays inside graph/data result frames. Make persistent explanatory notes dismissible when they may obscure content.
 - `ContextMenu.vue`: use for action menus tied to a trigger or contextual graph/item target; keep options short, predictable, and keyboard accessible.
 - `MenuItem.vue`: use inside menu-like listbox surfaces to keep option, selected, highlighted, and disabled styling consistent.

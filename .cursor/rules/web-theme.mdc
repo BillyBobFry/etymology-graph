@@ -6,6 +6,14 @@ alwaysApply: false
 
 # Web Theme And Tailwind
 
+## Avoid AI-Slop Styling
+
+- Do not add decorative rails, left borders, accent strips, blobs, glow stacks, glassmorphism, generic gradients, floating SaaS cards, or oversized blurred shadows as default visual interest.
+- Decoration should earn its place by reinforcing the archival atlas concept, clarifying hierarchy, or communicating state. If it is only there to make an empty space feel designed, remove it.
+- Prefer typography, spacing, page composition, subtle dividers, paper-toned surfaces, and restrained texture over ornamental flourishes.
+
+## Visual Direction
+
 - The visual direction is an archival atlas page: warm paper backgrounds, ink-like foreground text, muted botanical and map tones, and a sharper accent for active graph selections or primary actions.
 - The palette should feel researched, local-first, and exploratory rather than SaaS-generic. Favor parchment, moss, mineral blue, ochre, and dark ink relationships over bright default Tailwind hues.
 - In light mode, preserve the paper-and-ink feeling with warm surfaces and soft borders. In dark mode, keep the same archive mood with deep umber backgrounds, readable warm text, and accents that feel illuminated rather than neon.
@@ -14,7 +22,6 @@ alwaysApply: false
 - Use bordered surfaces only where containment helps interaction or scanning, such as search forms, popovers, node details, and small index/reference groups.
 - Keep corners sharp and paper-like. Prefer `rounded-md` for contained page surfaces and about `6px` in component CSS. Reserve full pills for badges and compact controls only.
 - Graph canvas backgrounds should read as map texture rather than decorative blobs. Use faint graticules, route/contour marks, grain, and vignettes; any map pattern inside the graph should pan and zoom with the graph viewport.
-- Avoid common AI-slop visual tells: oversized blurred drop shadows, glossy glow stacks, neon purple/blue gradients, generic glassmorphism, floating SaaS cards, and decoration that is not tied to the archival map concept.
 - Prefer borders, paper-toned surfaces, typography, spacing, and restrained texture for hierarchy. Small shadows are acceptable when they imitate paper separation, popovers, or selected graph marks; keep them close, low-contrast, and named through theme tokens such as `shadow-paper`, `shadow-panel`, or `shadow-overlay`.
 - Do not scatter arbitrary `shadow-[...]` or heavy `drop-shadow(...)` values through components. Add a semantic shadow token in `apps/web/src/styles.css` when a new depth level is genuinely needed.
 - Use Tailwind utilities for component layout, spacing, typography, borders, and interaction states in `apps/web`.
@@ -40,7 +47,10 @@ alwaysApply: false
 - Write UI copy in a clear, authoritative, straightforward, and unambiguous voice.
 - Prefer short declarative sentences, concrete nouns, and active verbs. Tell the user what happened, what it means, and what to do next.
 - Avoid hedging, filler, hype, cute phrasing, and vague labels. Do not say "maybe", "just", "magic", "supercharge", or "unlock" unless the product literally needs that meaning.
-- Preserve the archival atlas mood through precise language, not ornament. Favor words like `source`, `lineage`, `entry`, `relationship`, `import`, `search`, and `graph` when they match the feature.
+- Do not use em dashes in UI copy or documentation. Prefer a period, comma, colon, or a simpler sentence split.
+- Keep implementation details out of user-facing copy. Do not mention imports, seed data, APIs, databases, edge types, metadata, or the data model unless the user is in an explicitly technical/admin context.
+- Describe the user-visible result instead: a word page, source trail, lineage, entry, relationship, graph, search, path, or match.
+- Preserve the archival atlas mood through precise language, not ornament. Favor words like `source`, `lineage`, `entry`, `relationship`, `search`, and `graph` when they match the feature.
 - Button labels and errors should be direct: `Search`, `Reset`, `Close`, `No matches found`, `Import failed`, `Try another term`.
 
 Example:

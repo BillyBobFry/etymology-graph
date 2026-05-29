@@ -13,6 +13,9 @@ This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Po
 - Treat the dump as JSONL: one dictionary entry per line. Use streaming reads, bounded samples, and resumable batch imports.
 - Prefer streaming checkpoints over physically splitting the dump. Only create chunk files when parallel import or failed-segment replay needs them.
 - The raw dump is local-only and gitignored. Do not bake it into app bundles, tests, or deployment artifacts.
+- Committed seed-word sources live under `data/seed-words/`. Generated Wiktextract seed JSONL files still live under `wikidata_downloads/seeds/` and remain local/generated.
+- Use `data/seed-words/thousand-most-common-words/` for normalized MIT-licensed multilingual common-word seeds from `SMenigat/thousand-most-common-words`.
+- Use `data/seed-words/corpora/` for the curated CC0 English Corpora allowlist. Treat `data/seed-words/corpora/manifest.json` as the reviewable contract for which upstream Corpora files and keys are included.
 
 ## Trusted Wiktextract Fields
 
@@ -26,7 +29,8 @@ This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Po
 - Model terms as nodes keyed by language code plus normalized word/form.
 - Store both original display form and normalized form. Normalize with NFC, trimming, and locale-aware lowercase.
 - Reconstructed proto-forms such as `*bʰrewh₁-` are valid nodes and should retain their leading `*`.
-- Avoid over-merging homographs across languages, parts of speech, or distinct etymology sections until the import rules justify it.
+- Graph nodes are intentionally coarse and may host multiple homograph lexical entries (different `pos` or `etymology_number`). Homograph isolation lives on edges via `originating_entry_id`, not on the node keys.
+- Some imported nodes (typically proto-forms reached only via descendant chains) have no `lexical_entries` row; treat these as graph-only nodes and let traversal fall back to ignoring the entry filter when the anchor term resolves only as a graph node.
 
 ## Edges
 
@@ -38,16 +42,42 @@ This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Po
 - Preserve uncertainty and alternatives explicitly. Do not flatten "possibly", "perhaps", "alternatively", or competing etymologies into certain edges.
 - For ancestor and descendant-derived edges, direction should be from the current/descendant term to its source term. Descendant queries can traverse those edges in reverse.
 
+## Edge Ownership And Entry-Aware Traversal
+
+- Every edge is attributed to the lexical entry that declared it via `graph_edges.originating_entry_id` (NOT NULL, FK to `lexical_entries.id` with `ON DELETE CASCADE`).
+- Edge IDs include the originating entry: `${fromNodeId}:${edgeType}:${toNodeId}:from:${originatingEntryId}`. Use `makeGraphEdgeId` and `makeLexicalEntryId` from `@etymology-graph/graph` and never reconstruct these inline.
+- `previewEntry` computes the originating entry id once per Wiktextract entry and threads it through template, tree, and descendants edge construction; do not introduce edge sources that bypass this attribution.
+- The importer's `deleteStaleRootAncestryEdges` is scoped by `(from_node_id, originating_entry_id)` so reimporting one entry never deletes another entry's edges at a shared homograph node.
+- The pure reference traversal lives in `traverseAncestors` (in `packages/graph/src/index.ts`) along with `expandAllowedEntries`. The Postgres `ancestor_walk` CTE in `apps/api/src/postgres-graph-repository.ts` is a port of that function; keep them in sync.
+- Rule v5 for entry-aware ancestor traversal: start from the chosen anchor entry's id; only follow edges whose `originating_entry_id` is in the current allowed set; on visiting node `N`, additional entries homed at `N` join the allowed set when either (a) that entry is the only one homed at `N` or (b) its first ancestor edge from `N` lands on the same target as an already-allowed entry's edge from `N`.
+- API anchor selection: ancestor/child/doublet queries take optional `pos` and `etymologyNumber`. When omitted the anchor is the lowest `etymology_number`, then alphabetic `pos`, then entry id - a stable default usable when the caller has not chosen.
+- Frontend chooser flow: `/api/term-entries` lists every entry for a `(langCode, word)` pair, `useTermEntrySelection` syncs `pos` / `etym` query params, and `EntryChooser.vue` renders the picker. Add new graph views by reusing these composables rather than re-deriving entry selection.
+
+## Graph Regression Coverage For Homograph Cases
+
+- Cross-entry traversal regressions belong on `traverseAncestors` plus a multi-entry fixture under `packages/importer/src/fixtures/wiktextract/` (see `en-ice-neighborhood.json`).
+- Add `expect(edgeIds).not.toContain(...)` assertions for false edges that homograph contamination would surface, alongside the positive snapshot.
+
 ## Import Strategy
 
 1. Validate on small known fixtures first, especially `bread`, `beer`, `father`, `wine`, and `cheese`.
-2. Extract local seed JSONL files with `pnpm seed:extract`; generated seeds live under `wikidata_downloads/seeds/`.
+2. Extract small curated fixture seeds with `pnpm seed:extract`; generated seeds live under `wikidata_downloads/seeds/`.
 3. Preview resumable batch traversal with `pnpm import:batch-preview` before adding new write behavior.
 4. Import seed data with `pnpm import:db`, which reads `.env`, upserts nodes first, then edges, and commits per batch.
 5. Store checkpoints under `wikidata_downloads/checkpoints/` with source path, next line number, next byte offset, batch size, processed counts, and update time.
 6. Track malformed records and skipped templates separately instead of silently discarding import problems.
 7. Keep graph extraction logic in `packages/importer` and shared graph constants/types in `packages/graph`.
 8. Add database indexes for node lookup by `(lang_code, normalized_word)` and edge traversal by both endpoints and edge type.
+9. For launch-scale data, prefer committed seed-word sources plus `pnpm seed:extract:popular` or bounded hub-language expansion over attempting a blind full-dump database import.
+
+## Graph Regression Tests
+
+- When a graph looks wrong for a specific term, use TDD where possible: add the trimmed fixture and focused Vitest case first, run `pnpm test:importer` to confirm the test fails for the expected reason, then change extraction/traversal logic and rerun until it passes.
+- For real broken terms, store trimmed real Wiktextract fixtures under `packages/importer/src/fixtures/wiktextract/`; use a single object for one-entry conversion bugs and an array of entries for merged-neighborhood bugs.
+- Keep real `etymology_text`, `etymology_templates`, `descendants`, `derived`, `word`, `lang`, `lang_code`, `pos`, and `etymology_number` when relevant.
+- Assert compact edge IDs with Vitest inline snapshots, and add explicit `expect(edgeIds).not.toContain(...)` checks for false edges that must not return.
+- Prefer testing edge ID snapshots over snapshotting whole previews so fixture intent stays readable.
+- Run `pnpm test:importer`, which uses Vitest, after adding or changing graph conversion regressions.
 
 ## Current Import Commands
 
@@ -55,5 +85,13 @@ This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Po
 - Seed profiles live in `packages/importer/src/seed-profiles.ts`; use named profiles such as `core`, `loanwords`, `doublets`, `broadStress`, `highDescendantCandidates`, and `stress` instead of storing large target lists in environment variables.
 - Use `SEED_TARGETS` only for ad hoc additions to a selected profile; set `SEED_TARGETS_MODE=replace` when intentionally ignoring profile targets.
 - For larger local UI/API stress testing, run `pnpm seed:extract:stress`, `pnpm import:batch-preview:stress`, and `pnpm import:db:stress`.
+- For broader committed seed data, run `pnpm seed:extract:popular`, `pnpm import:batch-preview:popular`, and `pnpm import:db:popular`.
+- Popular extraction reads `data/seed-words/thousand-most-common-words/` and `data/seed-words/corpora/` by default, streams the raw Wiktextract dump once, and writes `wikidata_downloads/seeds/popular-seed.jsonl`.
+- Override popular seed directories only for experiments with `POPULAR_WORDS_DIRS` as a comma-separated list. Do not reintroduce local-only defaults such as `wikidata_downloads/popular-words`.
+- To grow a more connected graph, run `pnpm seed:expand:popular`, `pnpm import:batch-preview:popular-expanded`, and `pnpm import:db:popular-expanded`.
+- Popular expansion starts from committed seed targets, discovers only structured extracted nodes in configured hub languages, writes `wikidata_downloads/seeds/popular-expanded-seed.jsonl`, and persists `wikidata_downloads/checkpoints/popular-expansion-frontier.json`.
+- Default expansion hub languages include `la`, `grc`, `sa`, `ae`, `ave`, `ine-pro`, `iir-pro`, `ira-pro`, `gem-pro`, `gmw-pro`, `itc-pro`, `cel-pro`, and `sla-pro`; tune with `EXPANSION_HUB_LANG_CODES`, `EXPANSION_MAX_DEPTH`, and `EXPANSION_MAX_TARGETS`.
 - Database import defaults to `IMPORT_INPUT_PATH=../../wikidata_downloads/seeds/core-seed.jsonl` and `IMPORT_CHECKPOINT_PATH=../../wikidata_downloads/checkpoints/import-db.json`.
-- Before importing into a fresh database, load `db/migrations/001_initial_graph.sql` against `DATABASE_URL`.
+- Popular database import uses `IMPORT_INPUT_PATH=../../wikidata_downloads/seeds/popular-seed.jsonl` and `IMPORT_CHECKPOINT_PATH=../../wikidata_downloads/checkpoints/popular-import-db.json`.
+- Popular expanded import uses `IMPORT_INPUT_PATH=../../wikidata_downloads/seeds/popular-expanded-seed.jsonl` and `IMPORT_CHECKPOINT_PATH=../../wikidata_downloads/checkpoints/popular-expanded-import-db.json`.
+- Before importing into a fresh database, apply every numbered migration in `db/migrations/` in order. Current set: `001_initial_graph.sql`, `002_languages.sql`, `003_lexical_entries.sql`, and `004_edge_entry_attribution.sql`. Migration `004` truncates `graph_nodes` cascade and adds the `originating_entry_id` column, so reapplying it against an existing DB forces a full reimport.

@@ -1,19 +1,33 @@
 import type {
+  AncestorPathQuery,
+  AncestorPathResult,
   AncestorsQuery,
   AncestorsResult,
   ChildTermsQuery,
   ChildTermsResult,
+  DoubletGroupsQuery,
+  DoubletGroupsResult,
   DoubletsQuery,
   DoubletsResult,
   LanguagesResult,
   SearchTermsQuery,
-  SearchTermsResult
+  SearchTermsResult,
+  TermEntriesQuery,
+  TermEntriesResult,
+  TermsWithAncestorLanguageQuery,
+  TermsWithAncestorLanguageResult
 } from "@etymology-graph/graph";
 
 export type GraphRepository = {
   listLanguages(): Promise<LanguagesResult>;
   searchTerms(query: SearchTermsQuery): Promise<SearchTermsResult>;
+  listTermEntries(query: TermEntriesQuery): Promise<TermEntriesResult>;
   findAncestors(query: AncestorsQuery): Promise<AncestorsResult>;
+  findAncestorPath(query: AncestorPathQuery): Promise<AncestorPathResult>;
   findChildTerms(query: ChildTermsQuery): Promise<ChildTermsResult>;
   findDoublets(query: DoubletsQuery): Promise<DoubletsResult>;
+  findDoubletGroups(query: DoubletGroupsQuery): Promise<DoubletGroupsResult>;
+  findTermsWithAncestorLanguage(
+    query: TermsWithAncestorLanguageQuery
+  ): Promise<TermsWithAncestorLanguageResult>;
 };

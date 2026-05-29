@@ -1,0 +1,245 @@
+[
+  {
+    "word": "cap",
+    "lang": "English",
+    "lang_code": "en",
+    "pos": "noun",
+    "etymology_number": 1,
+    "etymology_text": "Etymology tree\nLate Latin [Term?]?\nLate Latin cappabor.\nProto-West Germanic *kappā\nProto-West Germanic *kappijā\nOld English cæppe\nMiddle English cappe\nEnglish cap\nInherited from Middle English cappe, from Old English cæppe, from Proto-West Germanic *kappā (“covering, hood, mantle”), from Late Latin cappa, itself from Latin caput. Doublet of cape, chape, and cope.",
+    "etymology_templates": [
+      {
+        "name": "etymon",
+        "args": {
+          "1": "en",
+          "2": ":inh",
+          "3": "enm:cappe",
+          "id": "hat",
+          "tree": "1"
+        },
+        "expansion": "Etymology tree\nLate Latin [Term?]?\nLate Latin cappabor.\nProto-West Germanic *kappā\nProto-West Germanic *kappijā\nOld English cæppe\nMiddle English cappe\nEnglish cap\n[Appendix:Glossary#loanword|Borrowed]] from\", \"terms\" : [ { \"children\" : [ { \"terms\" : [ { \"is_uncertain\" : true, \"lang_name\" : \"Late Latin\", \"status\" : \"ok\", \"children\" : [ ], \"lang\" : \"la-lat\" } ], \"keyword_label\" : \"From\", \"keyword\" : \"from\" } ], \"lang_name\" : \"Late Latin\", \"term\" : \"cappa\", \"status\" : \"ok\", \"lang\" : \"la-lat\" } ], \"keyword\" : \"bor\" } ], \"lang_name\" : \"Proto-West Germanic\", \"term\" : \"*kappā\", \"status\" : \"ok\", \"lang\" : \"gmw-pro\" } ], \"keyword_label\" : \"From\", \"keyword\" : \"from\" } ], \"lang_name\" : \"Proto-West Germanic\", \"term\" : \"*kappijā\", \"status\" : \"inline\", \"lang\" : \"gmw-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Old English\", \"term\" : \"cæppe\", \"status\" : \"ok\", \"lang\" : \"ang\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Middle English\", \"term\" : \"cappe\", \"status\" : \"ok\", \"lang\" : \"enm\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"English\", \"term\" : \"cap\", \"lang\" : \"en\" }\" data-id=\"hat\" data-lang=\"en\" data-title=\"cap\" id=\"English:_hat\">"
+      },
+      {
+        "name": "root",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*kap-"
+        },
+        "expansion": ""
+      },
+      {
+        "name": "root",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*kap-",
+          "id1": "head"
+        },
+        "expansion": ""
+      },
+      {
+        "name": "dercat",
+        "args": {
+          "1": "en",
+          "2": "itc-pro"
+        },
+        "expansion": ""
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "enm",
+          "3": "cappe"
+        },
+        "expansion": "Middle English cappe"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "ang",
+          "3": "cæppe"
+        },
+        "expansion": "Old English cæppe"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gmw-pro",
+          "3": "*kappā",
+          "t": "covering, hood, mantle"
+        },
+        "expansion": "Proto-West Germanic *kappā (“covering, hood, mantle”)"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "la-lat",
+          "3": "cappa",
+          "4": ""
+        },
+        "expansion": "Late Latin cappa"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "la",
+          "3": "caput",
+          "4": ""
+        },
+        "expansion": "Latin caput"
+      },
+      {
+        "name": "doublet",
+        "args": {
+          "1": "en",
+          "2": "cape",
+          "3": "chape",
+          "4": "cope"
+        },
+        "expansion": "Doublet of cape, chape, and cope"
+      }
+    ],
+    "sounds": [
+      {
+        "ipa": "/kæp/"
+      }
+    ],
+    "senses": [
+      {
+        "glosses": [
+          "A close-fitting hat, either brimless or peaked."
+        ]
+      }
+    ]
+  },
+  {
+    "word": "chief",
+    "lang": "English",
+    "lang_code": "en",
+    "pos": "noun",
+    "etymology_text": "From Middle English cheef, chef, from Old French chef, chief (“leader”), from Vulgar Latin capus, from Latin caput (“head”) (from which also captain, chieftain), from Proto-Italic *kaput, from Proto-Indo-European *káput.\nDoublet of cape (“point of land”), capo, caput, and chef through Latin (possibly also related to cape (“sleeveless garment”) and cap (“head covering”) from Latin cappa); doublet of head and Howth through Proto-Indo-European.",
+    "etymology_templates": [
+      {
+        "name": "root",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*kap-"
+        },
+        "expansion": ""
+      },
+      {
+        "name": "root",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*kap-",
+          "id1": "head"
+        },
+        "expansion": ""
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "enm",
+          "3": "cheef"
+        },
+        "expansion": "Middle English cheef"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "fro",
+          "3": "chef"
+        },
+        "expansion": "Old French chef"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "la-vul",
+          "3": "capus"
+        },
+        "expansion": "Vulgar Latin capus"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "la",
+          "3": "caput",
+          "t": "head"
+        },
+        "expansion": "Latin caput (“head”)"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "itc-pro",
+          "3": "*kaput"
+        },
+        "expansion": "Proto-Italic *kaput"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*káput"
+        },
+        "expansion": "Proto-Indo-European *káput"
+      },
+      {
+        "name": "doublet",
+        "args": {
+          "1": "en",
+          "2": "cape",
+          "3": "capo",
+          "4": "caput",
+          "5": "chef",
+          "t1": "point of land"
+        },
+        "expansion": "Doublet of cape (“point of land”), capo, caput, and chef"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "la",
+          "2": "cappa"
+        },
+        "expansion": "Latin cappa"
+      },
+      {
+        "name": "doublet",
+        "args": {
+          "1": "en",
+          "2": "head",
+          "3": "Howth",
+          "notext": "1"
+        },
+        "expansion": "head and Howth"
+      }
+    ],
+    "sounds": [
+      {
+        "ipa": "/t͡ʃiːf/"
+      }
+    ],
+    "senses": [
+      {
+        "glosses": [
+          "The leader or head of a tribe, organisation, business unit, or other group."
+        ]
+      }
+    ]
+  }
+]

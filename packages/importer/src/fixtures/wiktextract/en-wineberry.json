@@ -1,0 +1,459 @@
+{
+  "senses": [
+    {
+      "categories": [
+        "English poetic terms",
+        "English terms with obsolete senses"
+      ],
+      "links": [
+        [
+          "grape",
+          "grape"
+        ],
+        [
+          "fruit",
+          "fruit#English"
+        ],
+        [
+          "plant",
+          "plant#English"
+        ],
+        [
+          "Vitis",
+          "Vitis#Translingual"
+        ]
+      ],
+      "raw_glosses": [
+        "(obsolete, possibly poetic) The grape (fruit of plants of the genus Vitis)."
+      ],
+      "glosses": [
+        "The grape (fruit of plants of the genus Vitis)."
+      ],
+      "tags": [
+        "obsolete",
+        "poetic",
+        "possibly"
+      ]
+    },
+    {
+      "categories": [
+        "Entries missing English vernacular names of taxa",
+        "Entries using missing taxonomic name (species)"
+      ],
+      "glosses": [
+        "The plant Rubus phoenicolasius, the Japanese wineberry."
+      ]
+    },
+    {
+      "categories": [
+        "Entries missing English vernacular names of taxa",
+        "Entries using missing taxonomic name (species)"
+      ],
+      "glosses": [
+        "The plant Rubus phoenicolasius, the Japanese wineberry.",
+        "Its edible fruit, resembling a raspberry."
+      ],
+      "links": [
+        [
+          "edible",
+          "edible"
+        ],
+        [
+          "fruit",
+          "fruit"
+        ],
+        [
+          "raspberry",
+          "raspberry"
+        ]
+      ]
+    },
+    {
+      "categories": [
+        "Entries using missing taxonomic name (species)"
+      ],
+      "links": [
+        [
+          "endemic",
+          "endemic"
+        ],
+        [
+          "New Zealand",
+          "New Zealand"
+        ]
+      ],
+      "glosses": [
+        "The tree Aristotelia serrata, endemic to New Zealand, with broad rose-coloured leaves."
+      ]
+    },
+    {
+      "categories": [
+        "Entries using missing taxonomic name (species)"
+      ],
+      "links": [
+        [
+          "endemic",
+          "endemic"
+        ],
+        [
+          "New Zealand",
+          "New Zealand"
+        ],
+        [
+          "berry",
+          "berry"
+        ]
+      ],
+      "glosses": [
+        "The tree Aristotelia serrata, endemic to New Zealand, with broad rose-coloured leaves.",
+        "Its edible fruit, a small black berry."
+      ]
+    },
+    {
+      "categories": [
+        "British English",
+        "English terms with obsolete senses"
+      ],
+      "links": [
+        [
+          "red currant",
+          "red currant"
+        ]
+      ],
+      "raw_glosses": [
+        "(UK, obsolete) The red currant."
+      ],
+      "glosses": [
+        "The red currant."
+      ],
+      "tags": [
+        "UK",
+        "obsolete"
+      ]
+    }
+  ],
+  "pos": "noun",
+  "head_templates": [
+    {
+      "name": "en-noun",
+      "args": {},
+      "expansion": "wineberry (plural wineberries)"
+    }
+  ],
+  "categories": [
+    "English compound terms",
+    "English countable nouns",
+    "English doublets",
+    "English entries with etymology trees",
+    "English entries with incorrect language header",
+    "English lemmas",
+    "English nouns",
+    "English terms derived from Latin",
+    "English terms derived from Middle English",
+    "English terms derived from Old English",
+    "English terms derived from Proto-Germanic",
+    "English terms derived from Proto-Indo-European",
+    "English terms derived from Proto-Italic",
+    "English terms derived from Proto-West Germanic",
+    "English terms derived from the Proto-Indo-European root *weh₁y-",
+    "English terms derived from the Proto-Indo-European word *wéyh₁ō",
+    "English terms inherited from Middle English",
+    "English terms inherited from Old English",
+    "English terms inherited from Proto-Germanic",
+    "English terms inherited from Proto-West Germanic",
+    "Entries with translation boxes",
+    "Pages using etymon with no ID",
+    "Pages with 1 entry",
+    "Pages with entries",
+    "Pages with etymology trees",
+    "Terms with Czech translations",
+    "Terms with Dutch translations",
+    "Terms with Finnish translations",
+    "Terms with French translations",
+    "Terms with Galician translations",
+    "Terms with German translations",
+    "Terms with Italian translations",
+    "Terms with Māori translations",
+    "Terms with Russian translations",
+    "Terms with Spanish translations",
+    "Terms with Swedish translations",
+    "Terms with West Frisian translations",
+    "en:Berries",
+    "en:Brambles",
+    "en:Grapevines",
+    "en:Oxalidales order plants",
+    "en:Saxifragales order plants"
+  ],
+  "forms": [
+    {
+      "form": "wineberries",
+      "tags": [
+        "plural"
+      ]
+    }
+  ],
+  "translations": [
+    {
+      "lang": "Czech",
+      "code": "cs",
+      "lang_code": "cs",
+      "sense": "Japanese wineberry",
+      "word": "ostružiník japonský"
+    },
+    {
+      "lang": "Dutch",
+      "code": "nl",
+      "lang_code": "nl",
+      "sense": "Japanese wineberry",
+      "tags": [
+        "feminine"
+      ],
+      "word": "Japanse wijnbes"
+    },
+    {
+      "lang": "Finnish",
+      "code": "fi",
+      "lang_code": "fi",
+      "sense": "Japanese wineberry",
+      "word": "Japaninvatukka"
+    },
+    {
+      "lang": "French",
+      "code": "fr",
+      "lang_code": "fr",
+      "sense": "Japanese wineberry",
+      "tags": [
+        "masculine"
+      ],
+      "word": "framboisier du Japon"
+    },
+    {
+      "lang": "West-Frisian",
+      "code": "fy",
+      "lang_code": "fy",
+      "sense": "Japanese wineberry",
+      "tags": [
+        "feminine",
+        "masculine"
+      ],
+      "word": "japanske wynbei"
+    },
+    {
+      "lang": "Galician",
+      "code": "gl",
+      "lang_code": "gl",
+      "sense": "Japanese wineberry",
+      "tags": [
+        "feminine"
+      ],
+      "word": "uva xaponesa"
+    },
+    {
+      "lang": "German",
+      "code": "de",
+      "lang_code": "de",
+      "sense": "Japanese wineberry",
+      "tags": [
+        "feminine"
+      ],
+      "word": "japanische Weinbeere"
+    },
+    {
+      "lang": "German",
+      "code": "de",
+      "lang_code": "de",
+      "sense": "Japanese wineberry",
+      "tags": [
+        "feminine"
+      ],
+      "word": "rotborstige Himbeere"
+    },
+    {
+      "lang": "Italian",
+      "code": "it",
+      "lang_code": "it",
+      "sense": "Japanese wineberry",
+      "tags": [
+        "feminine"
+      ],
+      "word": "uva giapponese"
+    },
+    {
+      "lang": "Māori",
+      "code": "mi",
+      "lang_code": "mi",
+      "sense": "Japanese wineberry",
+      "word": "makomako"
+    },
+    {
+      "lang": "Russian",
+      "code": "ru",
+      "lang_code": "ru",
+      "sense": "Japanese wineberry",
+      "roman": "malina purpurnoplodnaja",
+      "tags": [
+        "feminine"
+      ],
+      "word": "малина пурпурноплодная"
+    },
+    {
+      "lang": "Russian",
+      "code": "ru",
+      "lang_code": "ru",
+      "sense": "Japanese wineberry",
+      "roman": "malina japonskaja",
+      "tags": [
+        "feminine"
+      ],
+      "word": "малина японская"
+    },
+    {
+      "lang": "Spanish",
+      "code": "es",
+      "lang_code": "es",
+      "sense": "Japanese wineberry",
+      "tags": [
+        "feminine"
+      ],
+      "word": "uva del Japón"
+    },
+    {
+      "lang": "Swedish",
+      "code": "sv",
+      "lang_code": "sv",
+      "sense": "Japanese wineberry",
+      "word": "vinhallon"
+    }
+  ],
+  "etymology_text": "Etymology tree\nProto-Indo-European *weh₁y-?\nProto-Indo-European *-ō?\nProto-Indo-European *wéyh₁ō\nProto-Italic *wīnom\nLatin vīnumbor.\nProto-Germanic *wīną\nProto-Germanic *bazją\nProto-Germanic *wīnabazją\nProto-West Germanic *wīnabaʀi\nOld English wīnberġe\nMiddle English wynberie\nEnglish wineberry\nFrom Middle English wynberie, wynberie (“a grape or some other kind of berry”), from Old English wīnberġe (“grape”, literally “wine-berry”), from Proto-West Germanic *wīnabaʀi, from Proto-Germanic *wīnabasją (“wineberry; grape”), equivalent to wine + berry. Doublet of whimberry (“bilberry”).\nCognate with Dutch wijnbeer, West Frisian wynbei (“grape”), wiemer (“currant”), German Weinbeere (“grape”), Swedish vinbär (“currant”), Icelandic vínber (“grape”), Gothic 𐍅𐌴𐌹𐌽𐌰𐌱𐌰𐍃𐌹 (weinabasi, “grape”).",
+  "etymology_templates": [
+    {
+      "name": "etymon",
+      "args": {
+        "1": "en",
+        "2": ":inh",
+        "3": "enm:winberie<alt:wynberie>",
+        "4": ":afeq",
+        "5": "wine",
+        "6": "berry<id:fruit>",
+        "tree": "1"
+      },
+      "expansion": "Etymology tree\nProto-Indo-European *weh₁y-?\nProto-Indo-European *-ō?\nProto-Indo-European *wéyh₁ō\nProto-Italic *wīnom\nLatin vīnumbor.\nProto-Germanic *wīną\nProto-Germanic *bazją\nProto-Germanic *wīnabazją\nProto-West Germanic *wīnabaʀi\nOld English wīnberġe\nMiddle English wynberie\nEnglish wineberry\n[Appendix:Glossary#loanword|Borrowed]] from\", \"terms\" : [ { \"children\" : [ { \"terms\" : [ { \"children\" : [ { \"terms\" : [ { \"children\" : [ { \"terms\" : [ { \"is_uncertain\" : true, \"children\" : [ ], \"lang_name\" : \"Proto-Indo-European\", \"term\" : \"*weh₁y-\", \"status\" : \"ok\", \"lang\" : \"ine-pro\" } ], \"keyword_label\" : \"From\", \"keyword\" : \"from\" }, { \"terms\" : [ { \"is_uncertain\" : true, \"children\" : [ ], \"lang_name\" : \"Proto-Indo-European\", \"term\" : \"*-ō\", \"status\" : \"ok\", \"lang\" : \"ine-pro\" } ], \"keyword_label\" : \"From\", \"is_group\" : true, \"keyword\" : \"affix\" } ], \"lang_name\" : \"Proto-Indo-European\", \"term\" : \"*wéyh₁ō\", \"status\" : \"ok\", \"lang\" : \"ine-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Proto-Italic\", \"term\" : \"*wīnom\", \"status\" : \"ok\", \"lang\" : \"itc-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Latin\", \"term\" : \"vīnum\", \"status\" : \"ok\", \"lang\" : \"la\" } ], \"keyword\" : \"bor\" } ], \"lang_name\" : \"Proto-Germanic\", \"term\" : \"*wīną\", \"status\" : \"ok\", \"lang\" : \"gem-pro\" }, { \"children\" : [ ], \"lang_name\" : \"Proto-Germanic\", \"term\" : \"*bazją\", \"status\" : \"ok\", \"lang\" : \"gem-pro\" } ], \"keyword_label\" : \"From\", \"is_group\" : true, \"keyword\" : \"affix\" } ], \"lang_name\" : \"Proto-Germanic\", \"term\" : \"*wīnabasją\", \"status\" : \"ok\", \"lang\" : \"gem-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" }, { \"terms\" : [ { \"children\" : [ { \"terms\" : [ { \"is_duplicate\" : true, \"children\" : [ ], \"status\" : [ \"gem-pro\", \":bor\", \"la:vīnum\" ], \"lang_name\" : \"Proto-Germanic\", \"term\" : \"*wīną\", \"lang\" : \"gem-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Proto-West Germanic\", \"term\" : \"*wīn\", \"status\" : \"ok\", \"lang\" : \"gmw-pro\" }, { \"children\" : [ { \"terms\" : [ { \"is_duplicate\" : true, \"id\" : \"berry\", \"children\" : [ ], \"status\" : { \"1\" : \"gem-pro\", \"id\" : \"berry\" }, \"lang_name\" : \"Proto-Germanic\", \"term\" : \"*bazją\", \"lang\" : \"gem-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Proto-West Germanic\", \"term\" : \"*baʀi\", \"status\" : \"ok\", \"lang\" : \"gmw-pro\" } ], \"is_group\" : true, \"keyword\" : \"afeq\", \"is_invisible\" : \"all\" } ], \"lang_name\" : \"Proto-West Germanic\", \"term\" : \"*wīnabaʀi\", \"status\" : \"ok\", \"lang\" : \"gmw-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" }, { \"terms\" : [ { \"children\" : [ { \"terms\" : [ { \"is_duplicate\" : true, \"children\" : [ ], \"status\" : [ \"gmw-pro\", \":inh\", \"gem-pro:*wīną\" ], \"lang_name\" : \"Proto-West Germanic\", \"term\" : \"*wīn\", \"lang\" : \"gmw-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Old English\", \"term\" : \"wīn\", \"status\" : \"ok\", \"lang\" : \"ang\" }, { \"children\" : [ { \"terms\" : [ { \"is_duplicate\" : true, \"id\" : \"berry\", \"children\" : [ ], \"status\" : { \"1\" : \"gmw-pro\", \"2\" : \":inh\", \"3\" : \"gem-pro:*bazją<id:berry>\", \"id\" : \"berry\" }, \"lang_name\" : \"Proto-West Germanic\", \"term\" : \"*baʀi\", \"lang\" : \"gmw-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Old English\", \"term\" : \"berġe\", \"status\" : \"ok\", \"lang\" : \"ang\" } ], \"is_group\" : true, \"keyword\" : \"afeq\", \"is_invisible\" : \"all\" } ], \"lang_name\" : \"Old English\", \"term\" : \"wīnberġe\", \"status\" : \"ok\", \"lang\" : \"ang\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" }, { \"terms\" : [ { \"alt\" : \"win\", \"children\" : [ { \"terms\" : [ { \"is_duplicate\" : true, \"children\" : [ ], \"status\" : [ \"ang\", \":inh\", \"gmw-pro:*wīn\" ], \"lang_name\" : \"Old English\", \"term\" : \"wīn\", \"lang\" : \"ang\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Middle English\", \"term\" : \"wyn\", \"status\" : \"ok\", \"lang\" : \"enm\" }, { \"alt\" : \"berie\", \"children\" : [ ], \"lang_name\" : \"Middle English\", \"term\" : \"berye\", \"status\" : \"missing\", \"lang\" : \"enm\" } ], \"is_group\" : true, \"keyword\" : \"afeq\", \"is_invisible\" : \"all\" } ], \"lang_name\" : \"Middle English\", \"term\" : \"winberie\", \"status\" : \"ok\", \"lang\" : \"enm\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" }, { \"terms\" : [ { \"children\" : [ { \"terms\" : [ { \"is_duplicate\" : true, \"id\" : \"wine\", \"children\" : [ ], \"status\" : { \"1\" : \"enm\", \"2\" : \":inh\", \"3\" : \"ang:wīn\", \"id\" : \"wine\" }, \"lang_name\" : \"Middle English\", \"term\" : \"wyn\", \"lang\" : \"enm\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"English\", \"term\" : \"wine\", \"status\" : \"ok\", \"lang\" : \"en\" }, { \"id\" : \"fruit\", \"children\" : [ { \"terms\" : [ { \"id\" : \"berry\", \"children\" : [ ], \"status\" : \"missing\", \"lang_name\" : \"Middle English\", \"term\" : \"berye\", \"lang\" : \"enm\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"English\", \"term\" : \"berry\", \"lang\" : \"en\" } ], \"is_group\" : true, \"keyword\" : \"afeq\", \"is_invisible\" : \"all\" } ], \"lang_name\" : \"English\", \"term\" : \"wineberry\", \"status\" : \"ok\", \"lang\" : \"en\" }\" data-lang=\"en\" data-title=\"wineberry\">"
+    },
+    {
+      "name": "inh",
+      "args": {
+        "1": "en",
+        "2": "enm",
+        "3": "winberie",
+        "4": "wynberie"
+      },
+      "expansion": "Middle English wynberie"
+    },
+    {
+      "name": "inh",
+      "args": {
+        "1": "en",
+        "2": "ang",
+        "3": "wīnberġe",
+        "t": "grape",
+        "lit": "wine-berry"
+      },
+      "expansion": "Old English wīnberġe (“grape”, literally “wine-berry”)"
+    },
+    {
+      "name": "inh",
+      "args": {
+        "1": "en",
+        "2": "gmw-pro",
+        "3": "*wīnabaʀi"
+      },
+      "expansion": "Proto-West Germanic *wīnabaʀi"
+    },
+    {
+      "name": "inh",
+      "args": {
+        "1": "en",
+        "2": "gem-pro",
+        "3": "*wīnabasją",
+        "t": "wineberry; grape"
+      },
+      "expansion": "Proto-Germanic *wīnabasją (“wineberry; grape”)"
+    },
+    {
+      "name": "compound",
+      "args": {
+        "1": "en",
+        "2": "wine",
+        "3": "berry"
+      },
+      "expansion": "wine + berry"
+    },
+    {
+      "name": "doublet",
+      "args": {
+        "1": "en",
+        "2": "whimberry",
+        "t1": "bilberry"
+      },
+      "expansion": "Doublet of whimberry (“bilberry”)"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "nl",
+        "2": "wijnbeer"
+      },
+      "expansion": "Dutch wijnbeer"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "fy",
+        "2": "wynbei",
+        "3": "",
+        "t": "grape"
+      },
+      "expansion": "West Frisian wynbei (“grape”)"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "de",
+        "2": "Weinbeere",
+        "t": "grape"
+      },
+      "expansion": "German Weinbeere (“grape”)"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "sv",
+        "2": "vinbär",
+        "t": "currant"
+      },
+      "expansion": "Swedish vinbär (“currant”)"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "is",
+        "2": "vínber",
+        "t": "grape"
+      },
+      "expansion": "Icelandic vínber (“grape”)"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "got",
+        "2": "𐍅𐌴𐌹𐌽𐌰𐌱𐌰𐍃𐌹",
+        "t": "grape"
+      },
+      "expansion": "Gothic 𐍅𐌴𐌹𐌽𐌰𐌱𐌰𐍃𐌹 (weinabasi, “grape”)"
+    }
+  ],
+  "word": "wineberry",
+  "lang": "English",
+  "lang_code": "en"
+}

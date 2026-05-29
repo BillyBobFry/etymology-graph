@@ -48,19 +48,20 @@ English · /ˈɒɹ.ɪnd͡ʒ/ Received Pronunciation · noun · orange fruit
 
 ## Intentional Non-Goals
 
-MS1 does not add lexical-entry selection. Users still search for and open graph nodes by language and term, not by `pos` or `etymology_number`.
-
-MS1 does not filter graph traversal by lexical entry or etymology section. The imported edges still attach to graph nodes, with `etymology_number` preserved on edges where available.
-
 MS1 does not normalize pronunciations and senses into separate relational tables. Full pronunciation and sense data is stored as JSONB on `lexical_entries`, with summary columns for current UI/API needs. Split this later if the app needs to query individual senses, filter by accent, search definitions, or add pronunciation-specific features.
 
 MS1 does not add audio playback, pronunciation preference settings, sense tabs, synonym/hypernym graphs, translations, or derived-term expansion.
 
+## Shipped Follow-Ups
+
+The homograph-identity project (see `docs/projects/homographNodeIdentity.md`) extended this layer:
+
+- `/api/term-entries` exposes every lexical entry for a term, and `EntryChooser.vue` surfaces homograph entries in the UI.
+- Ancestor, child, and doublet queries accept optional `pos` and `etymologyNumber` and pick a deterministic anchor entry when they are omitted.
+- `graph_edges.originating_entry_id` attributes each edge to a lexical entry, so traversal stays within a chosen entry's history instead of crossing through unrelated homograph nodes.
+
 ## Later Follow-Up Ideas
 
-- Add a term detail API that returns full lexical entries for a selected node.
-- Let users choose a specific lexical entry when a term has multiple etymologies or parts of speech.
-- Thread selected lexical entry IDs into ancestor/descendant traversal so unrelated homograph histories do not merge.
 - Promote `lexical_pronunciations` and `lexical_senses` to separate tables if filtering, search, or analytics need them.
 - Add audio playback using the preserved Wiktextract audio URLs.
 - Add preferred pronunciation labels by locale, for example Received Pronunciation, General American, Australian, or regional variants.

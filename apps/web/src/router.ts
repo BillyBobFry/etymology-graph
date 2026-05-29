@@ -1,11 +1,12 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 
-import DoubletsSearchView from "./DoubletsSearchView.vue";
-import DoubletsView from "./DoubletsView.vue";
-import EtymologySearchView from "./EtymologySearchView.vue";
-import EtymologyView from "./EtymologyView.vue";
-import HomeView from "./HomeView.vue";
-import NotFoundView from "./NotFoundView.vue";
+import AncestorLanguageSearchView from "./views/AncestorLanguageSearchView.vue";
+import DoubletsSearchView from "./views/DoubletsSearchView.vue";
+import DoubletsView from "./views/DoubletsView.vue";
+import EtymologySearchView from "./views/EtymologySearchView.vue";
+import EtymologyView from "./views/EtymologyView.vue";
+import HomeView from "./views/HomeView.vue";
+import NotFoundView from "./views/NotFoundView.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -29,9 +30,24 @@ const routes: RouteRecordRaw[] = [
     component: DoubletsSearchView
   },
   {
+    path: "/doublets/:langCode",
+    name: "doublet-groups",
+    component: DoubletsSearchView
+  },
+  {
     path: "/doublets/:langCode/:term",
     name: "doublets",
     component: DoubletsView
+  },
+  {
+    path: "/ancestor-languages",
+    name: "ancestor-language-search",
+    component: AncestorLanguageSearchView
+  },
+  {
+    path: "/ancestor-languages/:langCode/:ancestorLangCode",
+    name: "ancestor-language-results",
+    component: AncestorLanguageSearchView
   },
   {
     path: "/:pathMatch(.*)*",

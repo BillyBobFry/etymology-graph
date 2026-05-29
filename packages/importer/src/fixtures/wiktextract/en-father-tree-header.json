@@ -1,0 +1,30 @@
+{
+  "word": "father",
+  "lang": "English",
+  "lang_code": "en",
+  "pos": "noun",
+  "etymology_text": "Etymology tree\nProto-Indo-European *peh₂-?\nProto-Indo-European *-tḗr\nProto-Indo-European *ph₂tḗr\nProto-Germanic *fadēr\nProto-West Germanic *fader\nOld English fæder\nMiddle English fader\nEnglish father\nInherited from Middle English fader, from Old English fæder, from Proto-West Germanic *fader, from Proto-Germanic *fadēr, from Proto-Indo-European *ph₂tḗr, from possibly *peh₂- + *-tḗr. Doublet of ayr, faeder, athair, padre, pater, and père.",
+  "etymology_templates": [
+    {
+      "name": "root",
+      "args": {
+        "1": "en",
+        "2": "ine-pro",
+        "3": "*peh₂-"
+      },
+      "expansion": ""
+    },
+    {
+      "name": "etymon",
+      "args": {
+        "1": "en",
+        "id": "male parent",
+        "2": ":inh",
+        "3": "enm:fader<id:father>",
+        "tree": "1",
+        "text": "++"
+      },
+      "expansion": "Etymology tree\nProto-Indo-European *peh₂-?\nProto-Indo-European *-tḗr\nProto-Indo-European *ph₂tḗr\nProto-Germanic *fadēr\nProto-West Germanic *fader\nOld English fæder\nMiddle English fader\nEnglish father\n[Appendix:Glossary#inherited|Inherited]] from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"Proto-Germanic\", \"term\" : \"*fadēr\", \"lang\" : \"gem-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"Proto-West Germanic\", \"term\" : \"*fader\", \"lang\" : \"gmw-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"Old English\", \"term\" : \"fæder\", \"lang\" : \"ang\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"Middle English\", \"term\" : \"fader\", \"lang\" : \"enm\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"English\", \"term\" : \"father\", \"lang\" : \"en\" }\" data-id=\"male parent\" data-lang=\"en\" data-title=\"father\" id=\"English:_male_parent\">\nInherited from Middle English fader, from Old English fæder, from Proto-West Germanic *fader, from Proto-Germanic *fadēr, from Proto-Indo-European *ph₂tḗr, from possibly *peh₂- + *-tḗr."
+    }
+  ]
+}

@@ -3,14 +3,15 @@ type IconButtonVariant = "ghost" | "secondary";
 type IconButtonSize = "xs" | "sm" | "md";
 type IconButtonType = "button" | "submit" | "reset";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     label: string;
     variant?: IconButtonVariant;
     size?: IconButtonSize;
     type?: IconButtonType;
-    disabled?: boolean | 'true' | 'false';
-    active?: boolean | 'true' | 'false';
+    href?: string;
+    disabled?: boolean | "true" | "false";
+    active?: boolean | "true" | "false";
   }>(),
   {
     variant: "ghost",
@@ -23,8 +24,8 @@ withDefaults(
 
 
 const variantClasses: Record<IconButtonVariant, string> = {
-  ghost: "border-transparent bg-transparent text-text hover:bg-surface-muted hover:text-text",
-  secondary: "border-border-strong bg-surface-muted text-text hover:border-accent hover:bg-surface-raised hover:text-accent"
+  ghost: "border-transparent bg-transparent text-text hover:bg-background hover:brightness-95",
+  secondary: "border-border-strong bg-surface-muted text-text hover:border-border-strong hover:brightness-95"
 };
 
 const sizeClasses: Record<IconButtonSize, string> = {
@@ -36,14 +37,17 @@ const sizeClasses: Record<IconButtonSize, string> = {
 </script>
 
 <template>
-  <button
-    :type="type"
-    :disabled="disabled"
-    :aria-label="label"
-    :title="label"
+  <component
+    :is="props.href ? 'a' : 'button'"
+    :type="props.href ? undefined : props.type"
+    :href="props.href"
+    :disabled="props.href ? undefined : props.disabled"
+    :aria-disabled="props.href && props.disabled ? 'true' : undefined"
+    :aria-label="props.label"
+    :title="props.label"
     class="cursor-pointer inline-grid shrink-0 place-items-center rounded-full border font-label font-bold leading-none transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background  disabled:opacity-65"
-    :class="[variantClasses[variant], sizeClasses[size], active && 'bg-surface-muted!']"
+    :class="[variantClasses[props.variant], sizeClasses[props.size], props.active && 'bg-surface-muted!']"
   >
     <slot />
-  </button>
+  </component>
 </template>

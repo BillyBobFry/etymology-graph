@@ -1,0 +1,532 @@
+[
+  {
+    "word": "ice",
+    "lang_code": "en",
+    "etymology_text": "Etymology tree\nProto-Indo-European *h₁eyH-\nProto-Indo-European *h₁eyH-so-der.\nProto-Germanic *īsą\nProto-West Germanic *īs\nOld English īs\nMiddle English is\nEnglish ice\nFrom Middle English hyse, hyys, ice, ijs, is, yce, ys, yys, from Old English īs, from Proto-West Germanic *īs, from Proto-Germanic *īsą (“ice”), from Proto-Indo-European *h₁eyH- (“ice, frost”).\nCognates\nCognate with North Frisian Iis, is (“ice”), Saterland Frisian Ies (“ice”), West Frisian iis (“ice”), Alemannic German Iis, isch, éisch (“ice”), Bavarian, Cimbrian, and Mòcheno ais (“ice”), Dutch ijs (“ice”), German Eis (“ice”), German Low German Ies (“ice”), Luxembourgish Äis (“ice”), Vilamovian ajs (“ice”), Yiddish אײַז (ayz, “ice”), Danish, Norwegian Bokmål, Norwegian Nynorsk, and Swedish is (“ice”), Elfdalian ais (“ice”), Faroese ísur (“ice”), Icelandic ís (“ice”); also Cornish yey (“ice”), yeyn (“cold”), Irish oighear (“ice”), Scottish Gaelic deigh, eigh, eighre (“ice”), Welsh iâ (“ice”), Lithuanian ýnis (“hoar frost”), Bulgarian and Russian и́ней (ínej, “hoar frost”), Czech jíní (“frost”), Macedonian and Serbo-Croatian и́ње (“hoar frost”), Ukrainian і́ній (ínij, “hoar frost, rime”), Ossetian их (ix, “ice”), Armenian եղյամ (eġyam, “frost, hoar frost, rime”), Persian یخ (yax, “ice”), Hittite 𒂊𒃷 (“ice”). Superseded non-native Middle English glace (“ice”), borrowed from Old French glace (“ice”).",
+    "etymology_templates": [
+      {
+        "name": "etymon",
+        "args": {
+          "1": "en",
+          "2": ":inh",
+          "3": "enm:is<id:ice>",
+          "tree": "1"
+        },
+        "expansion": "Etymology tree\nProto-Indo-European *h₁eyH-\nProto-Indo-European *h₁eyH-so-der.\nProto-Germanic *īsą\nProto-West Germanic *īs\nOld English īs\nMiddle English is\nEnglish ice\n[Appendix:Glossary#derived_terms|Derived]] from\", \"terms\" : [ { \"alt\" : \"*h₁eyH-so-\", \"lang_name\" : \"Proto-Indo-European\", \"status\" : \"inline\", \"children\" : [ { \"terms\" : [ { \"children\" : [ ], \"lang_name\" : \"Proto-Indo-European\", \"term\" : \"*h₁eyH-\", \"status\" : \"ok\", \"lang\" : \"ine-pro\" } ], \"keyword_label\" : \"From\", \"keyword\" : \"from\" } ], \"lang\" : \"ine-pro\" } ], \"keyword\" : \"derived\" } ], \"lang_name\" : \"Proto-Germanic\", \"term\" : \"*īsą\", \"status\" : \"ok\", \"lang\" : \"gem-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Proto-West Germanic\", \"term\" : \"*īs\", \"status\" : \"ok\", \"lang\" : \"gmw-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"Old English\", \"term\" : \"īs\", \"lang\" : \"ang\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"Middle English\", \"term\" : \"is\", \"lang\" : \"enm\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"English\", \"term\" : \"ice\", \"status\" : \"ok\", \"lang\" : \"en\" }\" data-lang=\"en\" data-title=\"ice\">"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "enm",
+          "3": "hyse"
+        },
+        "expansion": "Middle English hyse"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "ang",
+          "3": "īs"
+        },
+        "expansion": "Old English īs"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gmw-pro",
+          "3": "*īs"
+        },
+        "expansion": "Proto-West Germanic *īs"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gem-pro",
+          "3": "*īsą",
+          "t": "ice"
+        },
+        "expansion": "Proto-Germanic *īsą (“ice”)"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*h₁eyH-",
+          "t": "ice, frost"
+        },
+        "expansion": "Proto-Indo-European *h₁eyH- (“ice, frost”)"
+      },
+      {
+        "name": "col-top",
+        "args": {
+          "1": "2",
+          "2": "cog"
+        },
+        "expansion": "Cognates"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "frr",
+          "2": "Iis"
+        },
+        "expansion": "North Frisian Iis"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "stq",
+          "2": "Ies",
+          "t": "ice"
+        },
+        "expansion": "Saterland Frisian Ies (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "fy",
+          "2": "iis",
+          "t": "ice"
+        },
+        "expansion": "West Frisian iis (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "gsw",
+          "2": "Iis"
+        },
+        "expansion": "Alemannic German Iis"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "bar,cim,mhn",
+          "2": "ais",
+          "t": "ice"
+        },
+        "expansion": "Bavarian, Cimbrian, and Mòcheno ais (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "nl",
+          "2": "ijs",
+          "t": "ice"
+        },
+        "expansion": "Dutch ijs (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "de",
+          "2": "Eis",
+          "t": "ice"
+        },
+        "expansion": "German Eis (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "nds-de",
+          "2": "Ies",
+          "t": "ice"
+        },
+        "expansion": "German Low German Ies (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "lb",
+          "2": "Äis",
+          "t": "ice"
+        },
+        "expansion": "Luxembourgish Äis (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "wym",
+          "2": "ajs",
+          "t": "ice"
+        },
+        "expansion": "Vilamovian ajs (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "yi",
+          "2": "אײַז",
+          "t": "ice"
+        },
+        "expansion": "Yiddish אײַז (ayz, “ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "da,nb,nn,sv",
+          "2": "is",
+          "t": "ice"
+        },
+        "expansion": "Danish, Norwegian Bokmål, Norwegian Nynorsk, and Swedish is (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "ovd",
+          "2": "ais",
+          "t": "ice"
+        },
+        "expansion": "Elfdalian ais (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "fo",
+          "2": "ísur",
+          "t": "ice"
+        },
+        "expansion": "Faroese ísur (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "is",
+          "2": "ís",
+          "t": "ice"
+        },
+        "expansion": "Icelandic ís (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "kw",
+          "2": "yey",
+          "t": "ice"
+        },
+        "expansion": "Cornish yey (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "ga",
+          "2": "oighear",
+          "t": "ice"
+        },
+        "expansion": "Irish oighear (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "gd",
+          "2": "deigh"
+        },
+        "expansion": "Scottish Gaelic deigh"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "cy",
+          "2": "iâ",
+          "t": "ice"
+        },
+        "expansion": "Welsh iâ (“ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "lt",
+          "2": "ýnis",
+          "t": "hoar frost"
+        },
+        "expansion": "Lithuanian ýnis (“hoar frost”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "bg,ru",
+          "2": "и́ней",
+          "t": "hoar frost"
+        },
+        "expansion": "Bulgarian and Russian и́ней (ínej, “hoar frost”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "cs",
+          "2": "jíní",
+          "t": "frost"
+        },
+        "expansion": "Czech jíní (“frost”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "mk,sh",
+          "2": "и́ње",
+          "t": "hoar frost"
+        },
+        "expansion": "Macedonian and Serbo-Croatian и́ње (“hoar frost”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "uk",
+          "2": "і́ній",
+          "t": "hoar frost, rime"
+        },
+        "expansion": "Ukrainian і́ній (ínij, “hoar frost, rime”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "os",
+          "2": "их",
+          "t": "ice"
+        },
+        "expansion": "Ossetian их (ix, “ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "hy",
+          "2": "եղյամ",
+          "t": "frost, hoar frost, rime"
+        },
+        "expansion": "Armenian եղյամ (eġyam, “frost, hoar frost, rime”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "fa",
+          "2": "یخ",
+          "tr": "yax",
+          "t": "ice"
+        },
+        "expansion": "Persian یخ (yax, “ice”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "hit",
+          "2": "𒂊𒃷",
+          "t": "ice"
+        },
+        "expansion": "Hittite 𒂊𒃷 (“ice”)"
+      },
+      {
+        "name": "ncog",
+        "args": {
+          "1": "enm",
+          "2": "glace",
+          "t": "ice"
+        },
+        "expansion": "Middle English glace (“ice”)"
+      },
+      {
+        "name": "ncog",
+        "args": {
+          "1": "fro",
+          "2": "glace",
+          "t": "ice"
+        },
+        "expansion": "Old French glace (“ice”)"
+      }
+    ],
+    "lang": "English",
+    "pos": "noun"
+  },
+  {
+    "word": "is",
+    "lang_code": "en",
+    "etymology_text": "Etymology tree\nProto-Indo-European *h₁es-\nProto-Indo-European *h₁ésti\nProto-Germanic *isti\nProto-West Germanic *ist\nOld English is\nMiddle English is\nEnglish is\nFrom Middle English is, from Old English is, from Proto-West Germanic *ist, from Proto-Germanic *isti (a form of Proto-Germanic *wesaną (“to be”)), from Proto-Indo-European *h₁ésti (“is”).\nCognate with West Frisian is (“is”), Dutch is (“is”), German ist (“is”), Yiddish איז (iz, “is”), Afrikaans is (“am, are, is”) Old Swedish är, er, Old Norse er, es.\nFurther cognates include, among others, Latin est, Ancient Greek ἐστί (estí), Sanskrit अस्ति (asti), Persian است (ast), Russian есть (jestʹ), all with the same meaning.",
+    "etymology_templates": [
+      {
+        "name": "etymon",
+        "args": {
+          "1": "en",
+          "id": "be",
+          "2": ":inh",
+          "3": "enm:is<id:be>",
+          "tree": "1"
+        },
+        "expansion": "Etymology tree\nProto-Indo-European *h₁es-\nProto-Indo-European *h₁ésti\nProto-Germanic *isti\nProto-West Germanic *ist\nOld English is\nMiddle English is\nEnglish is\n[Appendix:Glossary#inherited|Inherited]] from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Proto-Germanic\", \"term\" : \"*isti\", \"status\" : \"ok\", \"lang\" : \"gem-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Proto-West Germanic\", \"term\" : \"*ist\", \"status\" : \"inline\", \"lang\" : \"gmw-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"Old English\", \"term\" : \"is\", \"lang\" : \"ang\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"Middle English\", \"term\" : \"is\", \"lang\" : \"enm\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"status\" : \"ok\", \"lang_name\" : \"English\", \"term\" : \"is\", \"lang\" : \"en\" }\" data-id=\"be\" data-lang=\"en\" data-title=\"is\" id=\"English:_be\">"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "enm",
+          "3": "is"
+        },
+        "expansion": "Middle English is"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "ang",
+          "3": "is"
+        },
+        "expansion": "Old English is"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gmw-pro",
+          "3": "*ist"
+        },
+        "expansion": "Proto-West Germanic *ist"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gem-pro",
+          "3": "*isti"
+        },
+        "expansion": "Proto-Germanic *isti"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "gem-pro",
+          "3": "*wesaną",
+          "4": "",
+          "5": "to be"
+        },
+        "expansion": "Proto-Germanic *wesaną (“to be”)"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*h₁ésti",
+          "4": "",
+          "5": "is"
+        },
+        "expansion": "Proto-Indo-European *h₁ésti (“is”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "fy",
+          "2": "is",
+          "3": "",
+          "4": "is"
+        },
+        "expansion": "West Frisian is (“is”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "nl",
+          "2": "is",
+          "3": "",
+          "4": "is"
+        },
+        "expansion": "Dutch is (“is”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "de",
+          "2": "ist",
+          "3": "",
+          "4": "is"
+        },
+        "expansion": "German ist (“is”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "yi",
+          "2": "איז",
+          "3": "",
+          "4": "is"
+        },
+        "expansion": "Yiddish איז (iz, “is”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "af",
+          "2": "is",
+          "3": "",
+          "4": "am, are, is"
+        },
+        "expansion": "Afrikaans is (“am, are, is”)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "gmq-osw",
+          "2": "är"
+        },
+        "expansion": "Old Swedish är"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "non",
+          "2": "er"
+        },
+        "expansion": "Old Norse er"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "la",
+          "2": "sum",
+          "3": "est"
+        },
+        "expansion": "Latin est"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "grc",
+          "2": "ἐστί"
+        },
+        "expansion": "Ancient Greek ἐστί (estí)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "sa",
+          "2": "अस्ति"
+        },
+        "expansion": "Sanskrit अस्ति (asti)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "fa",
+          "2": "است",
+          "3": "",
+          "tr": "ast"
+        },
+        "expansion": "Persian است (ast)"
+      },
+      {
+        "name": "cog",
+        "args": {
+          "1": "ru",
+          "2": "есть"
+        },
+        "expansion": "Russian есть (jestʹ)"
+      }
+    ],
+    "lang": "English",
+    "pos": "verb",
+    "etymology_number": 1
+  }
+]

@@ -11,6 +11,12 @@ Local-first web app for exploring etymological relationships from a Wiktionary/W
 - `db/migrations`: Postgres schema migrations.
 - `wikidata_downloads`: local raw dump storage, ignored by git.
 
+## Deployment
+
+The first production shape is a Postgres 16 database and one app container that serves both the
+Node/Fastify API and the Vite-built static web app. See `docs/deployment.md` for Railway setup,
+environment variables, database bootstrap commands, container builds, and smoke checks.
+
 ## Local Development
 
 ```bash
@@ -44,6 +50,56 @@ pnpm import:batch-preview:stress
 pnpm import:db:stress
 ```
 
+For a broader but still bounded corpus, extract the committed common-word seed data:
+
+```bash
+pnpm seed:extract:popular
+pnpm import:batch-preview:popular
+pnpm import:db:popular
+```
+
+The popular extractor reads committed seed-word lists from
+`data/seed-words/thousand-most-common-words/` and `data/seed-words/corpora/`, streams the full
+Wiktextract dump once, and writes matching entries to `wikidata_downloads/seeds/popular-seed.jsonl`.
+The common-word files are normalized from the MIT-licensed `SMenigat/thousand-most-common-words`
+dataset. The Corpora files are a reviewed English allowlist from the CC0-licensed `dariusk/corpora`
+dataset; see `data/seed-words/corpora/manifest.json` for included upstream paths and keys. You can
+point `POPULAR_WORDS_DIRS` at comma-separated directories when testing local-only lists. Each
+word-list file can be a compact array:
+
+```json
+["the", "be", "and"]
+```
+
+or an object with metadata:
+
+```json
+{
+  "languageCode": "en",
+  "source": {
+    "name": "frequency-list/top-1000",
+    "license": "MIT"
+  },
+  "words": ["the", "be", "and"]
+}
+```
+
+To grow a more connected graph without importing the full Wiktextract dump, run hub-language frontier
+expansion:
+
+```bash
+pnpm seed:expand:popular
+pnpm import:batch-preview:popular-expanded
+pnpm import:db:popular-expanded
+```
+
+Expansion starts from the committed popular seed targets, writes
+`wikidata_downloads/seeds/popular-expanded-seed.jsonl`, and persists an inspectable frontier report to
+`wikidata_downloads/checkpoints/popular-expansion-frontier.json`. It discovers additional targets only
+from structured graph nodes extracted for hub languages such as Latin, Ancient Greek, Sanskrit,
+Avestan, Proto-Indo-European, Proto-Germanic, and Proto-West Germanic. Tune it with
+`EXPANSION_HUB_LANG_CODES`, `EXPANSION_MAX_DEPTH`, and `EXPANSION_MAX_TARGETS`.
+
 `SEED_TARGETS` can still add ad hoc words to a profile. Set `SEED_TARGETS_MODE=replace` when you want
 to ignore the selected profile entirely.
 
@@ -62,9 +118,15 @@ Import the generated seed nodes and edges into Postgres:
 set -a; source .env; set +a
 psql "$DATABASE_URL" -f db/migrations/001_initial_graph.sql
 psql "$DATABASE_URL" -f db/migrations/002_languages.sql
+psql "$DATABASE_URL" -f db/migrations/003_lexical_entries.sql
+psql "$DATABASE_URL" -f db/migrations/004_edge_entry_attribution.sql
 pnpm seed:languages
 pnpm import:db
 ```
+
+Apply every numbered migration in `db/migrations/` in order. Migration `004` adds the
+`graph_edges.originating_entry_id` attribution that keeps homograph histories apart and truncates
+`graph_nodes` so reapplying it against an existing DB forces a full reimport.
 
 `pnpm import:db` reads `.env`, defaults to `wikidata_downloads/seeds/core-seed.jsonl`, and writes its
 resume checkpoint to `wikidata_downloads/checkpoints/import-db.json`.

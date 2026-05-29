@@ -1,0 +1,56 @@
+{
+  "word": "element",
+  "lang": "English",
+  "lang_code": "en",
+  "pos": "noun",
+  "etymology_text": "From Middle English element, from Old French element, from Latin elementum (“a first principle, element, rudiment”) (see further etymology there).\nThe verb is from Middle English elementen, from the noun.",
+  "etymology_templates": [
+    {
+      "name": "root",
+      "args": {
+        "1": "en",
+        "2": "ine-pro",
+        "3": "*h₂el- (grow)"
+      },
+      "expansion": ""
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "enm",
+        "3": "element"
+      },
+      "expansion": "Middle English element"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "fro",
+        "3": "element"
+      },
+      "expansion": "Old French element"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "la",
+        "3": "elementum",
+        "4": "",
+        "5": "a first principle, element, rudiment"
+      },
+      "expansion": "Latin elementum (“a first principle, element, rudiment”)"
+    },
+    {
+      "name": "inh",
+      "args": {
+        "1": "en",
+        "2": "enm",
+        "3": "elementen"
+      },
+      "expansion": "Middle English elementen"
+    }
+  ]
+}

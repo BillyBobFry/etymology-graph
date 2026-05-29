@@ -107,16 +107,18 @@ export async function upsertGraphBatch(client: PoolClient, batch: GraphImportBat
             source,
             etymology_number,
             template_name,
-            uncertain
+            uncertain,
+            originating_entry_id
           )
-          VALUES ($1, $2, $3, $4, 'wiktextract', $5, $6, $7)
+          VALUES ($1, $2, $3, $4, 'wiktextract', $5, $6, $7, $8)
           ON CONFLICT (id) DO UPDATE SET
             from_node_id = EXCLUDED.from_node_id,
             to_node_id = EXCLUDED.to_node_id,
             edge_type = EXCLUDED.edge_type,
             etymology_number = EXCLUDED.etymology_number,
             template_name = EXCLUDED.template_name,
-            uncertain = EXCLUDED.uncertain
+            uncertain = EXCLUDED.uncertain,
+            originating_entry_id = EXCLUDED.originating_entry_id
         `,
         [
           edge.id,
@@ -125,7 +127,8 @@ export async function upsertGraphBatch(client: PoolClient, batch: GraphImportBat
           edge.type,
           edge.etymologyNumber ?? null,
           edge.templateName ?? null,
-          edge.uncertain ?? false
+          edge.uncertain ?? false,
+          edge.originatingEntryId
         ]
       );
     }
@@ -143,11 +146,11 @@ export async function upsertGraphBatch(client: PoolClient, batch: GraphImportBat
   };
 }
 
-/** Keeps reimports from leaving obsolete root-level ancestry edges behind. */
+/** Keeps reimports from leaving obsolete ancestry edges behind without wiping edges declared by other entries. */
 async function deleteStaleRootAncestryEdges(client: PoolClient, lexicalEntries: LexicalEntry[]): Promise<void> {
-  const rootNodeIds = [...new Set(lexicalEntries.map((lexicalEntry) => lexicalEntry.nodeId))];
+  const reimportedEntryIds = [...new Set(lexicalEntries.map((lexicalEntry) => lexicalEntry.id))];
 
-  if (rootNodeIds.length === 0) {
+  if (reimportedEntryIds.length === 0) {
     return;
   }
 
@@ -155,10 +158,9 @@ async function deleteStaleRootAncestryEdges(client: PoolClient, lexicalEntries: 
     `
       DELETE FROM graph_edges
       WHERE source = 'wiktextract'
-        AND from_node_id = ANY($1::TEXT[])
-        AND template_name IS DISTINCT FROM 'descendants'
+        AND originating_entry_id = ANY($1::TEXT[])
     `,
-    [rootNodeIds]
+    [reimportedEntryIds]
   );
 }
 

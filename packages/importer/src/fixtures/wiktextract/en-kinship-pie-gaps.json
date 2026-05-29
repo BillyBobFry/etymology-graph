@@ -1,0 +1,195 @@
+[
+  {
+    "word": "father",
+    "lang": "English",
+    "lang_code": "en",
+    "pos": "noun",
+    "etymology_text": "Etymology tree\nProto-Indo-European *ph₂tḗr\nProto-Germanic *fadēr\nProto-West Germanic *fader\nOld English fæder\nMiddle English fader\nEnglish father\nInherited from Middle English fader, from Old English fæder, from Proto-West Germanic *fader, from Proto-Germanic *fadēr, from Proto-Indo-European *ph₂tḗr.",
+    "etymology_templates": [
+      {
+        "name": "etymon",
+        "args": {
+          "1": "en",
+          "2": ":inh",
+          "3": "enm:fader<id:father>",
+          "tree": "1"
+        },
+        "expansion": "Etymology tree\nProto-Germanic *fadēr\nProto-West Germanic *fader\nOld English fæder\nMiddle English fader\nEnglish father\n{ \"term\" : \"*fadēr\", \"lang\" : \"gem-pro\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"*fader\", \"lang\" : \"gmw-pro\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"fæder\", \"lang\" : \"ang\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"fader\", \"lang\" : \"enm\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"father\", \"lang\" : \"en\" }"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "enm",
+          "3": "fader"
+        },
+        "expansion": "Middle English fader"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "ang",
+          "3": "fæder"
+        },
+        "expansion": "Old English fæder"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gmw-pro",
+          "3": "*fader"
+        },
+        "expansion": "Proto-West Germanic *fader"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gem-pro",
+          "3": "*fadēr"
+        },
+        "expansion": "Proto-Germanic *fadēr"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*ph₂tḗr"
+        },
+        "expansion": "Proto-Indo-European *ph₂tḗr"
+      }
+    ]
+  },
+  {
+    "word": "brother",
+    "lang": "English",
+    "lang_code": "en",
+    "pos": "noun",
+    "etymology_text": "Etymology tree\nProto-Indo-European *bʰréh₂tēr\nProto-Germanic *brōþēr\nProto-West Germanic *brōþer\nOld English brōþor\nMiddle English brother\nEnglish brother\nInherited from Middle English brother, from Old English brōþor, from Proto-West Germanic *brōþer, from Proto-Germanic *brōþēr, from Proto-Indo-European *bʰréh₂tēr.",
+    "etymology_templates": [
+      {
+        "name": "etymon",
+        "args": {
+          "1": "en",
+          "2": ":inh",
+          "3": "enm:brother",
+          "tree": "1"
+        },
+        "expansion": "Etymology tree\nProto-Germanic *brōþēr\nProto-West Germanic *brōþer\nOld English brōþor\nMiddle English brother\nEnglish brother\n{ \"term\" : \"*brōþēr\", \"lang\" : \"gem-pro\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"*brōþer\", \"lang\" : \"gmw-pro\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"brōþor\", \"lang\" : \"ang\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"brother\", \"lang\" : \"enm\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"brother\", \"lang\" : \"en\" }"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "enm",
+          "3": "brother"
+        },
+        "expansion": "Middle English brother"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "ang",
+          "3": "brōþor"
+        },
+        "expansion": "Old English brōþor"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gmw-pro",
+          "3": "*brōþer"
+        },
+        "expansion": "Proto-West Germanic *brōþer"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gem-pro",
+          "3": "*brōþēr"
+        },
+        "expansion": "Proto-Germanic *brōþēr"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*bʰréh₂tēr"
+        },
+        "expansion": "Proto-Indo-European *bʰréh₂tēr"
+      }
+    ]
+  },
+  {
+    "word": "water",
+    "lang": "English",
+    "lang_code": "en",
+    "pos": "noun",
+    "etymology_number": 1,
+    "etymology_text": "Etymology tree\nProto-Indo-European *wódr̥\nProto-Germanic *watōr\nProto-West Germanic *watar\nOld English wæter\nMiddle English water\nEnglish water\nFrom Middle English water, from Old English wæter, from Proto-West Germanic *watar, from Proto-Germanic *watōr, from Proto-Indo-European *wódr̥.",
+    "etymology_templates": [
+      {
+        "name": "etymon",
+        "args": {
+          "1": "en",
+          "2": ":inh",
+          "3": "enm:water<id:liquid>",
+          "tree": "1"
+        },
+        "expansion": "Etymology tree\nProto-Germanic *watōr\nProto-West Germanic *watar\nOld English wæter\nMiddle English water\nEnglish water\n{ \"term\" : \"*watōr\", \"lang\" : \"gem-pro\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"*watar\", \"lang\" : \"gmw-pro\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"wæter\", \"lang\" : \"ang\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"water\", \"lang\" : \"enm\" }, { \"keyword\" : \"inherited\" }, { \"term\" : \"water\", \"lang\" : \"en\" }"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "enm",
+          "3": "water"
+        },
+        "expansion": "Middle English water"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "ang",
+          "3": "wæter"
+        },
+        "expansion": "Old English wæter"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gmw-pro",
+          "3": "*watar"
+        },
+        "expansion": "Proto-West Germanic *watar"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "gem-pro",
+          "3": "*watōr"
+        },
+        "expansion": "Proto-Germanic *watōr"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*wódr̥"
+        },
+        "expansion": "Proto-Indo-European *wódr̥"
+      }
+    ]
+  }
+]

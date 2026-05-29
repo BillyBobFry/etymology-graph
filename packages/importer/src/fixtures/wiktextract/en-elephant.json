@@ -1,0 +1,140 @@
+{
+  "word": "elephant",
+  "lang": "English",
+  "lang_code": "en",
+  "pos": "noun",
+  "etymology_text": "From Middle English elefant, elefaunt, from Old French elefant, elefan, olifant, re-latinized in Middle French as elephant, from Latin elephantus, from Ancient Greek ἐλέφᾱς (eléphās) (gen. ἐλέφαντος (eléphantos)). Believed to be derived from an Afroasiatic form such as Proto-Berber *eḷu (“elephant”) (compare Tamahaq êlu, Tamasheq alu) or Egyptian ꜣbw (“elephant; ivory”). More at ivory. Replaced Middle English olifant (from the aforementioned Old French form, from Vulgar Latin *olifantus), which replaced Old English elpend (“elephant”).",
+  "etymology_templates": [
+    {
+      "name": "taxfmt",
+      "args": {
+        "1": "Loxodonta africana",
+        "2": "species"
+      },
+      "expansion": "Loxodonta africana"
+    },
+    {
+      "name": "taxfmt",
+      "args": {
+        "1": "Elephas maximus",
+        "2": "species"
+      },
+      "expansion": "Elephas maximus"
+    },
+    {
+      "name": "inh",
+      "args": {
+        "1": "en",
+        "2": "enm",
+        "3": "elefant"
+      },
+      "expansion": "Middle English elefant"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "fro",
+        "3": "elefant"
+      },
+      "expansion": "Old French elefant"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "frm",
+        "3": "-"
+      },
+      "expansion": "Middle French"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "la",
+        "3": "elephantus"
+      },
+      "expansion": "Latin elephantus"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "grc",
+        "3": "ἐλέφᾱς"
+      },
+      "expansion": "Ancient Greek ἐλέφᾱς (eléphās)"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "afa",
+        "3": "-"
+      },
+      "expansion": "Afroasiatic"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "ber-pro",
+        "3": "*eḷu",
+        "t": "elephant"
+      },
+      "expansion": "Proto-Berber *eḷu (“elephant”)"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "thv",
+        "2": "êlu"
+      },
+      "expansion": "Tamahaq êlu"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "taq",
+        "2": "alu"
+      },
+      "expansion": "Tamasheq alu"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "egy",
+        "3": "ꜣbw",
+        "t": "elephant; ivory"
+      },
+      "expansion": "Egyptian ꜣbw (“elephant; ivory”)"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "enm",
+        "2": "olifant"
+      },
+      "expansion": "Middle English olifant"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "la-vul",
+        "2": "*olifantus"
+      },
+      "expansion": "Vulgar Latin *olifantus"
+    },
+    {
+      "name": "cog",
+      "args": {
+        "1": "ang",
+        "2": "elpend",
+        "t": "elephant"
+      },
+      "expansion": "Old English elpend (“elephant”)"
+    }
+  ]
+}

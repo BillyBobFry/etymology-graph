@@ -1,0 +1,146 @@
+{
+  "senses": [
+    {
+      "categories": [
+        "Old Norse compound terms",
+        "Old Norse entries with incorrect language header",
+        "Old Norse lemmas",
+        "Old Norse neuter nouns",
+        "Old Norse proper nouns",
+        "Pages with 1 entry",
+        "Pages with entries",
+        "non:Dependent territories of Denmark",
+        "non:Islands",
+        "non:Places in Denmark"
+      ],
+      "links": [
+        [
+          "Greenland",
+          "Greenland#English"
+        ],
+        [
+          "island",
+          "island"
+        ],
+        [
+          "Denmark",
+          "Denmark#English"
+        ],
+        [
+          "North America",
+          "North America"
+        ]
+      ],
+      "glosses": [
+        "Greenland (a large self-governing island and dependent territory of Denmark, in North America)"
+      ],
+      "tags": [
+        "neuter"
+      ]
+    }
+  ],
+  "pos": "name",
+  "head_templates": [
+    {
+      "name": "head",
+      "args": {
+        "1": "non",
+        "2": "proper noun",
+        "3": "",
+        "4": "{{{2}}}",
+        "5": "or",
+        "6": "",
+        "7": "",
+        "8": "{{{datacc}}}",
+        "9": "",
+        "10": "{{{dative}}}",
+        "head": "",
+        "sort": "",
+        "g": "n",
+        "g2": "",
+        "tr": ""
+      },
+      "expansion": "Grǿnland n"
+    },
+    {
+      "name": "non-proper noun",
+      "args": {
+        "1": "n"
+      },
+      "expansion": "Grǿnland n"
+    }
+  ],
+  "descendants": [
+    {
+      "lang": "Icelandic",
+      "lang_code": "is",
+      "word": "Grænland"
+    },
+    {
+      "lang": "Faroese",
+      "lang_code": "fo",
+      "word": "Grønland"
+    },
+    {
+      "lang": "Norwegian Nynorsk",
+      "lang_code": "nn",
+      "word": "Grønland"
+    },
+    {
+      "lang": "Swedish",
+      "lang_code": "sv",
+      "word": "Grönland"
+    },
+    {
+      "lang": "Danish",
+      "lang_code": "da",
+      "word": "Grønland",
+      "descendants": [
+        {
+          "lang": "Norwegian Bokmål",
+          "lang_code": "nb",
+          "word": "Grønland"
+        },
+        {
+          "lang": "Norwegian Bokmål",
+          "lang_code": "nb",
+          "word": "Grønnland",
+          "tags": [
+            "rare"
+          ]
+        }
+      ]
+    },
+    {
+      "lang": "Russian",
+      "lang_code": "ru",
+      "word": "Грумант",
+      "raw_tags": [
+        "borrowed"
+      ],
+      "roman": "Grumant"
+    }
+  ],
+  "etymology_text": "From grǿnn (“green”) + land (“land”).",
+  "etymology_templates": [
+    {
+      "name": "compound",
+      "args": {
+        "1": "non",
+        "2": "grǿnn",
+        "3": "land",
+        "t1": "green",
+        "t2": "land"
+      },
+      "expansion": "grǿnn (“green”) + land (“land”)"
+    }
+  ],
+  "sounds": [
+    {
+      "ipa": "/ˈɡrø̃ːnˌland/"
+    }
+  ],
+  "word": "Grǿnland",
+  "lang": "Old Norse",
+  "lang_code": "non"
+}

@@ -1,0 +1,249 @@
+{
+  "source": {
+    "name": "dariusk/corpora",
+    "url": "https://github.com/dariusk/corpora",
+    "license": "CC0-1.0",
+    "retrievedAt": "2026-05-28",
+    "notes": "Reviewed allowlist of ordinary English lexical categories useful for etymology seed expansion."
+  },
+  "sourceLanguageCode": "en",
+  "curation": {
+    "termFilter": "Commit only single-token alphabetic English terms from the reviewed upstream selectors. Exclude multi-word names and punctuation-heavy variants from generated seed concepts.",
+    "agentReviewPolicy": "Agent judgment can flag specialist, brand-like, taxonomic, or otherwise low-value terms in exclusions.json. Popular seed loading applies that denylist automatically; remove terms from exclusions.json to keep them."
+  },
+  "includes": [
+    {
+      "path": "data/animals/common.json",
+      "category": "animals/common",
+      "selectors": [
+        {
+          "key": "animals"
+        }
+      ]
+    },
+    {
+      "path": "data/foods/fruits.json",
+      "category": "foods/fruits",
+      "selectors": [
+        {
+          "key": "fruits"
+        }
+      ]
+    },
+    {
+      "path": "data/foods/vegetables.json",
+      "category": "foods/vegetables",
+      "selectors": [
+        {
+          "key": "vegetables"
+        }
+      ]
+    },
+    {
+      "path": "data/foods/herbs_n_spices.json",
+      "category": "foods/herbs-and-spices",
+      "selectors": [
+        {
+          "key": "herbs"
+        },
+        {
+          "key": "spices"
+        }
+      ]
+    },
+    {
+      "path": "data/foods/breads_and_pastries.json",
+      "category": "foods/breads-and-pastries",
+      "selectors": [
+        {
+          "key": "breads"
+        },
+        {
+          "key": "pastries"
+        }
+      ]
+    },
+    {
+      "path": "data/foods/condiments.json",
+      "category": "foods/condiments",
+      "selectors": [
+        {
+          "key": "condiments"
+        }
+      ]
+    },
+    {
+      "path": "data/foods/fish.json",
+      "category": "foods/fish",
+      "selectors": [
+        {
+          "key": "fish"
+        }
+      ]
+    },
+    {
+      "path": "data/foods/poultry.json",
+      "category": "foods/poultry",
+      "selectors": [
+        {
+          "key": "bird"
+        }
+      ]
+    },
+    {
+      "path": "data/foods/shellfish.json",
+      "category": "foods/shellfish",
+      "selectors": [
+        {
+          "key": "fish"
+        }
+      ]
+    },
+    {
+      "path": "data/plants/flowers.json",
+      "category": "plants/flowers",
+      "selectors": [
+        {
+          "key": "flowers"
+        }
+      ]
+    },
+    {
+      "path": "data/plants/plants.json",
+      "category": "plants/common-names",
+      "selectors": [
+        {
+          "key": "plants",
+          "property": "name"
+        }
+      ]
+    },
+    {
+      "path": "data/objects/clothing.json",
+      "category": "objects/clothing",
+      "selectors": [
+        {
+          "key": "clothes"
+        }
+      ]
+    },
+    {
+      "path": "data/objects/containers.json",
+      "category": "objects/containers",
+      "selectors": [
+        {
+          "key": "containers"
+        }
+      ]
+    },
+    {
+      "path": "data/materials/natural-materials.json",
+      "category": "materials/natural",
+      "selectors": [
+        {
+          "key": "natural materials"
+        }
+      ]
+    },
+    {
+      "path": "data/materials/building-materials.json",
+      "category": "materials/building",
+      "selectors": [
+        {
+          "key": "building materials"
+        }
+      ]
+    },
+    {
+      "path": "data/materials/metals.json",
+      "category": "materials/metals",
+      "selectors": [
+        {
+          "key": "metals"
+        }
+      ]
+    },
+    {
+      "path": "data/materials/fabrics.json",
+      "category": "materials/fabrics",
+      "selectors": [
+        {
+          "key": "fabrics"
+        }
+      ]
+    },
+    {
+      "path": "data/materials/fibers.json",
+      "category": "materials/fibers",
+      "selectors": [
+        {
+          "key": "fibers"
+        }
+      ]
+    },
+    {
+      "path": "data/materials/gemstones.json",
+      "category": "materials/gemstones",
+      "selectors": [
+        {
+          "key": "gemstones"
+        }
+      ]
+    },
+    {
+      "path": "data/colors/web_colors.json",
+      "category": "colors/web",
+      "selectors": [
+        {
+          "key": "colors",
+          "property": "color"
+        }
+      ]
+    },
+    {
+      "path": "data/science/elements.json",
+      "category": "science/elements",
+      "selectors": [
+        {
+          "key": "elements",
+          "property": "name"
+        }
+      ]
+    },
+    {
+      "path": "data/words/units_of_time.json",
+      "category": "words/units-of-time",
+      "selectors": [
+        {
+          "key": "formal_time_units"
+        },
+        {
+          "key": "informal_discrete_time_units"
+        }
+      ]
+    },
+    {
+      "path": "data/humans/bodyParts.json",
+      "category": "humans/body-parts",
+      "selectors": [
+        {
+          "key": "bodyParts"
+        }
+      ]
+    },
+    {
+      "path": "data/humans/familyRelations.json",
+      "category": "humans/family-relations",
+      "selectors": [
+        {
+          "key": "familyRelations",
+          "property": "member"
+        },
+        {
+          "key": "familyRelations",
+          "property": "inverse"
+        }
+      ]
+    }
+  ]
+}

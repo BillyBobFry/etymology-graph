@@ -4,6 +4,8 @@ import { dirname } from "node:path";
 import { finished } from "node:stream/promises";
 
 import {
+  makeGraphEdgeId,
+  makeLexicalEntryId,
   makeNodeId,
   normalizeWord,
   type GraphEdge,
@@ -131,8 +133,11 @@ const etymologyKeywordEdgeTypes = {
   inh: "inherited_from",
   derived: "derived_from",
   der: "derived_from",
+  uder: "derived_from",
+  from: "derived_from",
   borrowed: "borrowed_from",
-  bor: "borrowed_from"
+  bor: "borrowed_from",
+  lbor: "borrowed_from"
 } as const;
 
 const descendantTagEdgeTypes = [
@@ -141,13 +146,66 @@ const descendantTagEdgeTypes = [
   { tagIncludes: "inherited", edgeType: "inherited_from" }
 ] as const;
 
+const sourceDirectedAncestryEdgeTypes = new Set<GraphEdge["type"]>([
+  "borrowed_from",
+  "derived_from",
+  "descendant_of",
+  "inherited_from"
+]);
+
 const uncertaintyTags = ["uncertain", "possibly", "possible", "perhaps", "maybe"] as const;
+
+const etymologyTreeLanguageCodesByName = new Map<string, string>([
+  ["English", "en"],
+  ["Middle English", "enm"],
+  ["Old English", "ang"],
+  ["Proto-Germanic", "gem-pro"],
+  ["Proto-Indo-European", "ine-pro"],
+  ["Proto-West Germanic", "gmw-pro"]
+]);
 
 type EtymologyTreeTerm = {
   langCode: string;
   term: string;
   edgeTypeToParent?: GraphEdge["type"];
   uncertain: boolean;
+};
+
+type EtymologyTreeMetadata = {
+  terms: EtymologyTreeMetadataTerm[];
+};
+
+type EtymologyTreeMetadataRelation = {
+  keyword?: string;
+  isGroup?: boolean;
+  terms: EtymologyTreeMetadataTerm[];
+};
+
+type EtymologyTreeMetadataTerm = {
+  langCode?: string;
+  term?: string;
+  alt?: string;
+  uncertain: boolean;
+  children: EtymologyTreeMetadataRelation[];
+};
+
+type TemplateTextLocation = {
+  sentenceIndex?: number;
+  startIndex?: number;
+  endIndex?: number;
+  nextSearchIndex: number;
+};
+
+type TemplateChainTransition = "continue" | "resetToRoot" | "resetToBranchBase" | "resetToBranchBaseWithParallelSource";
+
+type SeedTargetMatch = {
+  index: number;
+  target: SeedTarget;
+};
+
+export type SeedTargetIndex = {
+  byLanguageAndWord: Map<string, Map<string, SeedTargetMatch[]>>;
+  byWord: Map<string, SeedTargetMatch[]>;
 };
 
 export async function readJsonlSample(path: string, limit: number): Promise<WiktextractEntry[]> {
@@ -222,6 +280,9 @@ export async function extractSeedEntries(options: ExtractSeedOptions): Promise<E
   const limitPerTarget = options.limitPerTarget ?? 1;
   const targetKeys = options.targets.map(seedTargetKey);
   const matchesByTarget = Object.fromEntries(targetKeys.map((key) => [key, 0]));
+  const targetKeyCount = Object.keys(matchesByTarget).length;
+  const targetIndex = buildSeedTargetIndex(options.targets);
+  const fulfilledTargetKeys = new Set<string>();
   let scannedLines = 0;
   let writtenRecords = 0;
 
@@ -234,13 +295,13 @@ export async function extractSeedEntries(options: ExtractSeedOptions): Promise<E
   try {
     for await (const record of readJsonlRecords(options.inputPath)) {
       scannedLines = record.lineNumber;
-      const targetIndex = options.targets.findIndex((target) => seedTargetMatches(target, record.entry));
+      const targetMatchIndex = findMatchingSeedTargetIndex(targetIndex, record.entry);
 
-      if (targetIndex === -1) {
+      if (targetMatchIndex === undefined) {
         continue;
       }
 
-      const key = targetKeys[targetIndex];
+      const key = targetKeys[targetMatchIndex];
       if (matchesByTarget[key] >= limitPerTarget) {
         continue;
       }
@@ -252,7 +313,11 @@ export async function extractSeedEntries(options: ExtractSeedOptions): Promise<E
       matchesByTarget[key] += 1;
       writtenRecords += 1;
 
-      if (Object.values(matchesByTarget).every((count) => count >= limitPerTarget)) {
+      if (matchesByTarget[key] >= limitPerTarget) {
+        fulfilledTargetKeys.add(key);
+      }
+
+      if (fulfilledTargetKeys.size === targetKeyCount) {
         break;
       }
     }
@@ -374,16 +439,26 @@ export function previewEntry(entry: WiktextractEntry, sourceMetadata?: ImportSou
   }
 
   const currentNode = makeNode(entry.lang_code, entry.word);
+  const originatingEntryId = makeLexicalEntryId(currentNode.id, entry.pos, entry.etymology_number);
   const nodesById = new Map<string, GraphNode>([[currentNode.id, currentNode]]);
-  const treeEdges = extractTreeAncestryEdges(entry, currentNode, nodesById);
-  const templateEdges =
-    treeEdges.length > 0 ? [] : extractTemplateAncestryEdges(entry, currentNode, nodesById);
+  const treeEdges = extractTreeAncestryEdges(entry, currentNode, nodesById, originatingEntryId);
+  const templateEdges = extractTemplateAncestryEdges(entry, currentNode, nodesById, originatingEntryId);
+  const ancestryEdges =
+    treeEdges.length > 0 ? supplementTreeEdgesWithMissingRootEdges(treeEdges, templateEdges) : templateEdges;
+  const affixBaseEdges = hasOutgoingAncestryEdge(ancestryEdges, currentNode.id)
+    ? []
+    : extractAffixBaseEdges(entry, currentNode, nodesById, originatingEntryId);
+  const compoundEdges =
+    ancestryEdges.length === 0 && affixBaseEdges.length === 0
+      ? extractCompoundEdges(entry, currentNode, nodesById, originatingEntryId)
+      : [];
   const edges = [
-    ...templateEdges,
-    ...treeEdges,
-    ...extractDescendantEdges(entry, currentNode, nodesById)
+    ...ancestryEdges,
+    ...affixBaseEdges,
+    ...compoundEdges,
+    ...extractDescendantEdges(entry, currentNode, nodesById, originatingEntryId)
   ];
-  const lexicalEntries = [makeLexicalEntry(entry, currentNode, sourceMetadata)];
+  const lexicalEntries = [makeLexicalEntry(entry, currentNode, originatingEntryId, sourceMetadata)];
 
   return {
     nodes: [...nodesById.values()],
@@ -392,14 +467,151 @@ export function previewEntry(entry: WiktextractEntry, sourceMetadata?: ImportSou
   };
 }
 
+/** Checks whether tree or flat templates already connect the current entry to a source term. */
+function hasOutgoingAncestryEdge(edges: GraphEdge[], nodeId: string): boolean {
+  return edges.some((edge) => edge.fromNodeId === nodeId && sourceDirectedAncestryEdgeTypes.has(edge.type));
+}
+
+/** Recovers the lexical base from affix templates when tree metadata only emits component ancestry. */
+function extractAffixBaseEdges(
+  entry: WiktextractEntry,
+  currentNode: GraphNode,
+  nodesById: Map<string, GraphNode>,
+  originatingEntryId: string
+): GraphEdge[] {
+  const edges: GraphEdge[] = [];
+
+  for (const template of entry.etymology_templates ?? []) {
+    if (template.name !== "af") {
+      continue;
+    }
+
+    const componentLangCode = trimOptional(template.args?.["1"]) ?? currentNode.langCode;
+    const baseComponent = affixTemplateBaseComponent(template.args ?? {}, componentLangCode);
+    if (!baseComponent) {
+      continue;
+    }
+
+    appendTemplateAncestryEdge(
+      edges,
+      nodesById,
+      currentNode,
+      makeNode(baseComponent.langCode, baseComponent.term),
+      "derived_from",
+      entry.etymology_number,
+      template.name,
+      templateIsUncertain(template),
+      originatingEntryId
+    );
+  }
+
+  return edges;
+}
+
+/** Picks the non-affix lexical base from an affix formation such as `base + -suffix`. */
+function affixTemplateBaseComponent(
+  args: Record<string, string>,
+  fallbackLangCode: string
+): { langCode: string; term: string } | undefined {
+  const components = compoundTemplateComponents(args, fallbackLangCode);
+
+  return (
+    components.find((component) => !component.term.startsWith("-") && !component.term.endsWith("-")) ?? components[0]
+  );
+}
+
+/** Captures entries whose etymology is first formed from same-language compound components. */
+function extractCompoundEdges(
+  entry: WiktextractEntry,
+  currentNode: GraphNode,
+  nodesById: Map<string, GraphNode>,
+  originatingEntryId: string
+): GraphEdge[] {
+  const edges: GraphEdge[] = [];
+
+  for (const template of entry.etymology_templates ?? []) {
+    if (template.name !== "compound") {
+      continue;
+    }
+
+    const componentLangCode = trimOptional(template.args?.["1"]) ?? currentNode.langCode;
+    const components = compoundTemplateComponents(template.args ?? {}, componentLangCode);
+    for (const component of components) {
+      const componentNode = makeNode(component.langCode, component.term);
+      if (componentNode.id === currentNode.id) {
+        continue;
+      }
+
+      nodesById.set(componentNode.id, componentNode);
+      edges.push({
+        id: makeGraphEdgeId(currentNode.id, "compound_of", componentNode.id, originatingEntryId),
+        fromNodeId: currentNode.id,
+        toNodeId: componentNode.id,
+        type: "compound_of",
+        source: "wiktextract",
+        etymologyNumber: entry.etymology_number,
+        templateName: template.name,
+        uncertain: false,
+        originatingEntryId
+      });
+    }
+  }
+
+  return edges;
+}
+
+/** Reads numeric component arguments from Wiktionary compound templates while skipping gloss parameters. */
+function compoundTemplateComponents(
+  args: Record<string, string>,
+  fallbackLangCode: string
+): Array<{ langCode: string; term: string }> {
+  return Object.entries(args)
+    .map(([key, value]) => ({
+      argumentIndex: Number.parseInt(key, 10),
+      value
+    }))
+    .filter(({ argumentIndex }) => Number.isInteger(argumentIndex) && argumentIndex >= 2)
+    .sort((left, right) => left.argumentIndex - right.argumentIndex)
+    .flatMap(({ value }) => {
+      const component = parseCompoundComponent(value, fallbackLangCode);
+      return component ? [component] : [];
+    });
+}
+
+/** Normalizes template component arguments such as `berry<id:fruit>` into graph term keys. */
+function parseCompoundComponent(
+  value: string,
+  fallbackLangCode: string
+): { langCode: string; term: string } | undefined {
+  const cleanedValue = trimOptional(value.replace(/<[^>]*>/g, ""));
+  if (!cleanedValue || cleanedValue === "-") {
+    return undefined;
+  }
+
+  const languageSeparatorIndex = cleanedValue.indexOf(":");
+  if (languageSeparatorIndex > 0) {
+    const langCode = trimOptional(cleanedValue.slice(0, languageSeparatorIndex));
+    const term = trimOptional(cleanedValue.slice(languageSeparatorIndex + 1));
+    return langCode && term ? { langCode, term } : undefined;
+  }
+
+  return { langCode: fallbackLangCode, term: cleanedValue };
+}
+
 /** Extracts adjacent ancestry edges from sequential flat Wiktionary etymology templates. */
 function extractTemplateAncestryEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
-  nodesById: Map<string, GraphNode>
+  nodesById: Map<string, GraphNode>,
+  originatingEntryId: string
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
   let childNode = currentNode;
+  let branchBaseNode = currentNode;
+  let parallelSourceNode: GraphNode | undefined;
+  let previousSentenceIndex: number | undefined;
+  let previousLocation: TemplateTextLocation | undefined;
+  let nextTemplateSearchIndex = 0;
 
   for (const template of entry.etymology_templates ?? []) {
     const edgeType = parseEtymologyKeywordEdgeType(template.name ?? "");
@@ -409,19 +621,65 @@ function extractTemplateAncestryEdges(
       continue;
     }
 
+    const location = locateTemplateInEtymologyText(entry.etymology_text, template, nextTemplateSearchIndex);
+    nextTemplateSearchIndex = location.nextSearchIndex;
+    if (
+      templateIsOnlyCompared(entry.etymology_text, location) ||
+      templateIsOnlyOrthographicInfluence(entry.etymology_text, location)
+    ) {
+      continue;
+    }
+
+    const textBetweenPreviousTemplate = textBetweenTemplateLocations(entry.etymology_text, previousLocation, location);
+    const transition = templateChainTransition(entry.etymology_text, previousSentenceIndex, previousLocation, location);
+    if (transition === "resetToRoot") {
+      childNode = currentNode;
+      branchBaseNode = currentNode;
+      parallelSourceNode = undefined;
+    } else if (transition === "resetToBranchBase") {
+      childNode = branchBaseNode;
+      parallelSourceNode = undefined;
+    } else if (transition === "resetToBranchBaseWithParallelSource") {
+      parallelSourceNode = childNode;
+      childNode = branchBaseNode;
+    } else if (templateStartsContinuingSourceSentence(entry.etymology_text, previousSentenceIndex, location)) {
+      branchBaseNode = childNode;
+    } else if (textStartsParallelSourceList(textBetweenPreviousTemplate)) {
+      branchBaseNode = childNode;
+    }
+    const shouldAttachSharedParallelSource =
+      parallelSourceNode !== undefined && textIntroducesSharedParallelSource(textBetweenPreviousTemplate);
+    previousSentenceIndex = location.sentenceIndex ?? previousSentenceIndex;
+    previousLocation = location.startIndex === undefined ? previousLocation : location;
+
     const parentNode = makeNode(parentTerm.langCode, parentTerm.term);
-    nodesById.set(childNode.id, childNode);
-    nodesById.set(parentNode.id, parentNode);
-    edges.push({
-      id: `${childNode.id}:${edgeType}:${parentNode.id}`,
-      fromNodeId: childNode.id,
-      toNodeId: parentNode.id,
-      type: edgeType,
-      source: "wiktextract",
-      etymologyNumber: entry.etymology_number,
-      templateName: template.name,
-      uncertain: templateIsUncertain(template)
-    });
+    appendTemplateAncestryEdge(
+      edges,
+      nodesById,
+      childNode,
+      parentNode,
+      edgeType,
+      entry.etymology_number,
+      template.name,
+      templateIsUncertain(template),
+      originatingEntryId
+    );
+    if (parallelSourceNode && shouldAttachSharedParallelSource) {
+      appendTemplateAncestryEdge(
+        edges,
+        nodesById,
+        parallelSourceNode,
+        parentNode,
+        edgeType,
+        entry.etymology_number,
+        template.name,
+        templateIsUncertain(template),
+        originatingEntryId
+      );
+    }
+    if (parallelSourceNode && transition !== "resetToBranchBaseWithParallelSource") {
+      parallelSourceNode = undefined;
+    }
 
     childNode = parentNode;
   }
@@ -429,11 +687,267 @@ function extractTemplateAncestryEdges(
   return edges;
 }
 
+/** Appends one flat-template ancestry edge while keeping node registration and self-edge guards together. */
+function appendTemplateAncestryEdge(
+  edges: GraphEdge[],
+  nodesById: Map<string, GraphNode>,
+  childNode: GraphNode,
+  parentNode: GraphNode,
+  edgeType: GraphEdge["type"],
+  etymologyNumber: number | undefined,
+  templateName: string | undefined,
+  uncertain: boolean,
+  originatingEntryId: string
+): void {
+  if (childNode.id === parentNode.id) {
+    return;
+  }
+
+  nodesById.set(childNode.id, childNode);
+  nodesById.set(parentNode.id, parentNode);
+  edges.push({
+    id: makeGraphEdgeId(childNode.id, edgeType, parentNode.id, originatingEntryId),
+    fromNodeId: childNode.id,
+    toNodeId: parentNode.id,
+    type: edgeType,
+    source: "wiktextract",
+    etymologyNumber,
+    templateName,
+    uncertain,
+    originatingEntryId
+  });
+}
+
+/**
+ * Preserves etymon-tree adjacency while recovering upstream roots that Wiktextract only exposes in
+ * flat templates. Supplemental edges are limited to the tree's current topmost ancestor so independent
+ * prose branches cannot become direct edges from the current entry again.
+ */
+function supplementTreeEdgesWithMissingRootEdges(treeEdges: GraphEdge[], templateEdges: GraphEdge[]): GraphEdge[] {
+  const treeEdgeIds = new Set(treeEdges.map((edge) => edge.id));
+  const treeFromNodeIds = new Set(treeEdges.map((edge) => edge.fromNodeId));
+  const treeToNodeIds = new Set(treeEdges.map((edge) => edge.toNodeId));
+  const topmostTreeNodeIds = new Set([...treeToNodeIds].filter((nodeId) => !treeFromNodeIds.has(nodeId)));
+  const supplementalEdges = templateEdges.filter(
+    (edge) => topmostTreeNodeIds.has(edge.fromNodeId) && !treeEdgeIds.has(edge.id)
+  );
+
+  return [...treeEdges, ...supplementalEdges];
+}
+
+/** Finds rendered template text so independent prose sentences do not become one false ancestry chain. */
+function locateTemplateInEtymologyText(
+  etymologyText: string | undefined,
+  template: WiktextractTemplate,
+  nextSearchIndex: number
+): TemplateTextLocation {
+  const expansion = trimOptional(template.expansion);
+
+  if (!etymologyText || !expansion) {
+    return { nextSearchIndex };
+  }
+
+  const localIndex = etymologyText.indexOf(expansion, nextSearchIndex);
+  const fallbackIndex = localIndex === -1 ? etymologyText.indexOf(expansion) : localIndex;
+
+  if (fallbackIndex === -1) {
+    return { nextSearchIndex };
+  }
+
+  return {
+    sentenceIndex: sentenceIndexAt(etymologyText, fallbackIndex),
+    startIndex: fallbackIndex,
+    endIndex: fallbackIndex + expansion.length,
+    nextSearchIndex: fallbackIndex + expansion.length
+  };
+}
+
+/** Classifies how the next flat template should attach to the current ancestry chain. */
+function templateChainTransition(
+  etymologyText: string | undefined,
+  previousSentenceIndex: number | undefined,
+  previousLocation: TemplateTextLocation | undefined,
+  location: TemplateTextLocation
+): TemplateChainTransition {
+  if (previousSentenceIndex === undefined || location.sentenceIndex === undefined) {
+    return "continue";
+  }
+
+  if (location.sentenceIndex !== previousSentenceIndex) {
+    return sentenceContinuesPreviousSource(etymologyText, location) ? "continue" : "resetToRoot";
+  }
+
+  if (
+    !etymologyText ||
+    previousLocation?.endIndex === undefined ||
+    location.startIndex === undefined ||
+    location.startIndex < previousLocation.endIndex
+  ) {
+    return "continue";
+  }
+
+  const textBetweenTemplates = etymologyText.slice(previousLocation.endIndex, location.startIndex);
+  if (hasParallelSourceBoundary(textBetweenTemplates)) {
+    return "resetToBranchBaseWithParallelSource";
+  }
+
+  return hasAlternativeBoundary(textBetweenTemplates) ? "resetToBranchBase" : "continue";
+}
+
+/** Reads prose between two located templates so branch rules can classify local conjunctions. */
+function textBetweenTemplateLocations(
+  etymologyText: string | undefined,
+  previousLocation: TemplateTextLocation | undefined,
+  location: TemplateTextLocation
+): string {
+  if (!etymologyText || previousLocation?.endIndex === undefined || location.startIndex === undefined) {
+    return "";
+  }
+
+  return etymologyText.slice(previousLocation.endIndex, location.startIndex);
+}
+
+/** Detects a new sentence that keeps explaining the previous source term. */
+function templateStartsContinuingSourceSentence(
+  etymologyText: string | undefined,
+  previousSentenceIndex: number | undefined,
+  location: TemplateTextLocation
+): boolean {
+  return (
+    previousSentenceIndex !== undefined &&
+    location.sentenceIndex !== undefined &&
+    location.sentenceIndex !== previousSentenceIndex &&
+    sentenceContinuesPreviousSource(etymologyText, location)
+  );
+}
+
+/** Allows follow-up prose like "Believed to be derived from..." to continue the current etymon chain. */
+function sentenceContinuesPreviousSource(etymologyText: string | undefined, location: TemplateTextLocation): boolean {
+  if (!etymologyText || location.startIndex === undefined) {
+    return false;
+  }
+
+  return /^believed to be (?:derived|borrowed|inherited) from\b/i.test(
+    sentencePrefixBeforeLocation(etymologyText, location.startIndex).trim()
+  );
+}
+
+/** Filters comparison-only mentions out of ancestry while keeping explicit derived-from follow-up prose. */
+function templateIsOnlyCompared(etymologyText: string | undefined, location: TemplateTextLocation): boolean {
+  if (!etymologyText || location.startIndex === undefined) {
+    return false;
+  }
+
+  return /^(?:(?:perhaps|possibly|maybe)\s+)?compare\b/i.test(
+    sentencePrefixBeforeLocation(etymologyText, location.startIndex).trim()
+  );
+}
+
+/** Filters spelling-history notes that cite form influence rather than lexical ancestry. */
+function templateIsOnlyOrthographicInfluence(
+  etymologyText: string | undefined,
+  location: TemplateTextLocation
+): boolean {
+  if (!etymologyText || location.startIndex === undefined) {
+    return false;
+  }
+
+  const prefix = sentencePrefixBeforeLocation(etymologyText, location.startIndex).trim();
+  if (!/^(?:rather,\s*)?it (?:is|was) from\b/i.test(prefix)) {
+    return false;
+  }
+
+  const recentContext = etymologyText.slice(Math.max(0, location.startIndex - 240), location.startIndex);
+
+  return /\b(?:spelling|orthograph|regular representation|vowel)\b/i.test(recentContext);
+}
+
+/** Reads the current sentence prefix before a template expansion. */
+function sentencePrefixBeforeLocation(text: string, locationStartIndex: number): string {
+  for (let index = locationStartIndex - 1; index >= 0; index -= 1) {
+    const char = text[index];
+
+    if ((char === "." || char === "!" || char === "?") && isSentenceBoundary(text, index)) {
+      return text.slice(index + 1, locationStartIndex);
+    }
+  }
+
+  return text.slice(0, locationStartIndex);
+}
+
+/** Detects prose that presents candidate sources as alternatives instead of ancestry steps. */
+function hasAlternativeBoundary(textBetweenTemplates: string): boolean {
+  return /\b(?:or|alternatively)\b/i.test(removeParentheticalText(textBetweenTemplates));
+}
+
+/** Detects "from X and Y" source pairs that should share the current branch base. */
+function hasParallelSourceBoundary(textBetweenTemplates: string): boolean {
+  return /^\s*(?:,?\s*)?and\s*$/i.test(removeParentheticalText(textBetweenTemplates));
+}
+
+/** Detects prose that introduces multiple same-level sources, such as "from a conflation of X and Y". */
+function textStartsParallelSourceList(textBetweenTemplates: string): boolean {
+  return /\bconflation of\s*$/i.test(removeParentheticalText(textBetweenTemplates));
+}
+
+/** Detects the shared ancestor phrase in "X and Y, both from Z" constructions. */
+function textIntroducesSharedParallelSource(textBetweenTemplates: string): boolean {
+  return /^\s*,?\s*both from\b/i.test(removeParentheticalText(textBetweenTemplates));
+}
+
+/** Prevents gloss prose like "(to do good or harm)" from being mistaken for source structure. */
+function removeParentheticalText(text: string): string {
+  let depth = 0;
+  let unwrappedText = "";
+
+  for (const char of text) {
+    if (char === "(") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === ")") {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+
+    if (depth === 0) {
+      unwrappedText += char;
+    }
+  }
+
+  return unwrappedText;
+}
+
+/** Counts coarse prose sentence boundaries before a template expansion in Wiktextract etymology text. */
+function sentenceIndexAt(text: string, offset: number): number {
+  let sentenceIndex = 0;
+
+  for (let index = 0; index < offset; index += 1) {
+    const char = text[index];
+
+    if ((char === "." || char === "!" || char === "?") && isSentenceBoundary(text, index)) {
+      sentenceIndex += 1;
+    }
+  }
+
+  return sentenceIndex;
+}
+
+/** Treats terminal punctuation followed by whitespace and an uppercase/digit as a new etymology sentence. */
+function isSentenceBoundary(text: string, punctuationIndex: number): boolean {
+  const afterPunctuation = text.slice(punctuationIndex + 1);
+  const boundaryMatch = /^\s+(\S)/.exec(afterPunctuation);
+
+  return boundaryMatch ? /^[\p{Lu}\p{N}]/u.test(boundaryMatch[1]) : false;
+}
+
 /** Extracts adjacent ancestry edges from Wiktextract's rendered etymology tree metadata. */
 function extractTreeAncestryEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
-  nodesById: Map<string, GraphNode>
+  nodesById: Map<string, GraphNode>,
+  originatingEntryId: string
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
@@ -441,6 +955,15 @@ function extractTreeAncestryEdges(
     if (template.name !== "etymon" || template.args?.tree !== "1" || !template.expansion) {
       continue;
     }
+
+    const metadataEdges = extractStructuredTreeAncestryEdges(
+      template.expansion,
+      nodesById,
+      entry.etymology_number,
+      template.name,
+      originatingEntryId
+    );
+    edges.push(...metadataEdges);
 
     const treeTerms = parseEtymologyTreeTerms(template.expansion);
     if (treeTerms.length < 2) {
@@ -465,14 +988,15 @@ function extractTreeAncestryEdges(
       const parentNode = makeNode(parentTerm.langCode, parentTerm.term);
 
       edges.push({
-        id: `${childNode.id}:${edgeType}:${parentNode.id}`,
+        id: makeGraphEdgeId(childNode.id, edgeType, parentNode.id, originatingEntryId),
         fromNodeId: childNode.id,
         toNodeId: parentNode.id,
         type: edgeType,
         source: "wiktextract",
         etymologyNumber: entry.etymology_number,
         templateName: template.name,
-        uncertain: parentTerm.uncertain
+        uncertain: parentTerm.uncertain,
+        originatingEntryId
       });
     }
   }
@@ -481,7 +1005,183 @@ function extractTreeAncestryEdges(
     nodesById.set(currentNode.id, currentNode);
   }
 
+  return uniqueGraphEdges(edges);
+}
+
+/** Removes duplicate edges that can appear when flat and structured etymon extraction agree. */
+function uniqueGraphEdges(edges: GraphEdge[]): GraphEdge[] {
+  return [...new Map(edges.map((edge) => [edge.id, edge])).values()];
+}
+
+/** Extracts tree edges from Wiktextract's nested term metadata so affix branches do not flatten. */
+function extractStructuredTreeAncestryEdges(
+  expansion: string,
+  nodesById: Map<string, GraphNode>,
+  etymologyNumber: number | undefined,
+  templateName: string | undefined,
+  originatingEntryId: string
+): GraphEdge[] {
+  const metadata = parseEtymologyTreeMetadata(expansion);
+  if (!metadata) {
+    return [];
+  }
+
+  const edges: GraphEdge[] = [];
+  for (const term of metadata.terms) {
+    appendStructuredTreeTermEdges(term, nodesById, etymologyNumber, templateName, originatingEntryId, edges);
+  }
+
   return edges;
+}
+
+/** Recursively appends source-directed edges for each parent relation under a tree term. */
+function appendStructuredTreeTermEdges(
+  childTerm: EtymologyTreeMetadataTerm,
+  nodesById: Map<string, GraphNode>,
+  etymologyNumber: number | undefined,
+  templateName: string | undefined,
+  originatingEntryId: string,
+  edges: GraphEdge[]
+): void {
+  const childNode = treeMetadataNode(childTerm);
+  if (!childNode) {
+    for (const relation of childTerm.children) {
+      for (const parentTerm of relation.terms) {
+        appendStructuredTreeTermEdges(parentTerm, nodesById, etymologyNumber, templateName, originatingEntryId, edges);
+      }
+    }
+    return;
+  }
+
+  nodesById.set(childNode.id, childNode);
+  for (const relation of childTerm.children) {
+    if (relation.isGroup && relation.keyword === "afeq") {
+      continue;
+    }
+
+    const edgeType =
+      relation.isGroup && relation.keyword === "affix"
+        ? "derived_from"
+        : parseEtymologyKeywordEdgeType(relation.keyword ?? "");
+    for (const parentTerm of relation.terms) {
+      const parentNode = treeMetadataNode(parentTerm);
+      if (!parentNode) {
+        continue;
+      }
+
+      nodesById.set(parentNode.id, parentNode);
+      if (edgeType && childNode.id !== parentNode.id) {
+        edges.push({
+          id: makeGraphEdgeId(childNode.id, edgeType, parentNode.id, originatingEntryId),
+          fromNodeId: childNode.id,
+          toNodeId: parentNode.id,
+          type: edgeType,
+          source: "wiktextract",
+          etymologyNumber,
+          templateName,
+          uncertain: parentTerm.uncertain,
+          originatingEntryId
+        });
+      }
+
+      appendStructuredTreeTermEdges(parentTerm, nodesById, etymologyNumber, templateName, originatingEntryId, edges);
+    }
+  }
+}
+
+/** Converts a parsed tree term into a graph node, using `alt` when Wiktextract omits `term`. */
+function treeMetadataNode(term: EtymologyTreeMetadataTerm): GraphNode | undefined {
+  const word = term.term ?? term.alt;
+
+  return term.langCode && word ? makeNode(term.langCode, word) : undefined;
+}
+
+/** Parses the embedded JSON-like `terms` payload from a rendered etymon tree expansion. */
+function parseEtymologyTreeMetadata(expansion: string): EtymologyTreeMetadata | undefined {
+  const termsKey = '"terms"';
+  const termsKeyIndex = expansion.indexOf(termsKey);
+  if (termsKeyIndex === -1) {
+    return undefined;
+  }
+
+  const termsOpenBracketIndex = expansion.indexOf("[", termsKeyIndex);
+  if (termsOpenBracketIndex === -1) {
+    return undefined;
+  }
+
+  const termsCloseBracketIndex = matchingCloseBracket(expansion, termsOpenBracketIndex);
+  if (termsCloseBracketIndex === undefined) {
+    return undefined;
+  }
+
+  const metadataSource = `{${expansion.slice(termsKeyIndex, termsCloseBracketIndex + 1)}}`;
+  try {
+    const metadata = JSON.parse(metadataSource) as unknown;
+
+    return parseTreeMetadataObject(metadata);
+  } catch {
+    return undefined;
+  }
+}
+
+/** Validates the root metadata payload without leaking unknown JSON into importer logic. */
+function parseTreeMetadataObject(value: unknown): EtymologyTreeMetadata | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    terms: parseTreeMetadataTerms(value.terms)
+  };
+}
+
+/** Validates a tree term list from the rendered metadata payload. */
+function parseTreeMetadataTerms(value: unknown): EtymologyTreeMetadataTerm[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((term) => {
+    const parsedTerm = parseTreeMetadataTerm(term);
+
+    return parsedTerm ? [parsedTerm] : [];
+  });
+}
+
+/** Validates a single tree term and keeps only graph-relevant fields. */
+function parseTreeMetadataTerm(value: unknown): EtymologyTreeMetadataTerm | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    langCode: stringValue(value.lang),
+    term: stringValue(value.term),
+    alt: stringValue(value.alt),
+    uncertain: value.is_uncertain === true,
+    children: parseTreeMetadataRelations(value.children)
+  };
+}
+
+/** Validates child relation objects that connect one tree term to its source terms. */
+function parseTreeMetadataRelations(value: unknown): EtymologyTreeMetadataRelation[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((relation) => {
+    if (!isRecord(relation)) {
+      return [];
+    }
+
+    return [
+      {
+        keyword: stringValue(relation.keyword),
+        isGroup: relation.is_group === true,
+        terms: parseTreeMetadataTerms(relation.terms)
+      }
+    ];
+  });
 }
 
 /** Reads the source term arguments shared by inheritance, borrowing, and derivation templates. */
@@ -507,11 +1207,19 @@ function templateIsUncertain(template: WiktextractTemplate): boolean {
 function extractDescendantEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
-  nodesById: Map<string, GraphNode>
+  nodesById: Map<string, GraphNode>,
+  originatingEntryId: string
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
-  appendDescendantEdges(entry.descendants ?? [], currentNode, entry.etymology_number, nodesById, edges);
+  appendDescendantEdges(
+    entry.descendants ?? [],
+    currentNode,
+    entry.etymology_number,
+    originatingEntryId,
+    nodesById,
+    edges
+  );
 
   return edges;
 }
@@ -521,6 +1229,7 @@ function appendDescendantEdges(
   descendants: WiktextractDescendant[],
   parentNode: GraphNode,
   etymologyNumber: number | undefined,
+  originatingEntryId: string,
   nodesById: Map<string, GraphNode>,
   edges: GraphEdge[]
 ): void {
@@ -533,17 +1242,25 @@ function appendDescendantEdges(
     const edgeType = inferDescendantEdgeType(descendant);
     nodesById.set(descendantNode.id, descendantNode);
     edges.push({
-      id: `${descendantNode.id}:${edgeType}:${parentNode.id}`,
+      id: makeGraphEdgeId(descendantNode.id, edgeType, parentNode.id, originatingEntryId),
       fromNodeId: descendantNode.id,
       toNodeId: parentNode.id,
       type: edgeType,
       source: "wiktextract",
       etymologyNumber,
       templateName: "descendants",
-      uncertain: descendantIsUncertain(descendant)
+      uncertain: descendantIsUncertain(descendant),
+      originatingEntryId
     });
 
-    appendDescendantEdges(descendant.descendants ?? [], descendantNode, etymologyNumber, nodesById, edges);
+    appendDescendantEdges(
+      descendant.descendants ?? [],
+      descendantNode,
+      etymologyNumber,
+      originatingEntryId,
+      nodesById,
+      edges
+    );
   }
 }
 
@@ -577,12 +1294,14 @@ function parseEtymologyTreeTerms(expansion: string): EtymologyTreeTerm[] {
   const tokenPattern =
     /"term"\s*:\s*"([^"]+)"|"lang"\s*:\s*"([^"]+)"|"keyword"\s*:\s*"([^"]+)"/g;
   let pendingTerm: Partial<EtymologyTreeTerm> = {};
+  let skipPendingTerm = false;
   let match: RegExpExecArray | null;
 
   while ((match = tokenPattern.exec(expansion)) !== null) {
     const [, term, langCode, keyword] = match;
 
     if (term) {
+      skipPendingTerm = treeMetadataTokenIsInStructuralGroup(expansion, match.index);
       pendingTerm = {
         ...pendingTerm,
         term,
@@ -592,6 +1311,12 @@ function parseEtymologyTreeTerms(expansion: string): EtymologyTreeTerm[] {
     }
 
     if (langCode) {
+      if (skipPendingTerm) {
+        pendingTerm = {};
+        skipPendingTerm = false;
+        continue;
+      }
+
       pendingTerm = {
         ...pendingTerm,
         langCode
@@ -610,6 +1335,10 @@ function parseEtymologyTreeTerms(expansion: string): EtymologyTreeTerm[] {
     }
 
     if (keyword) {
+      if (treeMetadataTokenIsInStructuralGroup(expansion, match.index)) {
+        continue;
+      }
+
       const edgeType = parseEtymologyKeywordEdgeType(keyword);
       if (terms.length > 0 && edgeType) {
         terms[terms.length - 1].edgeTypeToParent = edgeType;
@@ -622,7 +1351,79 @@ function parseEtymologyTreeTerms(expansion: string): EtymologyTreeTerm[] {
     }
   }
 
+  return prependMissingTreeHeaderParent(expansion, terms);
+}
+
+/**
+ * Wiktextract sometimes prints the top PIE row in the visible "Etymology tree" header but omits it
+ * from the embedded term metadata. Only adopt the immediate missing parent above the first metadata
+ * term, avoiding component rows such as roots/suffixes that are not a simple linear ancestry chain.
+ */
+function prependMissingTreeHeaderParent(expansion: string, metadataTerms: EtymologyTreeTerm[]): EtymologyTreeTerm[] {
+  if (metadataTerms.length === 0) {
+    return metadataTerms;
+  }
+
+  const headerTerms = parseEtymologyTreeHeaderTerms(expansion);
+  const metadataRootIndex = headerTerms.findIndex(
+    (headerTerm) =>
+      headerTerm.langCode === metadataTerms[0].langCode && headerTerm.term === metadataTerms[0].term
+  );
+
+  if (metadataRootIndex <= 0) {
+    return metadataTerms;
+  }
+
+  const missingParent = {
+    ...headerTerms[metadataRootIndex - 1],
+    edgeTypeToParent: metadataTerms[0].edgeTypeToParent
+  };
+
+  return [missingParent, ...metadataTerms];
+}
+
+/** Reads the visible Etymology tree rows before Wiktextract's embedded template metadata starts. */
+function parseEtymologyTreeHeaderTerms(expansion: string): EtymologyTreeTerm[] {
+  const terms: EtymologyTreeTerm[] = [];
+  if (!expansion.startsWith("Etymology tree\n")) {
+    return terms;
+  }
+
+  for (const line of expansion.split("\n").slice(1)) {
+    if (!line || line.includes("[Appendix:") || line.includes('"')) {
+      break;
+    }
+
+    const term = parseEtymologyTreeHeaderTerm(line);
+    if (term) {
+      terms.push(term);
+    }
+  }
+
   return terms;
+}
+
+/** Parses one visible tree row using the small set of language labels present in tree headers. */
+function parseEtymologyTreeHeaderTerm(line: string): EtymologyTreeTerm | undefined {
+  for (const [languageName, langCode] of etymologyTreeLanguageCodesByName) {
+    const prefix = `${languageName} `;
+    if (!line.startsWith(prefix)) {
+      continue;
+    }
+
+    const term = line.slice(prefix.length).trim().replace(/\.$/, "");
+    if (!term) {
+      return undefined;
+    }
+
+    return {
+      langCode,
+      term: term.replace(/\?$/, ""),
+      uncertain: term.endsWith("?")
+    };
+  }
+
+  return undefined;
 }
 
 /** Reads uncertainty from the same rendered Wiktextract term object as the current term token. */
@@ -634,6 +1435,104 @@ function termObjectIsUncertain(expansion: string, tokenIndex: number): boolean {
   }
 
   return /"is_uncertain"\s*:\s*true/.test(expansion.slice(objectBounds.start, objectBounds.end + 1));
+}
+
+/** Skips hidden affix/equivalent component groups so compound pieces do not become ancestry terms. */
+function treeMetadataTokenIsInStructuralGroup(expansion: string, tokenIndex: number): boolean {
+  let objectBounds = containingObjectBounds(expansion, tokenIndex);
+
+  while (objectBounds) {
+    const objectSource = expansion.slice(objectBounds.start, objectBounds.end + 1);
+    if (
+      topLevelObjectBooleanFieldIs(objectSource, "is_group", true) &&
+      /^(?:afeq|affix)$/.test(topLevelObjectStringField(objectSource, "keyword") ?? "")
+    ) {
+      return true;
+    }
+
+    if (objectBounds.start === 0) {
+      return false;
+    }
+    objectBounds = containingObjectBounds(expansion, objectBounds.start - 1);
+  }
+
+  return false;
+}
+
+/** Checks a boolean field directly on a rendered metadata object, ignoring nested child objects. */
+function topLevelObjectBooleanFieldIs(objectSource: string, fieldName: string, expectedValue: boolean): boolean {
+  return topLevelObjectFieldValue(objectSource, fieldName) === String(expectedValue);
+}
+
+/** Reads a string field directly on a rendered metadata object, ignoring nested child objects. */
+function topLevelObjectStringField(objectSource: string, fieldName: string): string | undefined {
+  const value = topLevelObjectFieldValue(objectSource, fieldName);
+  const match = value ? /^"([^"]*)"$/.exec(value) : undefined;
+
+  return match?.[1];
+}
+
+/** Splits a rendered metadata object into top-level fields without looking inside child arrays. */
+function topLevelObjectFieldValue(objectSource: string, fieldName: string): string | undefined {
+  for (const field of topLevelObjectFields(objectSource)) {
+    const match = /^\s*"([^"]+)"\s*:\s*(.*?)\s*$/s.exec(field);
+    if (match?.[1] === fieldName) {
+      return match[2];
+    }
+  }
+
+  return undefined;
+}
+
+/** Tokenizes object fields while preserving nested arrays and objects as field values. */
+function topLevelObjectFields(objectSource: string): string[] {
+  const fields: string[] = [];
+  let depth = 1;
+  let fieldStartIndex = 1;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = 1; index < objectSource.length - 1; index += 1) {
+    const char = objectSource[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escaped = inString;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      continue;
+    }
+
+    if (char === "{" || char === "[") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}" || char === "]") {
+      depth -= 1;
+      continue;
+    }
+
+    if (char === "," && depth === 1) {
+      fields.push(objectSource.slice(fieldStartIndex, index));
+      fieldStartIndex = index + 1;
+    }
+  }
+
+  fields.push(objectSource.slice(fieldStartIndex, -1));
+
+  return fields;
 }
 
 /** Locates the nearest brace-delimited object that contains a token in Wiktextract's rendered metadata. */
@@ -671,13 +1570,28 @@ function containingObjectBounds(source: string, tokenIndex: number): { start: nu
   return { start: containingStart, end: containingEnd };
 }
 
+/** Finds the closing bracket for a rendered metadata array without being confused by quoted brackets. */
+function matchingCloseBracket(source: string, openBracketIndex: number): number | undefined {
+  return matchingCloseDelimiter(source, openBracketIndex, "[", "]");
+}
+
 /** Finds the closing brace for a rendered metadata object without being confused by quoted braces. */
 function matchingCloseBrace(source: string, openBraceIndex: number): number | undefined {
+  return matchingCloseDelimiter(source, openBraceIndex, "{", "}");
+}
+
+/** Matches balanced metadata delimiters while respecting string literals. */
+function matchingCloseDelimiter(
+  source: string,
+  openDelimiterIndex: number,
+  openDelimiter: string,
+  closeDelimiter: string
+): number | undefined {
   let depth = 0;
   let inString = false;
   let escaped = false;
 
-  for (let index = openBraceIndex; index < source.length; index += 1) {
+  for (let index = openDelimiterIndex; index < source.length; index += 1) {
     const char = source[index];
 
     if (escaped) {
@@ -699,12 +1613,12 @@ function matchingCloseBrace(source: string, openBraceIndex: number): number | un
       continue;
     }
 
-    if (char === "{") {
+    if (char === openDelimiter) {
       depth += 1;
       continue;
     }
 
-    if (char === "}") {
+    if (char === closeDelimiter) {
       depth -= 1;
       if (depth === 0) {
         return index;
@@ -715,25 +1629,45 @@ function matchingCloseBrace(source: string, openBraceIndex: number): number | un
   return undefined;
 }
 
+/** Narrows unknown JSON objects before reading optional tree metadata fields. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Reads an optional string field from parsed Wiktextract metadata. */
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
 /** Converts Wiktextract tree relationship keywords into the shared edge type model. */
 function parseEtymologyKeywordEdgeType(keyword: string): GraphEdge["type"] | undefined {
-  return etymologyKeywordEdgeTypes[keyword as keyof typeof etymologyKeywordEdgeTypes];
+  const normalizedKeyword = keyword.replace(/\+$/, "");
+
+  return etymologyKeywordEdgeTypes[normalizedKeyword as keyof typeof etymologyKeywordEdgeTypes];
 }
 
 /** Creates the canonical graph node representation used by previews and imports. */
 function makeNode(langCode: string, word: string): GraphNode {
+  const graphWord = graphNodeWord(word);
+
   return {
-    id: makeNodeId(langCode, word),
+    id: makeNodeId(langCode, graphWord),
     langCode,
-    word,
-    normalizedWord: normalizeWord(word)
+    word: graphWord,
+    normalizedWord: normalizeWord(graphWord)
   };
+}
+
+/** Removes Wiktionary link fragments so section anchors do not become part of term identity. */
+function graphNodeWord(word: string): string {
+  return trimOptional(word.split("#")[0]) ?? word;
 }
 
 /** Creates the lexical entry payload that preserves dictionary metadata outside graph identity. */
 function makeLexicalEntry(
   entry: WiktextractEntry,
   node: GraphNode,
+  originatingEntryId: string,
   sourceMetadata: ImportSourceMetadata | undefined
 ): LexicalEntry {
   const pronunciations = extractPronunciations(entry.sounds ?? []);
@@ -742,7 +1676,7 @@ function makeLexicalEntry(
   const primarySense = senses[0];
 
   return {
-    id: makeLexicalEntryId(node.id, entry.pos, entry.etymology_number),
+    id: originatingEntryId,
     nodeId: node.id,
     langCode: node.langCode,
     word: node.word,
@@ -758,11 +1692,6 @@ function makeLexicalEntry(
     sourceLineNumber: sourceMetadata?.lineNumber,
     sourceByteOffset: sourceMetadata?.byteOffset
   };
-}
-
-/** Builds stable lexical entry IDs without changing the coarser graph node ID shape. */
-function makeLexicalEntryId(nodeId: string, pos: string | undefined, etymologyNumber: number | undefined): string {
-  return `${nodeId}:entry:${normalizeWord(pos ?? "unknown")}:${etymologyNumber ?? 0}`;
 }
 
 /** Keeps only IPA pronunciation records while preserving accent, region, note, and audio context. */
@@ -843,6 +1772,57 @@ export function parseSeedTargets(value: string): SeedTarget[] {
     });
 }
 
+/** Builds a lookup that keeps large popular-word target lists cheap during a full dump scan. */
+export function buildSeedTargetIndex(targets: SeedTarget[]): SeedTargetIndex {
+  const byLanguageAndWord = new Map<string, Map<string, SeedTargetMatch[]>>();
+  const byWord = new Map<string, SeedTargetMatch[]>();
+
+  targets.forEach((target, index) => {
+    const match = { index, target };
+    const normalizedWord = normalizeWord(target.word);
+
+    if (!target.langCode) {
+      appendSeedTargetMatch(byWord, normalizedWord, match);
+      return;
+    }
+
+    const languageTargets = byLanguageAndWord.get(target.langCode) ?? new Map<string, SeedTargetMatch[]>();
+    appendSeedTargetMatch(languageTargets, normalizedWord, match);
+    byLanguageAndWord.set(target.langCode, languageTargets);
+  });
+
+  return { byLanguageAndWord, byWord };
+}
+
+/** Returns the earliest configured target that matches a Wiktextract record. */
+export function findMatchingSeedTargetIndex(index: SeedTargetIndex, entry: WiktextractEntry): number | undefined {
+  if (!entry.word) {
+    return undefined;
+  }
+
+  const normalizedWord = normalizeWord(entry.word);
+  const languageMatches = entry.lang_code
+    ? (index.byLanguageAndWord.get(entry.lang_code)?.get(normalizedWord) ?? [])
+    : [];
+  const wildcardMatches = index.byWord.get(normalizedWord) ?? [];
+  const matches = [...languageMatches, ...wildcardMatches]
+    .filter((match) => seedTargetMatches(match.target, entry))
+    .sort((left, right) => left.index - right.index);
+
+  return matches[0]?.index;
+}
+
+/** Appends an indexed target match while keeping insertion logic in one place. */
+function appendSeedTargetMatch(
+  targetMap: Map<string, SeedTargetMatch[]>,
+  normalizedWord: string,
+  match: SeedTargetMatch
+): void {
+  const matches = targetMap.get(normalizedWord) ?? [];
+  matches.push(match);
+  targetMap.set(normalizedWord, matches);
+}
+
 /** Reads the optional resumable import checkpoint from disk. */
 async function readImportCheckpoint(path: string): Promise<ImportCheckpoint | undefined> {
   try {
@@ -889,7 +1869,7 @@ function isCaseOnlyProperNameHomograph(
 }
 
 /** Builds stable reporting keys for seed extraction counts. */
-function seedTargetKey(target: SeedTarget): string {
+export function seedTargetKey(target: SeedTarget): string {
   return `${target.langCode ?? "*"}:${normalizeWord(target.word)}`;
 }
 

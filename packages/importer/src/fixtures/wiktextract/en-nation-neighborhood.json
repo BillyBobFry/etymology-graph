@@ -1,0 +1,253 @@
+[
+  {
+    "word": "nation",
+    "lang": "English",
+    "lang_code": "en",
+    "pos": "noun",
+    "etymology_number": 1,
+    "etymology_text": "From Middle English nacioun, nacion, from Old French nacion, from Latin nātiōnem, accusative of nātiō (“nation”). Displaced native Old English þēod.",
+    "etymology_templates": [
+      {
+        "name": "root",
+        "args": {
+          "1": "en",
+          "2": "ine-pro",
+          "3": "*ǵenh₁-"
+        },
+        "expansion": ""
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "en",
+          "2": "enm",
+          "3": "nacioun"
+        },
+        "expansion": "Middle English nacioun"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "fro",
+          "3": "nacion"
+        },
+        "expansion": "Old French nacion"
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "en",
+          "2": "la",
+          "3": "nātiōnem"
+        },
+        "expansion": "Latin nātiōnem"
+      },
+      {
+        "name": "ncog",
+        "args": {
+          "1": "ang",
+          "2": "þēod"
+        },
+        "expansion": "Old English þēod"
+      }
+    ]
+  },
+  {
+    "word": "nation",
+    "lang": "French",
+    "lang_code": "fr",
+    "pos": "noun",
+    "etymology_text": "Inherited from Middle French nation, from Old French nacion, borrowed from Latin nātiōnem.",
+    "etymology_templates": [
+      {
+        "name": "yesno",
+        "args": {
+          "1": "",
+          "2": "i",
+          "3": "I"
+        },
+        "expansion": "I"
+      },
+      {
+        "name": "glossary",
+        "args": {
+          "1": "Inherited"
+        },
+        "expansion": "Inherited"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "fr",
+          "2": "frm",
+          "3": "nation"
+        },
+        "expansion": "Middle French nation"
+      },
+      {
+        "name": "inh+",
+        "args": {
+          "1": "fr",
+          "2": "frm",
+          "3": "nation"
+        },
+        "expansion": "Inherited from Middle French nation"
+      },
+      {
+        "name": "inh",
+        "args": {
+          "1": "fr",
+          "2": "fro",
+          "3": "nacion"
+        },
+        "expansion": "Old French nacion"
+      },
+      {
+        "name": "bor",
+        "args": {
+          "1": "fr",
+          "2": "la",
+          "3": "natio",
+          "4": "nātiōnem"
+        },
+        "expansion": "Latin nātiōnem"
+      }
+    ],
+    "descendants": [
+      {
+        "lang": "Haitian Creole",
+        "lang_code": "ht",
+        "word": "nasyon"
+      },
+      {
+        "lang": "Piedmontese",
+        "lang_code": "pms",
+        "word": "nassion",
+        "raw_tags": ["borrowed"]
+      }
+    ]
+  },
+  {
+    "word": "Nation",
+    "lang": "German",
+    "lang_code": "de",
+    "pos": "noun",
+    "etymology_text": "Borrowed from Latin nātiō.",
+    "etymology_templates": [
+      {
+        "name": "bor+",
+        "args": {
+          "1": "de",
+          "2": "la",
+          "3": "nātiō"
+        },
+        "expansion": "Borrowed from Latin nātiō"
+      }
+    ]
+  },
+  {
+    "word": "nazione",
+    "lang": "Italian",
+    "lang_code": "it",
+    "pos": "noun",
+    "etymology_text": "Borrowed from Latin nātiōnem.",
+    "etymology_templates": [
+      {
+        "name": "bor+",
+        "args": {
+          "1": "it",
+          "2": "la",
+          "3": "natio",
+          "4": "nātiōnem"
+        },
+        "expansion": "Borrowed from Latin nātiōnem"
+      }
+    ]
+  },
+  {
+    "word": "natio",
+    "lang": "Latin",
+    "lang_code": "la",
+    "pos": "noun",
+    "etymology_text": "From Proto-Italic *gnātiō. Equivalent to nāscor (“to be born”) + -tiō (“verbal abstract noun suffix”).",
+    "etymology_templates": [
+      {
+        "name": "root",
+        "args": {
+          "1": "la",
+          "2": "ine-pro",
+          "3": "*ǵenh₁-"
+        },
+        "expansion": ""
+      },
+      {
+        "name": "der",
+        "args": {
+          "1": "la",
+          "2": "itc-pro",
+          "3": "*gnātiō"
+        },
+        "expansion": "Proto-Italic *gnātiō"
+      },
+      {
+        "name": "affix",
+        "args": {
+          "1": "la",
+          "2": "nāscor",
+          "3": "-tiō",
+          "t1": "to be born",
+          "t2": "verbal abstract noun suffix"
+        },
+        "expansion": "nāscor (“to be born”) + -tiō (“verbal abstract noun suffix”)"
+      }
+    ],
+    "descendants": [
+      {
+        "lang": "German",
+        "lang_code": "de",
+        "word": "Nation",
+        "raw_tags": ["borrowed"]
+      },
+      {
+        "lang": "Italian",
+        "lang_code": "it",
+        "word": "nazione",
+        "raw_tags": ["borrowed"]
+      },
+      {
+        "lang": "Old French",
+        "lang_code": "fro",
+        "word": "nacion",
+        "raw_tags": ["borrowed"],
+        "descendants": [
+          {
+            "lang": "Middle French",
+            "lang_code": "frm",
+            "word": "nation",
+            "descendants": [
+              {
+                "lang": "French",
+                "lang_code": "fr",
+                "word": "nation"
+              }
+            ]
+          },
+          {
+            "lang": "Middle English",
+            "lang_code": "enm",
+            "word": "nacioun",
+            "raw_tags": ["borrowed"],
+            "descendants": [
+              {
+                "lang": "English",
+                "lang_code": "en",
+                "word": "nation"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

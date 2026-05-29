@@ -17,18 +17,28 @@ This project is a local-first etymology graph exploration tool built from Wiktio
 ## API Query Architecture
 
 - Keep request handlers database-agnostic. Handlers should validate HTTP input, call graph use-case interfaces, and shape HTTP responses; they should not contain SQL, `pg` calls, Cypher, or database traversal details.
-- Model the backend boundary around graph operations such as search, ancestors, descendants, doublets, and local graph neighborhoods rather than around a generic database abstraction.
+- Model the backend boundary around graph operations such as search, ancestors, descendants, doublets, term entries, and local graph neighborhoods rather than around a generic database abstraction.
 - Put database-specific logic behind a repository/service interface, for example a `GraphRepository` implemented first by Postgres and later by a graph-native database such as Neo4j.
 - Shared graph query and response types should live in `@etymology-graph/graph` when they are useful to both API and frontend code.
 - Avoid introducing a database-neutral query DSL until the project has real evidence it needs one; prefer stable app-level graph operations with database-specific implementations.
+- Ancestor, child, and doublet endpoints accept optional `pos` and `etymologyNumber` to anchor traversal on a specific lexical entry. When omitted the API picks a deterministic default (lowest `etymology_number`, then alphabetic `pos`, then entry id) so callers without an opinion still get stable behavior.
+- `/api/term-entries` lists every lexical entry homed at a `(langCode, word)` pair, including pos/etymology metadata. The frontend uses it to render an entry chooser whenever a term has homograph entries.
 
 ## Data Model
 
-- Represent terms as nodes, keyed by language code plus normalized word/form.
-- Represent etymological relationships as typed edges.
+- Represent terms as graph nodes keyed by language code plus normalized word/form. Graph nodes are coarse and intentionally host multiple homograph lexical entries.
+- Lexical entries live in their own table keyed by `(node_id, pos, etymology_number)` and own the per-entry metadata that drives summaries and the entry chooser.
+- Represent etymological relationships as typed edges. Every edge is attributed to the lexical entry that declared it through `graph_edges.originating_entry_id`; this is the primary mechanism for keeping unrelated homograph histories apart during traversal.
 - Core edge types should include inherited-from, derived-from, borrowed-from, cognate-with, doublet-of, descendant-of, and related/see-also where useful.
-- Descendant lists are supporting graph input: recursively import descendant nodes and source-directed edges, inferring `borrowed_from` or `derived_from` from tags and defaulting to `inherited_from`.
+- Descendant lists are supporting graph input: recursively import descendant nodes and source-directed edges, inferring `borrowed_from` or `derived_from` from tags and defaulting to `inherited_from`. Descendant-derived edges are owned by the ancestor entry whose Wiktextract record declared them.
 - Preserve source metadata such as Wiktextract line number, `etymology_number`, template name, confidence/uncertainty, and raw text snippets when available.
+
+## Graph Traversal
+
+- Traversal is entry-aware: each query selects an anchor lexical entry (or falls back to the bare graph node when no entry exists) and walks edges whose `originating_entry_id` is in an "allowed entry set" seeded from that anchor.
+- The pure reference function is `traverseAncestors` in `packages/graph/src/index.ts`. The Postgres CTEs in `apps/api/src/postgres-graph-repository.ts` are intentionally a port of that function; both must apply Rule v5 the same way - add a node's other homed entries to the allowed set only when they are the unique entry at the node or when their first ancestor edge agrees with an already-allowed entry's edge.
+- Doublet queries require a real lexical entry at the seed. Their candidate filter rejects bridges through a homograph node when the candidate's outgoing ancestor edge from that node disagrees with the seed's outgoing edge.
+- Child-term traversal is more permissive: it includes edges declared by the seed entry's descendants list, edges self-declared by descendants homed at the candidate child node, and (for entry-less seeds only) every incoming edge so proto-forms still surface descendants.
 
 ## Wiktextract Source Fields
 

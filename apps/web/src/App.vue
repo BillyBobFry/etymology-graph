@@ -15,7 +15,11 @@ const isEtymologyRoute = computed(
 );
 
 const isDoubletsRoute = computed(
-  () => route.name === "doublets-search" || route.name === "doublets"
+  () => route.name === "doublets-search" || route.name === "doublet-groups" || route.name === "doublets"
+);
+
+const isAncestorLanguageRoute = computed(
+  () => route.name === "ancestor-language-search" || route.name === "ancestor-language-results"
 );
 
 const sectionLinkBaseClass =
@@ -91,6 +95,13 @@ function preferredSystemTheme(): ThemePreference {
             :aria-current="isDoubletsRoute ? 'location' : undefined"
           >
             Doublets
+          </RouterLink>
+          <RouterLink
+            :class="sectionLinkClass(isAncestorLanguageRoute)"
+            :to="{ name: 'ancestor-language-search' }"
+            :aria-current="isAncestorLanguageRoute ? 'location' : undefined"
+          >
+            Source Languages
           </RouterLink>
         </nav>
       </div>

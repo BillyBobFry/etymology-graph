@@ -27,17 +27,17 @@ withDefaults(
 );
 
 const baseClass =
-  "inline-flex items-center justify-center gap-2 rounded-2xl border font-label font-bold leading-none transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-65";
+  "inline-flex items-center justify-center gap-2 rounded-lg border font-label font-bold leading-none transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-65";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "border-accent bg-accent text-accent-contrast shadow-paper hover:brightness-105",
+    "border-accent bg-accent text-accent-contrast shadow-paper hover:brightness-95",
   secondary:
-    "border-border-strong bg-surface-muted text-text hover:border-accent hover:bg-surface-raised hover:text-accent",
+    "border-border-strong bg-surface-muted text-text hover:border-border-strong hover:brightness-95",
   ghost:
-    "border-transparent bg-transparent text-text-muted hover:bg-surface-muted hover:text-text",
+    "border-transparent bg-transparent text-text-muted hover:bg-background hover:text-text hover:brightness-95",
   danger:
-    "border-danger bg-danger text-accent-contrast shadow-paper hover:brightness-105"
+    "border-danger bg-danger text-accent-contrast shadow-paper hover:brightness-95"
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

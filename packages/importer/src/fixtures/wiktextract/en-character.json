@@ -1,0 +1,92 @@
+{
+  "word": "character",
+  "lang": "English",
+  "lang_code": "en",
+  "pos": "noun",
+  "etymology_text": "Etymology tree\nAncient Greek χαράσσω (kharássō)\nProto-Indo-European *-tḗr\nAncient Greek -τήρ (-tḗr)\nAncient Greek χαρακτήρ (kharaktḗr)der.\nLatin charactērder.\nOld French caracterebor.\nMiddle English caracter\nEnglish character\nFrom Middle English caracter, from Old French caractere, from Latin character, from Ancient Greek χαρακτήρ (kharaktḗr, “type, nature, character”), from χαράσσω (kharássō, “to engrave”). Doublet of charakter.",
+  "etymology_templates": [
+    {
+      "name": "etymon",
+      "args": {
+        "1": "en",
+        "2": ":inh",
+        "3": "enm:caracter<ety:bor<fro:caractere<ety:der<la:charactēr>>>>",
+        "tree": "1"
+      },
+      "expansion": "Etymology tree\nAncient Greek χαράσσω (kharássō)\nProto-Indo-European *-tḗr\nAncient Greek -τήρ (-tḗr)\nAncient Greek χαρακτήρ (kharaktḗr)der.\nLatin charactērder.\nOld French caracterebor.\nMiddle English caracter\nEnglish character\n[Appendix:Glossary#loanword|Borrowed]] from\", \"terms\" : [ { \"children\" : [ { \"keyword_abbrev\" : \"der.\", \"keyword_label\" : \"Derived from\", \"terms\" : [ { \"children\" : [ { \"keyword_abbrev\" : \"der.\", \"keyword_label\" : \"Derived from\", \"terms\" : [ { \"children\" : [ { \"terms\" : [ { \"children\" : [ ], \"lang_name\" : \"Ancient Greek\", \"term\" : \"χαράσσω\", \"status\" : \"ok\", \"lang\" : \"grc\" }, { \"children\" : [ { \"terms\" : [ { \"children\" : [ ], \"lang_name\" : \"Proto-Indo-European\", \"term\" : \"*-tḗr\", \"status\" : \"ok\", \"lang\" : \"ine-pro\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"Ancient Greek\", \"term\" : \"-τήρ\", \"status\" : \"ok\", \"lang\" : \"grc\" } ], \"keyword_label\" : \"From\", \"is_group\" : true, \"keyword\" : \"affix\" } ], \"lang_name\" : \"Ancient Greek\", \"term\" : \"χαρακτήρ\", \"status\" : \"ok\", \"lang\" : \"grc\" } ], \"keyword\" : \"derived\" } ], \"lang_name\" : \"Latin\", \"term\" : \"charactēr\", \"status\" : \"ok\", \"lang\" : \"la\" } ], \"keyword\" : \"derived\" } ], \"lang_name\" : \"Old French\", \"term\" : \"caractere\", \"status\" : \"inline\", \"lang\" : \"fro\" } ], \"keyword\" : \"bor\" } ], \"lang_name\" : \"Middle English\", \"term\" : \"caracter\", \"status\" : \"inline\", \"lang\" : \"enm\" } ], \"keyword_label\" : \"Inherited from\", \"keyword\" : \"inherited\" } ], \"lang_name\" : \"English\", \"term\" : \"character\", \"status\" : \"ok\", \"lang\" : \"en\" }\" data-lang=\"en\" data-title=\"character\">"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "enm",
+        "3": "caracter"
+      },
+      "expansion": "Middle English caracter"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "fro",
+        "3": "caractere"
+      },
+      "expansion": "Old French caractere"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "la",
+        "3": "character"
+      },
+      "expansion": "Latin character"
+    },
+    {
+      "name": "der",
+      "args": {
+        "1": "en",
+        "2": "grc",
+        "3": "χαρακτήρ",
+        "4": "",
+        "5": "type, nature, character"
+      },
+      "expansion": "Ancient Greek χαρακτήρ (kharaktḗr, “type, nature, character”)"
+    },
+    {
+      "name": "doublet",
+      "args": {
+        "1": "en",
+        "2": "charakter"
+      },
+      "expansion": "Doublet of charakter"
+    }
+  ],
+  "descendants": [
+    {
+      "lang": "Scottish Gaelic",
+      "lang_code": "gd",
+      "word": "caractar",
+      "raw_tags": [
+        "borrowed"
+      ]
+    },
+    {
+      "lang": "Japanese",
+      "lang_code": "ja",
+      "word": "キャラクター",
+      "raw_tags": [
+        "borrowed"
+      ]
+    },
+    {
+      "lang": "Korean",
+      "lang_code": "ko",
+      "word": "캐릭터",
+      "raw_tags": [
+        "borrowed"
+      ],
+      "roman": "kaerikteo"
+    }
+  ]
+}

@@ -35,6 +35,7 @@ Always follow these rules when writing code:
 
 - Build interactive UI with native semantic elements first, and follow WAI-ARIA authoring patterns when custom behavior needs ARIA
 - Use zag-js for complex reusable headless components with non-trivial state, focus, or keyboard interaction; avoid adding it for simple native controls
+- In Vue single-file components, keep Tailwind and static styling class strings in the template. Do not hide hardcoded class strings in `<script>` constants or computed values unless the script is choosing a semantic variant that cannot be expressed clearly with template class bindings.
 
 ## Vue State And Data Loading
 
@@ -43,9 +44,21 @@ Always follow these rules when writing code:
 - Keep TanStack Query behind reusable data loader composables. Export the full query/options factory for each API call, and expose TanStack options to composable callers while keeping endpoint query keys and fetchers centralized
 - Use plain Vue state for local UI state such as selected controls, theme, form drafts, and transient component-only behavior
 
+## Component Boundaries And Side Effects
+
+- Reusable and presentational components should not directly mutate global stores (Pinia) or trigger navigation. Keep them controlled through props and emit events for changes, then let the parent page or owner decide whether to persist shared state, navigate, or ignore the change.
+- Do not give a leaf component props that encode another screen's intent, such as a route name to navigate to on some interaction. A prop like `languageResetRouteName` is a smell: lift that decision to the parent via an event.
+- Prefer `v-model`/emit for shared values so the same component works on pages that persist the change, navigate on it, or do nothing. The component owns its own local UI state (input text, transient selection); the parent owns cross-cutting effects.
+- A component may still compute and emit a sensible default value (for example, resolving an initial selection from available data), but it should emit that proposal rather than writing global state itself.
+
 ## When To Extract
 
+- Before adding new code to an existing component or module, pause and identify the responsibility it belongs to. If it is a distinct island of behavior, rendering, data loading, interaction state, formatting, or domain calculation, prefer extracting it instead of growing the current file.
+- Treat large coordinator components as a smell. A component should usually coordinate a small number of clear pieces; it should not also own unrelated layout algorithms, pointer gesture state, display formatting, dense SVG markup, popovers, and detail panels.
+- When adding to a file that is already hard to scan, extract first or as part of the change. Do not add "one more thing" to a god component unless the addition is truly small glue that cannot stand alone.
 - Extract a function when it names a meaningful domain operation, removes duplicated logic, isolates a multi-step calculation, or makes branching/error handling easier to read
+- Extract a component when a template region has its own purpose, props/events boundary, repeated visual structure, or enough markup/classes that it obscures the parent's main flow
+- Name extracted child components with the parent component prefix so related files group together in IDE file lists, for example `GraphCanvasControls.vue`, `GraphCanvasNodes.vue`, and `GraphCanvasNodeDetails.vue` for pieces extracted from `GraphCanvas.vue`
 - Extract logic and state to Vue composables when it is reused, has meaningful lifecycle or watcher behavior, coordinates async/browser APIs, or makes a component hard to scan
 - Keep one-off template glue, direct property access, simple local UI state, and obvious callbacks inline where they are used
 - Do not extract one-line, single-use helper functions that only rename a property access, boolean check, or direct callback unless the extraction captures meaningful domain intent

@@ -1,0 +1,13 @@
+.git
+.cursor
+.env
+.env.*
+node_modules
+dist
+apps/*/dist
+packages/*/dist
+apps/web/tsconfig.tsbuildinfo
+wikidata_downloads
+data/postgres
+coverage
+*.log
