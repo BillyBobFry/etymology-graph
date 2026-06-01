@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 type IconButtonVariant = "ghost" | "secondary";
 type IconButtonSize = "xs" | "sm" | "md";
 type IconButtonType = "button" | "submit" | "reset";
@@ -28,11 +30,18 @@ const variantClasses: Record<IconButtonVariant, string> = {
   secondary: "border-border-strong bg-surface-muted text-text hover:border-border-strong hover:brightness-95"
 };
 
+const activeVariantClasses: Record<IconButtonVariant, string> = {
+  ghost: "border-border-strong! bg-surface-muted! shadow-paper",
+  secondary: "bg-surface-muted!"
+};
+
 const sizeClasses: Record<IconButtonSize, string> = {
   xs: "size-7",
   sm: "size-8",
   md: "size-9"
 };
+
+const isActive = computed(() => props.active === true || props.active === "true");
 
 </script>
 
@@ -46,7 +55,7 @@ const sizeClasses: Record<IconButtonSize, string> = {
     :aria-label="props.label"
     :title="props.label"
     class="cursor-pointer inline-grid shrink-0 place-items-center rounded-full border font-label font-bold leading-none transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background  disabled:opacity-65"
-    :class="[variantClasses[props.variant], sizeClasses[props.size], props.active && 'bg-surface-muted!']"
+    :class="[variantClasses[props.variant], sizeClasses[props.size], isActive && activeVariantClasses[props.variant]]"
   >
     <slot />
   </component>

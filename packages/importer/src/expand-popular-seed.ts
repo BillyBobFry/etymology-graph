@@ -1,7 +1,8 @@
 import { createWriteStream } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { finished } from "node:stream/promises";
+import { pathToFileURL } from "node:url";
 
 import type { GraphNode } from "@etymology-graph/graph";
 
@@ -13,7 +14,8 @@ import {
   previewEntry,
   readJsonlRecords,
   seedTargetKey,
-  type SeedTarget
+  type SeedTarget,
+  type WiktextractEntry
 } from "./wiktextract.js";
 
 type FrontierStatus = "pending" | "matched" | "not_found";
@@ -24,7 +26,43 @@ type FrontierTarget = {
   depth: number;
   status: FrontierStatus;
   discoveredBy?: string;
-  reason: "initial_seed" | "hub_related_node";
+  reason: "initial_seed" | "hub_related_node" | "hub_root_neighbor" | "cognate_template";
+};
+
+type UiCoverageTarget = {
+  langCode: string;
+  word: string;
+};
+
+type StarterQuery = {
+  term?: unknown;
+};
+
+type StarterQueryGroups = Record<string, unknown>;
+
+type SoundChangeTermLike = {
+  languageCode?: unknown;
+  term?: unknown;
+};
+
+type SoundChangeLineageLike = {
+  from?: unknown;
+  to?: unknown;
+};
+
+type SoundChangeAnnotationLike = {
+  target?: unknown;
+  fallbackTargets?: unknown;
+};
+
+type SoundChangeExampleLike = {
+  shifted?: unknown;
+  comparisons?: unknown;
+  annotations?: unknown;
+};
+
+type SoundChangeArticleLike = {
+  examples?: unknown;
 };
 
 type ExpansionPassSummary = {
@@ -43,8 +81,14 @@ type ExpansionState = {
   frontierPath: string;
   popularWordsDirs: string[];
   hubLanguageCodes: string[];
+  rootOutwardExpansionEnabled: boolean;
+  rootOutwardLanguageCodes: string[];
+  cognateExpansionEnabled: boolean;
+  cognateLanguageCodes: string[];
   maxExpansionDepth: number;
+  maxHubExpansionDepth: number;
   maxEnqueuedTargets: number;
+  maxDiscoveredTargetsPerMatch: number;
   limitRecords?: number;
   targetCount: number;
   statusCounts: Record<FrontierStatus, number>;
@@ -58,12 +102,19 @@ const defaultPopularWordsDirs = [
   "../../data/seed-words/thousand-most-common-words",
   "../../data/seed-words/corpora"
 ];
+const defaultUiCoverageModulePaths = [
+  "../../apps/web/src/features/terms/starterQueries.ts",
+  "../../apps/web/src/features/soundChanges/soundChanges.ts"
+];
 const popularWordsDirs = parseDelimitedList(process.env.POPULAR_WORDS_DIRS) ?? [
   ...defaultPopularWordsDirs
 ];
-const outputPath = process.env.SEED_OUTPUT_PATH ?? "../../wikidata_downloads/seeds/popular-expanded-seed.jsonl";
+const uiCoverageModulePaths = parseDelimitedList(process.env.UI_SEED_COVERAGE_MODULES) ?? [
+  ...defaultUiCoverageModulePaths
+];
+const outputPath = process.env.SEED_OUTPUT_PATH ?? "../../wikidata_downloads/seeds/prod-seed.jsonl";
 const frontierPath =
-  process.env.EXPANSION_FRONTIER_PATH ?? "../../wikidata_downloads/checkpoints/popular-expansion-frontier.json";
+  process.env.EXPANSION_FRONTIER_PATH ?? "../../wikidata_downloads/checkpoints/prod-expansion-frontier.json";
 const hubLanguageCodes = new Set(
   parseDelimitedList(process.env.EXPANSION_HUB_LANG_CODES) ?? [
     "la",
@@ -81,8 +132,52 @@ const hubLanguageCodes = new Set(
     "sla-pro"
   ]
 );
+const rootOutwardExpansionEnabled =
+  process.env.EXPANSION_ENQUEUE_RELATED_FROM_HUBS === undefined
+    ? true
+    : parseBoolean(process.env.EXPANSION_ENQUEUE_RELATED_FROM_HUBS);
+const rootOutwardLanguageCodes = new Set(
+  parseDelimitedList(process.env.EXPANSION_ROOT_OUTWARD_LANG_CODES) ?? [
+    "en",
+    "ang",
+    "enm",
+    "de",
+    "nl",
+    "is",
+    "sv",
+    "da",
+    "no",
+    "fo",
+    "got",
+    "la",
+    "it",
+    "es",
+    "fr",
+    "pt",
+    "ro",
+    "ca",
+    "grc",
+    "el",
+    "sa",
+    "hi",
+    "ru",
+    "pl",
+    "cs",
+    "cy",
+    "ga",
+    "fa",
+    "ae",
+    "ave",
+    ...hubLanguageCodes
+  ]
+);
+const cognateExpansionEnabled =
+  process.env.EXPANSION_ENQUEUE_COGNATES === undefined ? true : parseBoolean(process.env.EXPANSION_ENQUEUE_COGNATES);
+const cognateLanguageCodes = new Set(parseDelimitedList(process.env.EXPANSION_COGNATE_LANG_CODES) ?? rootOutwardLanguageCodes);
 const maxExpansionDepth = Number(process.env.EXPANSION_MAX_DEPTH ?? 2);
+const maxHubExpansionDepth = Number(process.env.EXPANSION_MAX_HUB_DEPTH ?? maxExpansionDepth + 2);
 const maxEnqueuedTargets = Number(process.env.EXPANSION_MAX_TARGETS ?? 125_000);
+const maxDiscoveredTargetsPerMatch = Number(process.env.EXPANSION_MAX_DISCOVERED_TARGETS_PER_MATCH ?? 75);
 const limitRecords = process.env.EXPANSION_LIMIT_RECORDS ? Number(process.env.EXPANSION_LIMIT_RECORDS) : undefined;
 
 const initialTargets = await loadInitialTargets(popularWordsDirs);
@@ -100,7 +195,7 @@ await mkdir(dirname(outputPath), { recursive: true });
 const output = createWriteStream(outputPath, { encoding: "utf8", flags: "w" });
 
 try {
-  for (let depth = 0; depth <= maxExpansionDepth; depth += 1) {
+  for (let depth = 0; depth <= maxHubExpansionDepth; depth += 1) {
     const passTargets = [...frontier.values()].filter((frontierTarget) => {
       return frontierTarget.depth === depth && frontierTarget.status === "pending";
     });
@@ -131,9 +226,16 @@ console.log({
   outputPath,
   frontierPath,
   popularWordsDirs,
+  uiCoverageModulePaths,
   hubLanguageCodes: [...hubLanguageCodes],
+  rootOutwardExpansionEnabled,
+  rootOutwardLanguageCodes: [...rootOutwardLanguageCodes],
+  cognateExpansionEnabled,
+  cognateLanguageCodes: [...cognateLanguageCodes],
   maxExpansionDepth,
+  maxHubExpansionDepth,
   maxEnqueuedTargets,
+  maxDiscoveredTargetsPerMatch,
   limitRecords,
   targetCount: frontier.size,
   statusCounts: countStatuses(frontier),
@@ -157,12 +259,129 @@ type ExpansionPassOptions = {
 /** Loads committed seed-word directories into the initial frontier. */
 async function loadInitialTargets(directoryPaths: string[]): Promise<SeedTarget[]> {
   const popularTargets = await Promise.all(directoryPaths.map((directoryPath) => loadPopularWordTargets(directoryPath)));
-  const targetSpecs = [...new Set(popularTargets.flatMap((result) => result.targetSpecs))];
+  const uiCoverageTargets = await loadUiCoverageTargets(uiCoverageModulePaths);
+  const targetSpecs = [...new Set([
+    ...popularTargets.flatMap((result) => result.targetSpecs),
+    ...uiCoverageTargets.map((target) => `${target.langCode}:${target.word}`)
+  ])];
 
   return parseSeedTargets(targetSpecs.join(","));
 }
 
-/** Streams Wiktextract once for one frontier depth and discovers hub-language targets for the next pass. */
+/** Loads route starter and article terms so public UI examples are always present in production seeds. */
+async function loadUiCoverageTargets(modulePaths: string[]): Promise<UiCoverageTarget[]> {
+  const targets = new Map<string, UiCoverageTarget>();
+
+  for (const modulePath of modulePaths) {
+    const moduleExports = await import(pathToFileURL(resolve(modulePath)).href) as Record<string, unknown>;
+    for (const target of uiCoverageTargetsFromModule(moduleExports)) {
+      targets.set(`${target.langCode}:${target.word}`, target);
+    }
+  }
+
+  return [...targets.values()];
+}
+
+/** Extracts every supported UI term shape from a dynamically loaded frontend metadata module. */
+function uiCoverageTargetsFromModule(moduleExports: Record<string, unknown>): UiCoverageTarget[] {
+  return [
+    ...starterCoverageTargets(moduleExports.starterQueriesByLanguage),
+    ...soundChangeCoverageTargets(moduleExports.soundChangeArticles)
+  ];
+}
+
+/** Extracts language-scoped starter query terms from the search and doublet starter metadata. */
+function starterCoverageTargets(value: unknown): UiCoverageTarget[] {
+  if (!isRecord(value)) {
+    return [];
+  }
+
+  return Object.entries(value).flatMap(([langCode, groups]) => {
+    if (!isRecord(groups)) {
+      return [];
+    }
+
+    return Object.values(groups as StarterQueryGroups).flatMap((queries) => {
+      if (!Array.isArray(queries)) {
+        return [];
+      }
+
+      return queries.flatMap((query: StarterQuery) =>
+        typeof query.term === "string" ? [{ langCode, word: query.term }] : []
+      );
+    });
+  });
+}
+
+/** Extracts source, target, annotation, and fallback terms from editorial sound-change examples. */
+function soundChangeCoverageTargets(value: unknown): UiCoverageTarget[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((article: SoundChangeArticleLike) => {
+    if (!Array.isArray(article.examples)) {
+      return [];
+    }
+
+    return article.examples.flatMap((example: SoundChangeExampleLike) => [
+      ...lineageCoverageTargets(example.shifted),
+      ...lineageCoverageTargets(example.comparisons),
+      ...annotationCoverageTargets(example.annotations)
+    ]);
+  });
+}
+
+/** Extracts both ends of curated sound-change lineages. */
+function lineageCoverageTargets(value: unknown): UiCoverageTarget[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((lineage: SoundChangeLineageLike) => [
+    ...soundChangeTermCoverageTarget(lineage.from),
+    ...soundChangeTermCoverageTarget(lineage.to)
+  ]);
+}
+
+/** Extracts annotation targets and fallbacks used by graph callouts. */
+function annotationCoverageTargets(value: unknown): UiCoverageTarget[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((annotation: SoundChangeAnnotationLike) => [
+    ...graphAnnotationTargetCoverageTarget(annotation.target),
+    ...(Array.isArray(annotation.fallbackTargets)
+      ? annotation.fallbackTargets.flatMap((target) => graphAnnotationTargetCoverageTarget(target))
+      : [])
+  ]);
+}
+
+/** Converts sound-change term objects to seed targets when they have the expected fields. */
+function soundChangeTermCoverageTarget(value: unknown): UiCoverageTarget[] {
+  if (!isRecord(value) || typeof value.languageCode !== "string" || typeof value.term !== "string") {
+    return [];
+  }
+
+  return [{ langCode: value.languageCode, word: value.term }];
+}
+
+/** Converts graph annotation target objects to seed targets when they have the expected fields. */
+function graphAnnotationTargetCoverageTarget(value: unknown): UiCoverageTarget[] {
+  if (!isRecord(value) || typeof value.langCode !== "string" || typeof value.word !== "string") {
+    return [];
+  }
+
+  return [{ langCode: value.langCode, word: value.word }];
+}
+
+/** Narrows dynamic module data to objects before reading frontend metadata properties. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/** Streams Wiktextract once for one frontier depth and discovers targets for the next pass. */
 async function runExpansionPass(options: ExpansionPassOptions): Promise<ExpansionPassSummary> {
   const targets = options.passTargets.map((frontierTarget) => frontierTarget.target);
   const targetKeys = options.passTargets.map((frontierTarget) => frontierTarget.key);
@@ -203,12 +422,12 @@ async function runExpansionPass(options: ExpansionPassOptions): Promise<Expansio
     matchedTargetKeys.add(matchedKey);
     writtenRecords += 1;
 
-    if (options.depth < maxExpansionDepth) {
+    if (options.depth < maxHubExpansionDepth) {
       const preview = previewEntry(record.entry, {
         lineNumber: record.lineNumber,
         byteOffset: record.byteOffset
       });
-      discoveredTargets += enqueueHubTargets(options.frontier, preview.nodes, frontierTarget);
+      discoveredTargets += enqueueDiscoveredTargets(options.frontier, preview.nodes, record.entry, frontierTarget, options.depth);
     }
   }
 
@@ -229,22 +448,53 @@ async function runExpansionPass(options: ExpansionPassOptions): Promise<Expansio
   };
 }
 
-/** Adds hub-language nodes discovered from structured graph extraction to the frontier. */
-function enqueueHubTargets(
+/** Adds structured graph neighbors to the frontier, fanning out from influential roots under caps. */
+function enqueueDiscoveredTargets(
   frontier: Map<string, FrontierTarget>,
   nodes: GraphNode[],
-  discoveredBy: FrontierTarget
+  entry: WiktextractEntry,
+  discoveredBy: FrontierTarget,
+  currentDepth: number
 ): number {
   let enqueuedCount = 0;
+  const shouldExpandOutward = shouldExpandOutwardFromHub(discoveredBy);
+  const shouldExpandBroadly = currentDepth < maxExpansionDepth;
+  const targetLanguageCodes = shouldExpandOutward && shouldExpandBroadly ? rootOutwardLanguageCodes : hubLanguageCodes;
+
+  if (shouldExpandBroadly) {
+    for (const target of cognateTargets(entry)) {
+      if (!cognateLanguageCodes.has(target.langCode ?? "")) {
+        continue;
+      }
+
+      if (enqueuedCount >= maxDiscoveredTargetsPerMatch) {
+        return enqueuedCount;
+      }
+
+      const enqueued = enqueueTarget(frontier, target, {
+        depth: discoveredBy.depth + 1,
+        reason: "cognate_template",
+        discoveredBy: discoveredBy.key
+      });
+
+      if (enqueued) {
+        enqueuedCount += 1;
+      }
+    }
+  }
 
   for (const node of nodes) {
-    if (!hubLanguageCodes.has(node.langCode)) {
+    if (!targetLanguageCodes.has(node.langCode)) {
       continue;
+    }
+
+    if (enqueuedCount >= maxDiscoveredTargetsPerMatch) {
+      break;
     }
 
     const enqueued = enqueueTarget(frontier, { langCode: node.langCode, word: node.word }, {
       depth: discoveredBy.depth + 1,
-      reason: "hub_related_node",
+      reason: shouldExpandOutward && !hubLanguageCodes.has(node.langCode) ? "hub_root_neighbor" : "hub_related_node",
       discoveredBy: discoveredBy.key
     });
 
@@ -254,6 +504,36 @@ function enqueueHubTargets(
   }
 
   return enqueuedCount;
+}
+
+/** Reads explicit cognate templates as high-signal seed hints without turning them into ancestry edges. */
+function cognateTargets(entry: WiktextractEntry): SeedTarget[] {
+  if (!cognateExpansionEnabled) {
+    return [];
+  }
+
+  return (entry.etymology_templates ?? []).flatMap((template) => {
+    if (!isCognateTemplate(template.name)) {
+      return [];
+    }
+
+    const term = template.args?.["2"]?.trim();
+    if (!term) {
+      return [];
+    }
+
+    return parseDelimitedList(template.args?.["1"])?.map((langCode) => ({ langCode, word: term })) ?? [];
+  });
+}
+
+/** Keeps cognate expansion limited to explicit positive cognate templates, not non-cognate notes. */
+function isCognateTemplate(templateName: string | undefined): boolean {
+  return templateName === "cog" || templateName === "cognate";
+}
+
+/** Identifies influential-language matches where sibling branches should make the production graph fuller. */
+function shouldExpandOutwardFromHub(frontierTarget: FrontierTarget): boolean {
+  return rootOutwardExpansionEnabled && frontierTarget.target.langCode !== undefined && hubLanguageCodes.has(frontierTarget.target.langCode);
 }
 
 /** Adds a target once, respecting the global cap for expansion runs. */
@@ -301,8 +581,14 @@ function makeExpansionState(frontier: Map<string, FrontierTarget>, passes: Expan
     frontierPath,
     popularWordsDirs,
     hubLanguageCodes: [...hubLanguageCodes].sort(),
+    rootOutwardExpansionEnabled,
+    rootOutwardLanguageCodes: [...rootOutwardLanguageCodes].sort(),
+    cognateExpansionEnabled,
+    cognateLanguageCodes: [...cognateLanguageCodes].sort(),
     maxExpansionDepth,
+    maxHubExpansionDepth,
     maxEnqueuedTargets,
+    maxDiscoveredTargetsPerMatch,
     limitRecords,
     targetCount: frontier.size,
     statusCounts: countStatuses(frontier),
@@ -337,4 +623,9 @@ function parseDelimitedList(value: string | undefined): string[] | undefined {
     .filter((item) => item.length > 0);
 
   return values && values.length > 0 ? values : undefined;
+}
+
+/** Parses feature flags from environment variables without making truthiness depend on arbitrary strings. */
+function parseBoolean(value: string | undefined): boolean {
+  return value === "true" || value === "1";
 }

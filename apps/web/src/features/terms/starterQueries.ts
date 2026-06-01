@@ -336,7 +336,7 @@ const romanceCoreStarterQueries: StarterQuery[] = [
   }
 ];
 
-const starterQueriesByLanguage: Record<string, StarterQueriesByKind> = {
+export const starterQueriesByLanguage: Record<string, StarterQueriesByKind> = {
   en: {
     etymology: englishEtymologyStarterQueries,
     doublets: englishDoubletStarterQueries

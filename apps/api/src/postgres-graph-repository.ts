@@ -1,6 +1,7 @@
 import type { Pool } from "pg";
 
 import {
+  canonicalGraphWord,
   EDGE_TYPES,
   normalizeWord,
   type AncestorPathQuery,
@@ -9,12 +10,15 @@ import {
   type AncestorsResult,
   type ChildTermsQuery,
   type ChildTermsResult,
+  type ComparisonSetQuery,
+  type ComparisonSetResult,
   type DoubletGroup,
   type DoubletGroupsQuery,
   type DoubletGroupsResult,
   type DoubletsQuery,
   type DoubletsResult,
   type EdgeType,
+  type EtymologyGraph,
   type GraphEdge,
   type GraphNode,
   type GraphTraversalNode,
@@ -81,6 +85,16 @@ type EdgeRow = {
   template_name: string | null;
   uncertain: boolean;
   originating_entry_id: string;
+};
+
+type ComparisonSetResolvedItem = ComparisonSetQuery["groups"][number]["items"][number] & {
+  graph: EtymologyGraph | null;
+};
+
+type ComparisonSetResolvedGroup = {
+  id: string;
+  label: string;
+  items: ComparisonSetResolvedItem[];
 };
 
 type LanguageRow = {
@@ -302,7 +316,9 @@ export class PostgresGraphRepository implements GraphRepository {
 
   /** Finds candidate term nodes by normalized word while keeping search SQL out of handlers. */
   public async searchTerms(query: SearchTermsQuery): Promise<SearchTermsResult> {
-    const normalizedQuery = normalizeWord(query.query);
+    const normalizedQuery = query.langCode
+      ? normalizeCanonicalGraphWord(query.langCode, query.query)
+      : normalizeWord(query.query);
 
     if (!normalizedQuery) {
       return {
@@ -355,7 +371,7 @@ export class PostgresGraphRepository implements GraphRepository {
 
   /** Lists every lexical entry homed at a term so the frontend can pick which etymological story to follow. */
   public async listTermEntries(query: TermEntriesQuery): Promise<TermEntriesResult> {
-    const normalizedWord = normalizeWord(query.word);
+    const normalizedWord = normalizeCanonicalGraphWord(query.langCode, query.word);
     const result = await this.pool.query<TermEntryRow>(
       `
         SELECT
@@ -660,7 +676,7 @@ export class PostgresGraphRepository implements GraphRepository {
     const params = [
       ...buildAnchorParams(query, query.maxDepth, ANCESTOR_TRAVERSAL_EDGE_TYPES),
       query.ancestorLangCode,
-      normalizeWord(query.ancestorWord)
+      normalizeCanonicalGraphWord(query.ancestorLangCode, query.ancestorWord)
     ];
 
     const [nodeResult, edgeResult] = await Promise.all([
@@ -766,6 +782,49 @@ export class PostgresGraphRepository implements GraphRepository {
     };
   }
 
+  /** Builds a curated set of cognate path graphs from one source form to grouped comparison terms. */
+  public async findComparisonSet(query: ComparisonSetQuery): Promise<ComparisonSetResult> {
+    const groupsWithGraphs = await Promise.all(
+      query.groups.map(async (group) => {
+        const items = await Promise.all(
+          group.items.map(async (item) => {
+            const result = await this.findAncestorPath({
+              langCode: item.langCode,
+              word: item.word,
+              ancestorLangCode: query.root.langCode,
+              ancestorWord: query.root.word,
+              maxDepth: query.maxDepth,
+              pos: item.pos,
+              etymologyNumber: item.etymologyNumber
+            });
+
+            return {
+              ...item,
+              graph: result.graph
+            };
+          })
+        );
+
+        return {
+          id: group.id,
+          label: group.label,
+          items
+        };
+      })
+    );
+    const root = findComparisonSetRoot(query, groupsWithGraphs);
+
+    return {
+      root,
+      graph: mergeComparisonSetGraphs(query, groupsWithGraphs, root),
+      groups: groupsWithGraphs.map((group) => ({
+        id: group.id,
+        label: group.label,
+        items: group.items.map(({ graph: _graph, ...item }) => item)
+      }))
+    };
+  }
+
   /**
    * Finds direct descendants of the seed term. Includes edges declared by the seed's own descendants list,
    * edges self-declared by descendant entries homed at the candidate child node, and (when the seed has
@@ -775,7 +834,7 @@ export class PostgresGraphRepository implements GraphRepository {
   public async findChildTerms(query: ChildTermsQuery): Promise<ChildTermsResult> {
     const params = [
       query.langCode,
-      normalizeWord(query.word),
+      normalizeCanonicalGraphWord(query.langCode, query.word),
       query.limit,
       [...CHILD_TERM_EDGE_TYPES],
       query.pos ?? null,
@@ -1075,7 +1134,7 @@ export class PostgresGraphRepository implements GraphRepository {
   public async findDoublets(query: DoubletsQuery): Promise<DoubletsResult> {
     const params = [
       query.langCode,
-      normalizeWord(query.word),
+      normalizeCanonicalGraphWord(query.langCode, query.word),
       query.maxDepth,
       [...DOUBLET_TRAVERSAL_EDGE_TYPES],
       query.pos ?? null,
@@ -1335,13 +1394,17 @@ function buildAnchorParams(
 ): unknown[] {
   return [
     query.langCode,
-    normalizeWord(query.word),
+    normalizeCanonicalGraphWord(query.langCode, query.word),
     maxDepth,
     [...edgeTypes],
     query.pos ?? null,
     query.etymologyNumber ?? null
   ];
 }
+
+/** Normalizes query terms through the same canonical graph identity rule used by imports. */
+const normalizeCanonicalGraphWord = (langCode: string, word: string): string =>
+  normalizeWord(canonicalGraphWord(langCode, word));
 
 /** Maps language rows into the shared DTO used by language-scoped search controls. */
 function mapLanguageRow(row: LanguageRow): Language {
@@ -1369,6 +1432,112 @@ function mapBaseNodeRow(row: BaseNodeRow): GraphNode {
     normalizedWord: row.normalized_word,
     lexicalSummary: mapLexicalSummary(row)
   };
+}
+
+/** Finds the shared source node from successful comparison paths without issuing a separate lookup. */
+function findComparisonSetRoot(
+  query: ComparisonSetQuery,
+  groups: ComparisonSetResolvedGroup[]
+): GraphNode | null {
+  const normalizedRootWord = normalizeCanonicalGraphWord(query.root.langCode, query.root.word);
+
+  for (const group of groups) {
+    for (const item of group.items) {
+      const rootNode = item.graph?.nodes.find(
+        (node) => node.langCode === query.root.langCode && node.normalizedWord === normalizedRootWord
+      );
+
+      if (rootNode) {
+        return rootNode;
+      }
+    }
+  }
+
+  return null;
+}
+
+/** Combines every successful cognate path into one branch graph rooted at the shared source form. */
+function mergeComparisonSetGraphs(
+  query: ComparisonSetQuery,
+  groups: ComparisonSetResolvedGroup[],
+  root: GraphNode | null
+): EtymologyGraph | null {
+  if (!root) {
+    return null;
+  }
+
+  const nodesById = new Map<string, GraphTraversalNode>();
+  const edgesById = new Map<string, GraphEdge>();
+
+  for (const group of groups) {
+    for (const item of group.items) {
+      if (!item.graph) {
+        continue;
+      }
+
+      for (const node of item.graph.nodes) {
+        nodesById.set(node.id, node);
+      }
+      for (const edge of item.graph.edges) {
+        edgesById.set(edge.id, edge);
+      }
+    }
+  }
+
+  if (nodesById.size === 0) {
+    return null;
+  }
+
+  const nodes = comparisonSetNodesBySourceDepth(root.id, nodesById, [...edgesById.values()]);
+
+  return {
+    rootNodeId: root.id,
+    nodes,
+    edges: [...edgesById.values()].sort((left, right) => left.id.localeCompare(right.id)),
+    maxDepth: query.maxDepth
+  };
+}
+
+/** Recomputes display depth from the shared ancestor outward so branch layouts compare descendants. */
+function comparisonSetNodesBySourceDepth(
+  rootNodeId: string,
+  nodesById: Map<string, GraphTraversalNode>,
+  edges: GraphEdge[]
+): GraphTraversalNode[] {
+  const childrenByParentId = new Map<string, string[]>();
+
+  for (const edge of edges) {
+    childrenByParentId.set(edge.toNodeId, [...(childrenByParentId.get(edge.toNodeId) ?? []), edge.fromNodeId]);
+  }
+
+  const depthsByNodeId = new Map<string, number>([[rootNodeId, 0]]);
+  const pendingNodeIds = [rootNodeId];
+
+  while (pendingNodeIds.length > 0) {
+    const nodeId = pendingNodeIds.shift();
+
+    if (!nodeId) {
+      continue;
+    }
+
+    const nextDepth = (depthsByNodeId.get(nodeId) ?? 0) + 1;
+
+    for (const childNodeId of childrenByParentId.get(nodeId) ?? []) {
+      if ((depthsByNodeId.get(childNodeId) ?? Number.POSITIVE_INFINITY) <= nextDepth) {
+        continue;
+      }
+
+      depthsByNodeId.set(childNodeId, nextDepth);
+      pendingNodeIds.push(childNodeId);
+    }
+  }
+
+  return [...nodesById.values()]
+    .map((node) => ({
+      ...node,
+      depth: depthsByNodeId.get(node.id) ?? node.depth
+    }))
+    .sort((left, right) => left.depth - right.depth || left.langCode.localeCompare(right.langCode) || left.word.localeCompare(right.word));
 }
 
 /** Maps aggregated lexical metadata into the compact node summary used by graph and search UI. */

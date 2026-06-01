@@ -5,6 +5,8 @@ import type {
   AncestorsResult,
   ChildTermsQuery,
   ChildTermsResult,
+  ComparisonSetQuery,
+  ComparisonSetResult,
   DoubletGroupsQuery,
   DoubletGroupsResult,
   DoubletsQuery,
@@ -24,6 +26,7 @@ export type GraphRepository = {
   listTermEntries(query: TermEntriesQuery): Promise<TermEntriesResult>;
   findAncestors(query: AncestorsQuery): Promise<AncestorsResult>;
   findAncestorPath(query: AncestorPathQuery): Promise<AncestorPathResult>;
+  findComparisonSet(query: ComparisonSetQuery): Promise<ComparisonSetResult>;
   findChildTerms(query: ChildTermsQuery): Promise<ChildTermsResult>;
   findDoublets(query: DoubletsQuery): Promise<DoubletsResult>;
   findDoubletGroups(query: DoubletGroupsQuery): Promise<DoubletGroupsResult>;

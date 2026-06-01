@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePreferredReducedMotion } from "@vueuse/core";
 import { computed, nextTick, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import {
   DEFAULT_ANCESTOR_MAX_DEPTH,
@@ -14,14 +14,12 @@ import {
 
 import EntryChooser from "../features/terms/EntryChooser.vue";
 import GraphCanvas from "../features/graph/GraphCanvas.vue";
-import TermSearchForm from "../features/terms/TermSearchForm.vue";
 import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
 import { useChildTermsGraphQuery } from "../features/graph/composables/useChildTermsGraphQuery";
 import { useDoubletGraphQuery } from "../features/graph/composables/useDoubletGraphQuery";
 import { useTermEntrySelection } from "../features/terms/composables/useTermEntrySelection";
 import { mergeEtymologyGraphs } from "../features/graph/mergeEtymologyGraphs";
 import { starterQueriesForLanguage } from "../features/terms/starterQueries";
-import { useSearchLanguageStore } from "../features/terms/searchLanguageStore";
 import Button from "../uiComponents/Button.vue";
 import Divider from "../uiComponents/Divider.vue";
 import StatusNote from "../uiComponents/StatusNote.vue";
@@ -34,7 +32,6 @@ const defaultChildTermsLimit = 50;
 
 const route = useRoute();
 const router = useRouter();
-const searchLanguageStore = useSearchLanguageStore();
 
 const langCode = computed(() => firstRouteParam(route.params.langCode));
 const term = computed(() => firstRouteParam(route.params.term));
@@ -141,14 +138,13 @@ const childTermsStatus = computed<ChildTermsStatus>(() => {
 });
 const childTermsError = computed(() => childTermsGraphQuery.error.value?.message ?? "Child terms graph failed");
 const graphTitle = computed(() => (term.value ? `${term.value} doublet candidates` : "Doublets"));
-const doubletStarterSet = computed(() =>
-  starterQueriesForLanguage(langCode.value ?? searchLanguageStore.selectedSearchLanguage, "doublets")
-);
+const doubletStarterSet = computed(() => starterQueriesForLanguage(langCode.value ?? undefined, "doublets"));
 const doubletStarterHelpText = computed(() =>
   doubletStarterSet.value.isFallback
     ? "Showing English doublet cases until this language has curated examples."
     : "Try doublet cases curated for this language."
 );
+const doubletGroupsLabel = computed(() => (langCode.value ? `See more ${langCode.value} doublets` : "See more doublets"));
 const childTermsRouteLabel = computed(() => {
   if (!childTermsGraphInput.value) {
     return "";
@@ -163,11 +159,6 @@ const routeLabel = computed(() => {
 
   return `${langCode.value}:${term.value}`;
 });
-
-/** Returns to the doublets search page so the newly selected language's starters are visible. */
-function goToDoubletsSearch(): void {
-  void router.push({ name: "doublets-search" });
-}
 
 /** Opens known doublet starter terms in the language they were curated for. */
 function openDoubletStarterTerm(term: string): void {
@@ -271,31 +262,13 @@ watch(
         Exploring same-language candidates that reconnect with
         <span class="font-bold text-text">{{ routeLabel }}</span> through shared ancestors.
       </p>
-    </section>
-
-    <Divider />
-
-    <section class="grid gap-5 lg:grid-cols-[minmax(180px,0.42fr)_minmax(0,1fr)] lg:items-start">
-      <div>
-        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
-          Explore another word
-        </p>
-        <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
-          Choose a language, then search its words
-        </h2>
-      </div>
-      <div class="rounded-md border border-border bg-surface/75 p-5 shadow-paper">
-        <TermSearchForm
-          id-prefix="doublets-term-search"
-          target-route-name="doublets"
-          compact
-          :lang-code="searchLanguageStore.selectedSearchLanguage"
-          :initial-lang-code="langCode"
-          :initial-term="term"
-          @update:lang-code="searchLanguageStore.setSelectedSearchLanguage"
-          @language-change="goToDoubletsSearch"
-        />
-      </div>
+      <RouterLink
+        v-if="langCode"
+        :to="{ name: 'doublet-groups', params: { langCode } }"
+        class="mt-5 inline-flex w-fit items-center justify-center rounded-lg border border-border-strong bg-surface-muted px-4 py-2.5 font-label text-sm font-bold leading-none text-text transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        {{ doubletGroupsLabel }}
+      </RouterLink>
     </section>
 
     <template v-if="entrySelection.entries.value.length > 1">

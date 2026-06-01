@@ -30,27 +30,7 @@ Preview a small number of Wiktextract entries without loading the full dump:
 pnpm import:sample
 ```
 
-Extract a focused local seed file from the full JSONL dump:
-
-```bash
-pnpm seed:extract
-```
-
-Defaults use `SEED_PROFILE=core` and write known development words to
-`wikidata_downloads/seeds/core-seed.jsonl`. Profiles live in
-`packages/importer/src/seed-profiles.ts`; available profiles include `core`, `loanwords`, `doublets`,
-`broadStress`, `highDescendantCandidates`, and `stress`.
-
-Use a larger stress profile when you want to exercise the API and graph UI with thousands of imported
-nodes:
-
-```bash
-pnpm seed:extract:stress
-pnpm import:batch-preview:stress
-pnpm import:db:stress
-```
-
-For a broader but still bounded corpus, extract the committed common-word seed data:
+Extract the committed common-word seed data:
 
 ```bash
 pnpm seed:extract:popular
@@ -84,24 +64,30 @@ or an object with metadata:
 }
 ```
 
-To grow a more connected graph without importing the full Wiktextract dump, run hub-language frontier
+To grow a more connected production graph without importing the full Wiktextract dump, run influential-root
 expansion:
 
 ```bash
-pnpm seed:expand:popular
-pnpm import:batch-preview:popular-expanded
-pnpm import:db:popular-expanded
+pnpm seed:extract:prod
+pnpm import:batch-preview:prod
+pnpm import:db:prod
 ```
 
-Expansion starts from the committed popular seed targets, writes
-`wikidata_downloads/seeds/popular-expanded-seed.jsonl`, and persists an inspectable frontier report to
-`wikidata_downloads/checkpoints/popular-expansion-frontier.json`. It discovers additional targets only
-from structured graph nodes extracted for hub languages such as Latin, Ancient Greek, Sanskrit,
-Avestan, Proto-Indo-European, Proto-Germanic, and Proto-West Germanic. Tune it with
-`EXPANSION_HUB_LANG_CODES`, `EXPANSION_MAX_DEPTH`, and `EXPANSION_MAX_TARGETS`.
-
-`SEED_TARGETS` can still add ad hoc words to a profile. Set `SEED_TARGETS_MODE=replace` when you want
-to ignore the selected profile entirely.
+Production expansion starts from the committed popular seed targets, writes
+`wikidata_downloads/seeds/prod-seed.jsonl`, and persists an inspectable frontier report to
+`wikidata_downloads/checkpoints/prod-expansion-frontier.json`. It also loads public UI coverage terms
+from `apps/web/src/features/terms/starterQueries.ts` and
+`apps/web/src/features/soundChanges/soundChanges.ts`, so starter searches and editorial examples are
+included as initial targets. It first follows structured graph nodes into hub languages such as Latin,
+Ancient Greek, Sanskrit, Avestan, Proto-Indo-European, Proto-Germanic, and Proto-West Germanic. Once a
+matched target is itself in a hub language, it can add bounded neighboring targets in configured outward
+languages so roots produce useful sibling branches rather than isolated ancestry chains. Explicit `cog`
+templates also enqueue allowed cognate terms as high-signal neighbors without treating them as ancestry
+edges. Hub-language forms get a few extra follow-up passes by default, so a visible term that stops at a
+proto-form can still cause that proto-form to be imported and connected upstream. Tune it with
+`UI_SEED_COVERAGE_MODULES`, `EXPANSION_HUB_LANG_CODES`, `EXPANSION_ROOT_OUTWARD_LANG_CODES`,
+`EXPANSION_COGNATE_LANG_CODES`, `EXPANSION_ENQUEUE_COGNATES`, `EXPANSION_MAX_DEPTH`,
+`EXPANSION_MAX_HUB_DEPTH`, `EXPANSION_MAX_TARGETS`, and `EXPANSION_MAX_DISCOVERED_TARGETS_PER_MATCH`.
 
 Exercise resumable batch processing against a seed JSONL file:
 

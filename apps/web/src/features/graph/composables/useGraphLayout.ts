@@ -10,12 +10,14 @@ import {
   type SimulationLinkDatum,
   type SimulationNodeDatum
 } from "d3-force";
-import { computed, onBeforeUnmount, ref, type Ref } from "vue";
+import { computed, onBeforeUnmount, ref, type ComputedRef, type Ref } from "vue";
 
-import type { EdgeType, EtymologyGraph, GraphTraversalNode } from "@etymology-graph/graph";
+import { normalizeWord, type EdgeType, type EtymologyGraph, type GraphTraversalNode } from "@etymology-graph/graph";
 import { graphCanvasHeight, graphCanvasWidth, graphNodeRadius } from "../graphCanvasConstants";
+import type { GraphAnnotationPlacement, GraphAnnotationTone, GraphNodeAnnotation, GraphNodeAnnotationTarget } from "../graphAnnotations";
 import { formatIpaPronunciation } from "../graphNodeDisplay";
 import { isSourceDirectedEdgeType } from "../graphRelationshipDisplay";
+import type { GraphViewportFrame } from "./useGraphViewport";
 
 const centerX = graphCanvasWidth / 2;
 const centerY = graphCanvasHeight / 2;
@@ -38,33 +40,73 @@ const labelClearanceRadius = 58;
 const layoutWarmupTicks = 180;
 const layeredOrderingPasses = 4;
 const graphFitPadding = 64;
-const graphFitMaxZoom = 1;
+const graphFitMaxZoom = 2.4;
 const graphFitTextHalfWidthPerCharacter = 4.2;
+export const graphAnnotationCalloutWidth = 228;
+export const graphAnnotationCalloutHeight = 118;
+const annotationCalloutGap = 48;
+const annotationCalloutVerticalLift = 112;
+const annotationCollisionPadding = 18;
+const annotationAnchorLinkDistance = 150;
 
 export type GraphLayoutOrientation = "horizontal" | "vertical";
 export type GraphLayoutPreset = "auto" | "doublet-arms";
 
 export type PositionedGraphNode = GraphTraversalNode &
   SimulationNodeDatum & {
+    layoutKind: "term";
     preferredSiblingPosition: number;
   };
 
 export type PositionedGraphLink = SimulationLinkDatum<PositionedGraphNode> & {
   id: string;
+  layoutKind: "term";
   sourceNodeId: string;
   targetNodeId: string;
   type: EdgeType;
   uncertain: boolean;
 };
 
+export type PositionedGraphAnnotation = {
+  annotation: GraphNodeAnnotation;
+  node: PositionedGraphNode;
+  calloutX: number;
+  calloutY: number;
+  anchorX: number;
+  anchorY: number;
+  lineEndX: number;
+  lineEndY: number;
+};
+
 export type LinkEndpoint = "source" | "target";
+
+type PositionedAnnotationNode = SimulationNodeDatum & {
+  id: string;
+  layoutKind: "annotation";
+  annotation: GraphNodeAnnotation;
+  anchorNode: PositionedGraphNode;
+  anchorNodeId: string;
+  targetX: number;
+  targetY: number;
+};
+
+type LayoutSimulationNode = PositionedGraphNode | PositionedAnnotationNode;
+
+type AnnotationLayoutLink = SimulationLinkDatum<LayoutSimulationNode> & {
+  id: string;
+  layoutKind: "annotation";
+  sourceNodeId: string;
+  targetNodeId: string;
+};
+
+type LayoutSimulationLink = PositionedGraphLink | AnnotationLayoutLink;
 
 type GraphLayoutPoint = {
   x: number;
   y: number;
 };
 
-type GraphBounds = {
+export type GraphBounds = {
   minX: number;
   minY: number;
   maxX: number;
@@ -81,6 +123,7 @@ export type GraphLayoutPlan =
   | {
       shape: "linear";
       orderedNodeIds: string[];
+      orientation: GraphLayoutOrientation;
     }
   | {
       shape: "doublet-arms";
@@ -99,6 +142,7 @@ export type GraphLayoutPlan =
 type GraphLayoutOptions = {
   selectedNodeId: Ref<string | undefined>;
   contextNodeId: Ref<string | undefined>;
+  viewportFrame: ComputedRef<GraphViewportFrame>;
   setHomeViewport: (viewport: ViewportState) => void;
   onFreshLayout: () => void;
 };
@@ -107,14 +151,16 @@ type BuildSimulationOptions = {
   layoutPreset?: GraphLayoutPreset;
   preserveExistingLayout?: boolean;
   rootNodeId?: string;
+  annotations?: GraphNodeAnnotation[];
 };
 
 /** Coordinates graph positioning so GraphCanvas can focus on orchestration and rendering. */
 export function useGraphLayout(options: GraphLayoutOptions) {
   const nodes = ref<PositionedGraphNode[]>([]);
   const links = ref<PositionedGraphLink[]>([]);
+  const annotationLayoutNodesRef = ref<PositionedAnnotationNode[]>([]);
   const tickVersion = ref(0);
-  let simulation: Simulation<PositionedGraphNode, PositionedGraphLink> | null = null;
+  let simulation: Simulation<LayoutSimulationNode, LayoutSimulationLink> | null = null;
   let renderedLayoutOrientation: GraphLayoutOrientation | null = null;
   let renderedLayoutKey: string | null = null;
 
@@ -126,6 +172,16 @@ export function useGraphLayout(options: GraphLayoutOptions) {
   const renderedLinks = computed(() => {
     tickVersion.value;
     return links.value;
+  });
+
+  const renderedAnnotations = computed(() => {
+    tickVersion.value;
+    return annotationLayoutNodesRef.value.map(positionedAnnotationFromNode);
+  });
+  const renderedNodeBounds = computed<GraphBounds | null>(() => {
+    tickVersion.value;
+
+    return nodes.value.length > 0 ? nodes.value.map(nodeVisualBounds).reduce(mergeGraphBounds) : null;
   });
 
   onBeforeUnmount(() => {
@@ -162,6 +218,7 @@ export function useGraphLayout(options: GraphLayoutOptions) {
       if (previousNode) {
         return {
           ...node,
+          layoutKind: "term" as const,
           preferredSiblingPosition: previousNode.preferredSiblingPosition,
           x: nodeX(previousNode),
           y: nodeY(previousNode),
@@ -172,13 +229,16 @@ export function useGraphLayout(options: GraphLayoutOptions) {
 
       return {
         ...node,
+        layoutKind: "term" as const,
         preferredSiblingPosition,
         ...initialNodePosition(node.id, generationLevel, maxGenerationLevel, preferredSiblingPosition, orientation, layoutPlan)
       };
     });
 
-    const positionedLinks = graph.edges.map((edge) => ({
+    const annotationNodes = annotationLayoutNodes(buildOptions.annotations ?? [], positionedNodes);
+    const positionedLinks: PositionedGraphLink[] = graph.edges.map((edge) => ({
       id: edge.id,
+      layoutKind: "term",
       source: edge.fromNodeId,
       target: edge.toNodeId,
       sourceNodeId: edge.fromNodeId,
@@ -186,17 +246,27 @@ export function useGraphLayout(options: GraphLayoutOptions) {
       type: edge.type,
       uncertain: edge.uncertain ?? false
     }));
+    const annotationLinks = annotationNodes.map((node) => ({
+      id: `${node.id}:anchor`,
+      layoutKind: "annotation" as const,
+      source: node.id,
+      target: node.anchorNodeId,
+      sourceNodeId: node.id,
+      targetNodeId: node.anchorNodeId
+    }));
+    const layoutNodes: LayoutSimulationNode[] = [...positionedNodes, ...annotationNodes];
+    const layoutLinks: LayoutSimulationLink[] = [...positionedLinks, ...annotationLinks];
 
-    simulation = forceSimulation<PositionedGraphNode, PositionedGraphLink>(positionedNodes)
+    simulation = forceSimulation<LayoutSimulationNode, LayoutSimulationLink>(layoutNodes)
       .force(
         "link",
-        forceLink<PositionedGraphNode, PositionedGraphLink>(positionedLinks)
+        forceLink<LayoutSimulationNode, LayoutSimulationLink>(layoutLinks)
           .id((node) => node.id)
-          .distance((link) => linkDistance(link.type))
+          .distance((link) => link.layoutKind === "annotation" ? annotationAnchorLinkDistance : linkDistance(link.type))
           .strength(linkStrength(layoutPlan))
       )
-      .force("charge", forceManyBody().strength(chargeStrength(layoutPlan)))
-      .force("collide", forceCollide<PositionedGraphNode>(graphNodeRadius + labelClearanceRadius))
+      .force("charge", forceManyBody<LayoutSimulationNode>().strength((node) => chargeStrength(layoutPlan, node)))
+      .force("collide", forceCollide<LayoutSimulationNode>((node) => collisionRadius(node)).strength(0.95).iterations(3))
       .force("center", forceCenter(centerX, centerY))
       .force("siblingX", siblingForceX(orientation, layoutPlan))
       .force("generationX", generationForceX(generationLevels, maxGenerationLevel, orientation, layoutPlan))
@@ -204,6 +274,8 @@ export function useGraphLayout(options: GraphLayoutOptions) {
       .force("generationY", generationForceY(generationLevels, maxGenerationLevel, orientation, layoutPlan))
       .force("shapeX", shapeForceX(layoutPlan))
       .force("shapeY", shapeForceY(layoutPlan))
+      .force("annotationX", annotationForceX())
+      .force("annotationY", annotationForceY())
       .stop();
 
     const restoredPins = shouldPreserveLayout ? pinExistingNodesForWarmup(positionedNodes, previousNodesById) : [];
@@ -213,12 +285,13 @@ export function useGraphLayout(options: GraphLayoutOptions) {
 
     nodes.value = positionedNodes;
     links.value = positionedLinks;
+    annotationLayoutNodesRef.value = annotationNodes;
     options.selectedNodeId.value = shouldPreserveLayout ? retainedNodeId(options.selectedNodeId.value, positionedNodes) : undefined;
     options.contextNodeId.value = shouldPreserveLayout ? retainedNodeId(options.contextNodeId.value, positionedNodes) : undefined;
 
     if (!shouldPreserveLayout) {
       options.onFreshLayout();
-      options.setHomeViewport(fittedViewportForNodes(positionedNodes));
+      fitLayoutToViewport();
     }
 
     requestRenderTick();
@@ -231,9 +304,31 @@ export function useGraphLayout(options: GraphLayoutOptions) {
     buildSimulation(graph, orientation, { ...buildOptions, preserveExistingLayout: false });
   }
 
+  /** Rehomes the current graph when the rendered SVG frame changes shape. */
+  function fitLayoutToViewport(extraBounds: GraphBounds[] = []): void {
+    options.setHomeViewport(fittedViewportForNodes(nodes.value, options.viewportFrame.value, [
+      ...annotationVisualBounds(renderedAnnotations.value),
+      ...extraBounds
+    ]));
+  }
+
   /** Marks D3-mutated coordinates as ready for Vue to read. */
   function requestRenderTick(): void {
     tickVersion.value += 1;
+  }
+
+  /** Moves callout layout nodes with a manually dragged anchor so labels stay visually attached. */
+  function moveAnchoredAnnotations(anchorNodeId: string, deltaX: number, deltaY: number): void {
+    for (const annotationNode of annotationLayoutNodesRef.value) {
+      if (annotationNode.anchorNodeId !== anchorNodeId) {
+        continue;
+      }
+
+      annotationNode.x = layoutNodeX(annotationNode) + deltaX;
+      annotationNode.y = layoutNodeY(annotationNode) + deltaY;
+      annotationNode.targetX += deltaX;
+      annotationNode.targetY += deltaY;
+    }
   }
 
   /** Stops the old simulation so background ticks do not keep mutating stale nodes. */
@@ -251,9 +346,13 @@ export function useGraphLayout(options: GraphLayoutOptions) {
     links,
     renderedNodes,
     renderedLinks,
+    renderedAnnotations,
+    renderedNodeBounds,
     buildSimulation,
     resetLayout,
+    fitLayoutToViewport,
     requestRenderTick,
+    moveAnchoredAnnotations,
     nodeX,
     nodeY,
     hasResolvedEndpoints,
@@ -263,21 +362,27 @@ export function useGraphLayout(options: GraphLayoutOptions) {
 }
 
 /** Computes the initial map transform so the whole rendered graph starts in view. */
-function fittedViewportForNodes(positionedNodes: PositionedGraphNode[]): ViewportState {
-  if (positionedNodes.length === 0) {
+function fittedViewportForNodes(
+  positionedNodes: PositionedGraphNode[],
+  viewportFrame: GraphViewportFrame,
+  extraBounds: GraphBounds[] = []
+): ViewportState {
+  if (positionedNodes.length === 0 && extraBounds.length === 0) {
     return { panX: 0, panY: 0, zoom: 1 };
   }
 
-  const bounds = positionedNodes.map(nodeVisualBounds).reduce(mergeGraphBounds);
+  const bounds = [...positionedNodes.map(nodeVisualBounds), ...extraBounds].reduce(mergeGraphBounds);
   const boundsWidth = bounds.maxX - bounds.minX + graphFitPadding * 2;
   const boundsHeight = bounds.maxY - bounds.minY + graphFitPadding * 2;
-  const fittedZoom = Math.min(graphFitMaxZoom, graphCanvasWidth / boundsWidth, graphCanvasHeight / boundsHeight);
+  const fittedZoom = Math.min(graphFitMaxZoom, viewportFrame.width / boundsWidth, viewportFrame.height / boundsHeight);
   const boundsCenterX = (bounds.minX + bounds.maxX) / 2;
   const boundsCenterY = (bounds.minY + bounds.maxY) / 2;
+  const viewportCenterX = viewportFrame.x + viewportFrame.width / 2;
+  const viewportCenterY = viewportFrame.y + viewportFrame.height / 2;
 
   return {
-    panX: centerX - boundsCenterX * fittedZoom,
-    panY: centerY - boundsCenterY * fittedZoom,
+    panX: viewportCenterX - boundsCenterX * fittedZoom,
+    panY: viewportCenterY - boundsCenterY * fittedZoom,
     zoom: fittedZoom
   };
 }
@@ -348,6 +453,142 @@ function restoreNodePins(restoredPins: Array<{ node: PositionedGraphNode; fx: nu
   }
 }
 
+/** Resolves editorial annotations into render-only layout nodes anchored to graph term nodes. */
+function annotationLayoutNodes(
+  annotations: GraphNodeAnnotation[],
+  positionedNodes: PositionedGraphNode[]
+): PositionedAnnotationNode[] {
+  return annotations.flatMap((annotation) => {
+    const anchorNode = findAnnotatedNode(annotation, positionedNodes);
+
+    if (!anchorNode) {
+      return [];
+    }
+
+    const anchorX = nodeX(anchorNode);
+    const anchorY = nodeY(anchorNode);
+    const target = annotationTargetPosition(annotation.placement ?? defaultAnnotationPlacement(annotation.tone), anchorX, anchorY);
+
+    return [
+      {
+        id: `annotation:${annotation.id}`,
+        layoutKind: "annotation" as const,
+        annotation,
+        anchorNode,
+        anchorNodeId: anchorNode.id,
+        targetX: target.x,
+        targetY: target.y,
+        x: target.x,
+        y: target.y
+      }
+    ];
+  });
+}
+
+/** Matches an annotation to the first available graph node target, including fallbacks. */
+function findAnnotatedNode(
+  annotation: GraphNodeAnnotation,
+  positionedNodes: PositionedGraphNode[]
+): PositionedGraphNode | undefined {
+  const targets = [annotation.target, ...(annotation.fallbackTargets ?? [])];
+
+  for (const target of targets) {
+    const node = findNodeTarget(target, positionedNodes);
+
+    if (node) {
+      return node;
+    }
+  }
+
+  return undefined;
+}
+
+/** Resolves one annotation target against graph nodes using normalized term keys. */
+function findNodeTarget(
+  target: GraphNodeAnnotationTarget,
+  positionedNodes: PositionedGraphNode[]
+): PositionedGraphNode | undefined {
+  const normalizedTargetWord = normalizeWord(target.word);
+
+  return positionedNodes.find(
+    (node) => node.langCode === target.langCode && node.normalizedWord === normalizedTargetWord
+  );
+}
+
+/** Converts a settled annotation layout node into the card/leader-line coordinates used by the renderer. */
+function positionedAnnotationFromNode(node: PositionedAnnotationNode): PositionedGraphAnnotation {
+  const anchorX = nodeX(node.anchorNode);
+  const anchorY = nodeY(node.anchorNode);
+  const centerX = layoutNodeX(node);
+  const centerY = layoutNodeY(node);
+  const calloutX = centerX - graphAnnotationCalloutWidth / 2;
+  const calloutY = centerY - graphAnnotationCalloutHeight / 2;
+  const lineStartX = anchorX < centerX ? calloutX : calloutX + graphAnnotationCalloutWidth;
+  const lineStartY = clamp(anchorY, calloutY + 14, calloutY + graphAnnotationCalloutHeight - 14);
+
+  return {
+    annotation: node.annotation,
+    node: node.anchorNode,
+    calloutX,
+    calloutY,
+    anchorX: lineStartX,
+    anchorY: lineStartY,
+    lineEndX: anchorX + Math.sign(lineStartX - anchorX || 1) * graphNodeRadius,
+    lineEndY: anchorY
+  };
+}
+
+/** Computes fixed targets for annotation cards before the force simulation relaxes them. */
+function annotationTargetPosition(
+  placement: GraphAnnotationPlacement,
+  anchorX: number,
+  anchorY: number
+): GraphLayoutPoint {
+  const isLeft = placement.endsWith("left");
+  const isAbove = placement.startsWith("above");
+
+  return {
+    x: anchorX + (isLeft ? -graphAnnotationCalloutWidth / 2 - annotationCalloutGap : graphAnnotationCalloutWidth / 2 + annotationCalloutGap),
+    y: anchorY + (isAbove ? -annotationCalloutVerticalLift : annotationCalloutVerticalLift)
+  };
+}
+
+/** Gives annotation tones stable default sides before collision forces refine placement. */
+function defaultAnnotationPlacement(tone: GraphAnnotationTone): GraphAnnotationPlacement {
+  switch (tone) {
+    case "shifted":
+      return "above-right";
+    case "unchanged":
+      return "above-left";
+    case "context":
+      return "below-right";
+    default: {
+      const exhaustiveValue: never = tone;
+      throw new Error(`Unhandled annotation tone: ${exhaustiveValue}`);
+    }
+  }
+}
+
+/** Calculates annotation card bounds so the initial viewport includes explanatory labels. */
+function annotationVisualBounds(annotations: PositionedGraphAnnotation[]): GraphBounds[] {
+  return annotations.map((annotation) => ({
+    minX: annotation.calloutX,
+    minY: annotation.calloutY,
+    maxX: annotation.calloutX + graphAnnotationCalloutWidth,
+    maxY: annotation.calloutY + graphAnnotationCalloutHeight
+  }));
+}
+
+/** Restricts a value to an inclusive range. */
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+/** Type guard for render-only annotation nodes inside the D3 simulation. */
+function isAnnotationNode(node: LayoutSimulationNode): node is PositionedAnnotationNode {
+  return node.layoutKind === "annotation";
+}
+
 /** Preserves the mental map only when the new graph extends the currently rendered one. */
 function shouldPreserveExistingLayout(
   graph: EtymologyGraph,
@@ -375,7 +616,7 @@ function retainedNodeId(nodeId: string | undefined, positionedNodes: PositionedG
 function graphLayoutPlanKey(layoutPlan: GraphLayoutPlan): string {
   switch (layoutPlan.shape) {
     case "linear":
-      return `linear:${layoutPlan.orderedNodeIds.join("|")}`;
+      return `linear:${layoutPlan.orientation}:${layoutPlan.orderedNodeIds.join("|")}`;
     case "doublet-arms":
       return `doublet-arms:${layoutPlan.rootNodeId}`;
     case "radial":
@@ -417,7 +658,7 @@ export function graphLayoutPlan(
   const linearOrder = linearSourcePathOrder(graph, sourceEdges);
 
   if (linearOrder) {
-    return { shape: "linear", orderedNodeIds: linearOrder };
+    return { shape: "linear", orderedNodeIds: linearOrder, orientation: options.orientation };
   }
 
   const radialRootId = radialSourceTreeRootId(graph, sourceEdges);
@@ -1031,7 +1272,7 @@ function initialNodePosition(
 function shapeTargetPosition(nodeId: string, layoutPlan: GraphLayoutPlan): { x: number; y: number } | null {
   switch (layoutPlan.shape) {
     case "linear":
-      return linearTargetPosition(nodeId, layoutPlan.orderedNodeIds);
+      return linearTargetPosition(nodeId, layoutPlan.orderedNodeIds, layoutPlan.orientation);
     case "doublet-arms":
       return layoutPlan.nodePositions.get(nodeId) ?? null;
     case "radial":
@@ -1042,7 +1283,11 @@ function shapeTargetPosition(nodeId: string, layoutPlan: GraphLayoutPlan): { x: 
 }
 
 /** Places a pure etymology line on a diagonal so labels have room on both axes. */
-function linearTargetPosition(nodeId: string, orderedNodeIds: string[]): { x: number; y: number } | null {
+function linearTargetPosition(
+  nodeId: string,
+  orderedNodeIds: string[],
+  orientation: GraphLayoutOrientation
+): { x: number; y: number } | null {
   const index = orderedNodeIds.indexOf(nodeId);
 
   if (index === -1) {
@@ -1051,8 +1296,14 @@ function linearTargetPosition(nodeId: string, orderedNodeIds: string[]): { x: nu
 
   const denominator = Math.max(1, orderedNodeIds.length - 1);
   const progress = index / denominator;
-  const xSpan = Math.min(linearGraphMaxXSpan, linearGraphXSpacing * denominator);
-  const ySpan = Math.min(linearGraphMaxYSpan, linearGraphYSpacing * denominator);
+  const xSpan =
+    orientation === "horizontal"
+      ? Math.min(linearGraphMaxXSpan, linearGraphXSpacing * denominator)
+      : Math.min(linearGraphMaxYSpan, linearGraphYSpacing * denominator);
+  const ySpan =
+    orientation === "horizontal"
+      ? Math.min(linearGraphMaxYSpan, linearGraphYSpacing * denominator)
+      : Math.min(linearGraphMaxXSpan, linearGraphXSpacing * denominator);
 
   return {
     x: centerX - xSpan / 2 + progress * xSpan,
@@ -1135,12 +1386,16 @@ function assignAncestorLevels(
 }
 
 /** Uses stronger link springs for free layouts and gentler ones when a preset owns placement. */
-function linkStrength(layoutPlan: GraphLayoutPlan): number {
-  return layoutPlan.shape === "force" ? 0.55 : 0.2;
+function linkStrength(layoutPlan: GraphLayoutPlan): (link: LayoutSimulationLink) => number {
+  return (link) => link.layoutKind === "annotation" ? 0.18 : layoutPlan.shape === "force" ? 0.55 : 0.2;
 }
 
 /** Keeps sprawling graphs apart while letting preset layouts mostly respect their target geometry. */
-function chargeStrength(layoutPlan: GraphLayoutPlan): number {
+function chargeStrength(layoutPlan: GraphLayoutPlan, node: LayoutSimulationNode): number {
+  if (isAnnotationNode(node)) {
+    return -80;
+  }
+
   switch (layoutPlan.shape) {
     case "linear":
       return -120;
@@ -1157,9 +1412,10 @@ function chargeStrength(layoutPlan: GraphLayoutPlan): number {
 function siblingForceX(
   orientation: GraphLayoutOrientation,
   layoutPlan: GraphLayoutPlan
-): ReturnType<typeof forceX<PositionedGraphNode>> | null {
+): ReturnType<typeof forceX<LayoutSimulationNode>> | null {
   return layoutPlan.shape === "force" && orientation === "vertical"
-    ? forceX<PositionedGraphNode>((node) => node.preferredSiblingPosition).strength(0.08)
+    ? forceX<LayoutSimulationNode>((node) => isAnnotationNode(node) ? layoutNodeX(node) : node.preferredSiblingPosition)
+      .strength((node) => isAnnotationNode(node) ? 0 : 0.08)
     : null;
 }
 
@@ -1169,11 +1425,13 @@ function generationForceX(
   maxGenerationLevel: number,
   orientation: GraphLayoutOrientation,
   layoutPlan: GraphLayoutPlan
-): ReturnType<typeof forceX<PositionedGraphNode>> | null {
+): ReturnType<typeof forceX<LayoutSimulationNode>> | null {
   return layoutPlan.shape === "force" && orientation === "horizontal"
-    ? forceX<PositionedGraphNode>((node) =>
-        generationAxisPosition(generationLevels.get(node.id) ?? 0, maxGenerationLevel, orientation, horizontalDepthBandSpacing)
-      ).strength(0.16)
+    ? forceX<LayoutSimulationNode>((node) =>
+        isAnnotationNode(node)
+          ? layoutNodeX(node)
+          : generationAxisPosition(generationLevels.get(node.id) ?? 0, maxGenerationLevel, orientation, horizontalDepthBandSpacing)
+      ).strength((node) => isAnnotationNode(node) ? 0 : 0.16)
     : null;
 }
 
@@ -1181,9 +1439,10 @@ function generationForceX(
 function siblingForceY(
   orientation: GraphLayoutOrientation,
   layoutPlan: GraphLayoutPlan
-): ReturnType<typeof forceY<PositionedGraphNode>> | null {
+): ReturnType<typeof forceY<LayoutSimulationNode>> | null {
   return layoutPlan.shape === "force" && orientation === "horizontal"
-    ? forceY<PositionedGraphNode>((node) => node.preferredSiblingPosition).strength(0.08)
+    ? forceY<LayoutSimulationNode>((node) => isAnnotationNode(node) ? layoutNodeY(node) : node.preferredSiblingPosition)
+      .strength((node) => isAnnotationNode(node) ? 0 : 0.08)
     : null;
 }
 
@@ -1193,26 +1452,51 @@ function generationForceY(
   maxGenerationLevel: number,
   orientation: GraphLayoutOrientation,
   layoutPlan: GraphLayoutPlan
-): ReturnType<typeof forceY<PositionedGraphNode>> | null {
+): ReturnType<typeof forceY<LayoutSimulationNode>> | null {
   return layoutPlan.shape === "force" && orientation === "vertical"
-    ? forceY<PositionedGraphNode>((node) =>
-        generationAxisPosition(generationLevels.get(node.id) ?? 0, maxGenerationLevel, orientation, depthBandSpacing)
-      ).strength(0.16)
+    ? forceY<LayoutSimulationNode>((node) =>
+        isAnnotationNode(node)
+          ? layoutNodeY(node)
+          : generationAxisPosition(generationLevels.get(node.id) ?? 0, maxGenerationLevel, orientation, depthBandSpacing)
+      ).strength((node) => isAnnotationNode(node) ? 0 : 0.16)
     : null;
 }
 
 /** Pulls preset layouts back toward their target X coordinate after collision/link relaxation. */
-function shapeForceX(layoutPlan: GraphLayoutPlan): ReturnType<typeof forceX<PositionedGraphNode>> | null {
+function shapeForceX(layoutPlan: GraphLayoutPlan): ReturnType<typeof forceX<LayoutSimulationNode>> | null {
   return layoutPlan.shape === "force"
     ? null
-    : forceX<PositionedGraphNode>((node) => shapeTargetPosition(node.id, layoutPlan)?.x ?? nodeX(node)).strength(0.24);
+    : forceX<LayoutSimulationNode>((node) =>
+        isAnnotationNode(node) ? layoutNodeX(node) : shapeTargetPosition(node.id, layoutPlan)?.x ?? nodeX(node)
+      ).strength((node) => isAnnotationNode(node) ? 0 : 0.24);
 }
 
 /** Pulls preset layouts back toward their target Y coordinate after collision/link relaxation. */
-function shapeForceY(layoutPlan: GraphLayoutPlan): ReturnType<typeof forceY<PositionedGraphNode>> | null {
+function shapeForceY(layoutPlan: GraphLayoutPlan): ReturnType<typeof forceY<LayoutSimulationNode>> | null {
   return layoutPlan.shape === "force"
     ? null
-    : forceY<PositionedGraphNode>((node) => shapeTargetPosition(node.id, layoutPlan)?.y ?? nodeY(node)).strength(0.24);
+    : forceY<LayoutSimulationNode>((node) =>
+        isAnnotationNode(node) ? layoutNodeY(node) : shapeTargetPosition(node.id, layoutPlan)?.y ?? nodeY(node)
+      ).strength((node) => isAnnotationNode(node) ? 0 : 0.24);
+}
+
+/** Pulls annotation cards toward their preferred side of the anchor node inside the shared simulation. */
+function annotationForceX(): ReturnType<typeof forceX<LayoutSimulationNode>> {
+  return forceX<LayoutSimulationNode>((node) => isAnnotationNode(node) ? node.targetX : nodeX(node))
+    .strength((node) => isAnnotationNode(node) ? 0.2 : 0);
+}
+
+/** Pulls annotation cards toward their preferred side of the anchor node inside the shared simulation. */
+function annotationForceY(): ReturnType<typeof forceY<LayoutSimulationNode>> {
+  return forceY<LayoutSimulationNode>((node) => isAnnotationNode(node) ? node.targetY : nodeY(node))
+    .strength((node) => isAnnotationNode(node) ? 0.2 : 0);
+}
+
+/** Gives term and annotation layout nodes appropriately sized collision envelopes. */
+function collisionRadius(node: LayoutSimulationNode): number {
+  return isAnnotationNode(node)
+    ? Math.hypot(graphAnnotationCalloutWidth / 2, graphAnnotationCalloutHeight / 2) + annotationCollisionPadding
+    : graphNodeRadius + labelClearanceRadius;
 }
 
 /** Centers sibling placement on the axis perpendicular to generational depth. */
@@ -1262,6 +1546,20 @@ function nodeY(node: PositionedGraphNode): number {
   const y = node.y;
 
   return typeof y === "number" && Number.isFinite(y) ? y : centerY;
+}
+
+/** Reads the mutable x coordinate from an annotation layout node. */
+function layoutNodeX(node: PositionedAnnotationNode): number {
+  const x = node.x;
+
+  return typeof x === "number" && Number.isFinite(x) ? x : node.targetX;
+}
+
+/** Reads the mutable y coordinate from an annotation layout node. */
+function layoutNodeY(node: PositionedAnnotationNode): number {
+  const y = node.y;
+
+  return typeof y === "number" && Number.isFinite(y) ? y : node.targetY;
 }
 
 /** Resolves force-link endpoints after D3 replaces IDs with node objects. */

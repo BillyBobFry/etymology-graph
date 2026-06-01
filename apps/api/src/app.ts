@@ -1,9 +1,11 @@
 import cors from "@fastify/cors";
+import compress from "@fastify/compress";
 import staticFiles from "@fastify/static";
 import Fastify, { type FastifyInstance } from "fastify";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
-import { DEFAULT_ANCESTOR_MAX_DEPTH, EDGE_TYPES } from "@etymology-graph/graph";
+import { comparisonSetQuerySchema, DEFAULT_ANCESTOR_MAX_DEPTH, EDGE_TYPES } from "@etymology-graph/graph";
 
 import type { GraphRepository } from "./graph-repository.js";
 
@@ -70,6 +72,29 @@ const termsWithAncestorLanguageQuerySchema = z.object({
   cursor: z.string().trim().min(1).optional()
 });
 
+const REFERENCE_DATA_CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=604800";
+
+/** Builds a strong validator for reference payloads that change only after imports. */
+function etagForPayload(payload: string): string {
+  return `"${createHash("sha256").update(payload).digest("base64url")}"`;
+}
+
+/** Checks browser validators so unchanged reference data can return a tiny 304. */
+function ifNoneMatchIncludes(
+  header: string | string[] | undefined,
+  etag: string
+): boolean {
+  const candidates = Array.isArray(header)
+    ? header.flatMap((value) => value.split(","))
+    : header?.split(",") ?? [];
+
+  return candidates.some((candidate) => {
+    const normalizedCandidate = candidate.trim();
+
+    return normalizedCandidate === etag || normalizedCandidate === "*";
+  });
+}
+
 /** Reads optional browser origins for split frontend/API deployments. */
 function resolveCorsOrigins(): string[] | undefined {
   const rawOriginList = process.env.CORS_ORIGIN?.trim();
@@ -98,6 +123,8 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
   });
   const corsOrigins = resolveCorsOrigins();
 
+  server.register(compress);
+
   if (corsOrigins !== undefined) {
     server.register(cors, {
       origin: corsOrigins
@@ -121,7 +148,18 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
     edgeTypes: EDGE_TYPES
   }));
 
-  server.get("/api/languages", async () => graphRepository.listLanguages());
+  server.get("/api/languages", async (request, reply) => {
+    const payload = JSON.stringify(await graphRepository.listLanguages());
+    const etag = etagForPayload(payload);
+
+    reply.header("Cache-Control", REFERENCE_DATA_CACHE_CONTROL).header("ETag", etag).type("application/json");
+
+    if (ifNoneMatchIncludes(request.headers["if-none-match"], etag)) {
+      return reply.code(304).send();
+    }
+
+    return reply.send(payload);
+  });
 
   server.get("/api/search", async (request, reply) => {
     const parsedQuery = searchQuerySchema.safeParse(request.query);
@@ -173,6 +211,22 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
     }
 
     return graphRepository.findAncestorPath(parsedQuery.data);
+  });
+
+  server.post("/api/comparison-set", async (request, reply) => {
+    const parsedBody = comparisonSetQuerySchema.safeParse(request.body);
+
+    if (!parsedBody.success) {
+      return reply.code(400).send({
+        error: "Invalid comparison set query",
+        issues: parsedBody.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      });
+    }
+
+    return graphRepository.findComparisonSet(parsedBody.data);
   });
 
   server.get("/api/children", async (request, reply) => {

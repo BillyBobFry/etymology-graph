@@ -13,7 +13,7 @@ import {
   type LexicalEntry
 } from "@etymology-graph/graph";
 
-import { previewEntry, type WiktextractEntry } from "./wiktextract.js";
+import { buildSeedTargetIndex, findMatchingSeedTargetIndex, previewEntry, type WiktextractEntry } from "./wiktextract.js";
 
 const fixtureDirectory = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "wiktextract");
 const previewEdgeIds = (entry: WiktextractEntry): string[] => previewEntry(entry).edges.map((edge) => edge.id);
@@ -66,6 +66,38 @@ const loadFixtureEntries = (filename: string): WiktextractEntry[] => {
 };
 
 describe("previewEntry", () => {
+  it("canonicalizes reconstructed proto entries to a leading-star node", () => {
+    const entry: WiktextractEntry = {
+      word: "hundaz",
+      lang: "Proto-Germanic",
+      lang_code: "gem-pro",
+      pos: "noun",
+      etymology_text: "From Proto-Indo-European *ḱwṓ (“dog”).",
+      etymology_templates: [template("der", "gem-pro", "ine-pro", "*ḱwṓ", "Proto-Indo-European *ḱwṓ")]
+    };
+    const preview = previewEntry(entry);
+
+    expect(preview.lexicalEntries.map((lexicalEntry) => lexicalEntry.id)).toEqual(["gem-pro:*hundaz:entry:noun:0"]);
+    expect(previewEdgeIds(entry)).toEqual([
+      "gem-pro:*hundaz:derived_from:ine-pro:*ḱwṓ:from:gem-pro:*hundaz:entry:noun:0"
+    ]);
+  });
+
+  it("does not add reconstruction stars to attested-language entries", () => {
+    const entry: WiktextractEntry = {
+      word: "hound",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_text: "From Middle English hound.",
+      etymology_templates: [template("inh", "en", "enm", "hound", "Middle English hound")]
+    };
+    const preview = previewEntry(entry);
+
+    expect(preview.lexicalEntries.map((lexicalEntry) => lexicalEntry.id)).toEqual(["en:hound:entry:noun:0"]);
+    expect(previewEdgeIds(entry)).toEqual(["en:hound:inherited_from:enm:hound:from:en:hound:entry:noun:0"]);
+  });
+
   it("keeps a simple same-sentence ancestry chain", () => {
     const entry: WiktextractEntry = {
       word: "sample",
@@ -504,6 +536,42 @@ describe("previewEntry", () => {
     expect(edgeIds).not.toContain("la-lat:faciō:derived_from:la-lat:-iēs:from:en:face:entry:noun:0");
   });
 
+  it("keeps etymon influence branches out of the main ancestry chain", () => {
+    const entry: WiktextractEntry = {
+      word: "ginger",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_number: 1,
+      etymology_text:
+        "Inherited from Middle English gingere, alteration of gingivere, from Old English gingifer (influenced by Old French gingembre).",
+      etymology_templates: [
+        {
+          name: "etymon",
+          args: {
+            "1": "en",
+            "2": ":inh",
+            "3": "enm:gingere",
+            tree: "1"
+          },
+          expansion:
+            'Etymology tree\nOld English gingifer\n▲\nOld French gingembreinflu.\nMiddle English gingivere\nMiddle English gingere\nEnglish ginger\n"term" : "gingifer", "lang" : "ang", "keyword" : "inherited", { "keyword" : "influence", "terms" : [ { "term" : "gingembre", "lang" : "fro" } ] }, "term" : "gingivere", "lang" : "enm", "keyword" : "from", "term" : "gingere", "lang" : "enm", "keyword" : "inherited", "term" : "ginger", "lang" : "en"'
+        }
+      ]
+    };
+
+    const edgeIds = previewEdgeIds(entry);
+
+    expect(edgeIds).toEqual(
+      expect.arrayContaining([
+        "en:ginger:inherited_from:enm:gingere:from:en:ginger:entry:noun:1",
+        "enm:gingere:derived_from:enm:gingivere:from:en:ginger:entry:noun:1",
+        "enm:gingivere:inherited_from:ang:gingifer:from:en:ginger:entry:noun:1"
+      ])
+    );
+    expect(edgeIds).not.toContain("fro:gingembre:inherited_from:ang:gingifer:from:en:ginger:entry:noun:1");
+  });
+
   it("captures first-formation compound components as compound edges", () => {
     const edgeIds = previewEdgeIds(loadFixtureEntry("non-gronland.json"));
 
@@ -623,6 +691,46 @@ describe("previewEntry merged neighborhoods", () => {
 });
 
 describe("traverseAncestors against merged neighborhoods", () => {
+  it("continues from an English descendant through an unstarred proto page entry", () => {
+    const entries: WiktextractEntry[] = [
+      {
+        word: "hound",
+        lang: "English",
+        lang_code: "en",
+        pos: "noun",
+        etymology_number: 1,
+        etymology_text:
+          "From Middle English hound, from Old English hund, from Proto-West Germanic *hund, from Proto-Germanic *hundaz.",
+        etymology_templates: [
+          template("inh", "en", "enm", "hound", "Middle English hound"),
+          template("inh", "en", "ang", "hund", "Old English hund"),
+          template("inh", "en", "gmw-pro", "*hund", "Proto-West Germanic *hund"),
+          template("inh", "en", "gem-pro", "*hundaz", "Proto-Germanic *hundaz")
+        ]
+      },
+      {
+        word: "hundaz",
+        lang: "Proto-Germanic",
+        lang_code: "gem-pro",
+        pos: "noun",
+        etymology_text: "From Proto-Indo-European *ḱwṓ (“dog”).",
+        etymology_templates: [template("der", "gem-pro", "ine-pro", "*ḱwṓ", "Proto-Indo-European *ḱwṓ")]
+      }
+    ];
+    const neighborhood = mergeNeighborhood(entries);
+    const reached = traverseAncestors({
+      ...neighborhood,
+      rootEntryId: expectEntryId("en", "hound", "noun", 1),
+      edgeTypes: ANCESTOR_EDGE_TYPES,
+      maxDepth: 10
+    });
+
+    expect([...reached.reachedEdgeIds]).toContain(
+      "gem-pro:*hundaz:derived_from:ine-pro:*ḱwṓ:from:gem-pro:*hundaz:entry:noun:0"
+    );
+    expect(reached.nodeDepthsById.get("ine-pro:*ḱwṓ")).toBe(5);
+  });
+
   it("keeps ice ancestry inside the ice chain when en:is verb-be shares enm:is", () => {
     const neighborhood = mergeNeighborhood(loadFixtureEntries("en-ice-neighborhood.json"));
     const rootEntryId = expectEntryId("en", "ice", "noun", 0);
@@ -681,6 +789,20 @@ describe("traverseAncestors against merged neighborhoods", () => {
     expect(reachedNodeIds).not.toContain("gem-pro:*īsą");
     expect(reachedNodeIds).not.toContain("gmw-pro:*īs");
     expect(reachedNodeIds).not.toContain("ine-pro:*h₁eyh-");
+  });
+});
+
+describe("seed target matching", () => {
+  it("matches reconstructed targets against raw Wiktextract proto entries without a leading star", () => {
+    const targetIndex = buildSeedTargetIndex([{ langCode: "gem-pro", word: "*hundaz" }]);
+    const entry: WiktextractEntry = {
+      word: "hundaz",
+      lang: "Proto-Germanic",
+      lang_code: "gem-pro",
+      pos: "noun"
+    };
+
+    expect(findMatchingSeedTargetIndex(targetIndex, entry)).toBe(0);
   });
 });
 

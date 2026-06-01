@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import { finished } from "node:stream/promises";
 
 import {
+  canonicalGraphWord,
   makeGraphEdgeId,
   makeLexicalEntryId,
   makeNodeId,
@@ -1301,7 +1302,9 @@ function parseEtymologyTreeTerms(expansion: string): EtymologyTreeTerm[] {
     const [, term, langCode, keyword] = match;
 
     if (term) {
-      skipPendingTerm = treeMetadataTokenIsInStructuralGroup(expansion, match.index);
+      skipPendingTerm =
+        treeMetadataTokenIsInStructuralGroup(expansion, match.index) ||
+        treeMetadataTokenIsInNonAncestryRelation(expansion, match.index);
       pendingTerm = {
         ...pendingTerm,
         term,
@@ -1446,6 +1449,30 @@ function treeMetadataTokenIsInStructuralGroup(expansion: string, tokenIndex: num
     if (
       topLevelObjectBooleanFieldIs(objectSource, "is_group", true) &&
       /^(?:afeq|affix)$/.test(topLevelObjectStringField(objectSource, "keyword") ?? "")
+    ) {
+      return true;
+    }
+
+    if (objectBounds.start === 0) {
+      return false;
+    }
+    objectBounds = containingObjectBounds(expansion, objectBounds.start - 1);
+  }
+
+  return false;
+}
+
+/** Skips terms under side-note relations such as `influence` that are not source ancestry. */
+function treeMetadataTokenIsInNonAncestryRelation(expansion: string, tokenIndex: number): boolean {
+  let objectBounds = containingObjectBounds(expansion, tokenIndex);
+
+  while (objectBounds) {
+    const objectSource = expansion.slice(objectBounds.start, objectBounds.end + 1);
+    const keyword = topLevelObjectStringField(objectSource, "keyword");
+    if (
+      keyword &&
+      !parseEtymologyKeywordEdgeType(keyword) &&
+      topLevelObjectFieldValue(objectSource, "terms") !== undefined
     ) {
       return true;
     }
@@ -1648,7 +1675,7 @@ function parseEtymologyKeywordEdgeType(keyword: string): GraphEdge["type"] | und
 
 /** Creates the canonical graph node representation used by previews and imports. */
 function makeNode(langCode: string, word: string): GraphNode {
-  const graphWord = graphNodeWord(word);
+  const graphWord = canonicalGraphWord(langCode, graphNodeWord(word));
 
   return {
     id: makeNodeId(langCode, graphWord),
@@ -1779,15 +1806,19 @@ export function buildSeedTargetIndex(targets: SeedTarget[]): SeedTargetIndex {
 
   targets.forEach((target, index) => {
     const match = { index, target };
-    const normalizedWord = normalizeWord(target.word);
+    const normalizedWords = seedTargetNormalizedWords(target.word, target.langCode);
 
     if (!target.langCode) {
-      appendSeedTargetMatch(byWord, normalizedWord, match);
+      for (const normalizedWord of normalizedWords) {
+        appendSeedTargetMatch(byWord, normalizedWord, match);
+      }
       return;
     }
 
     const languageTargets = byLanguageAndWord.get(target.langCode) ?? new Map<string, SeedTargetMatch[]>();
-    appendSeedTargetMatch(languageTargets, normalizedWord, match);
+    for (const normalizedWord of normalizedWords) {
+      appendSeedTargetMatch(languageTargets, normalizedWord, match);
+    }
     byLanguageAndWord.set(target.langCode, languageTargets);
   });
 
@@ -1800,11 +1831,13 @@ export function findMatchingSeedTargetIndex(index: SeedTargetIndex, entry: Wikte
     return undefined;
   }
 
-  const normalizedWord = normalizeWord(entry.word);
-  const languageMatches = entry.lang_code
-    ? (index.byLanguageAndWord.get(entry.lang_code)?.get(normalizedWord) ?? [])
+  const entryLangCode = entry.lang_code;
+  const normalizedWords = entrySeedNormalizedWords(entry);
+  const languageTargetMap = entryLangCode ? index.byLanguageAndWord.get(entryLangCode) : undefined;
+  const languageMatches = languageTargetMap
+    ? normalizedWords.flatMap((normalizedWord) => languageTargetMap.get(normalizedWord) ?? [])
     : [];
-  const wildcardMatches = index.byWord.get(normalizedWord) ?? [];
+  const wildcardMatches = normalizedWords.flatMap((normalizedWord) => index.byWord.get(normalizedWord) ?? []);
   const matches = [...languageMatches, ...wildcardMatches]
     .filter((match) => seedTargetMatches(match.target, entry))
     .sort((left, right) => left.index - right.index);
@@ -1856,7 +1889,30 @@ function seedTargetMatches(target: SeedTarget, entry: WiktextractEntry): boolean
     return false;
   }
 
-  return normalizeWord(entry.word) === normalizeWord(target.word);
+  const targetWords = seedTargetNormalizedWords(target.word, target.langCode);
+  return entrySeedNormalizedWords(entry).some((normalizedWord) => targetWords.includes(normalizedWord));
+}
+
+/** Matches reconstructed graph targets against Wiktextract entries that may omit the leading star. */
+function seedTargetNormalizedWords(word: string, langCode: string | undefined): string[] {
+  const canonicalWord = langCode ? canonicalGraphWord(langCode, word) : word;
+  const normalizedWord = normalizeWord(canonicalWord);
+  const unstarredWord = canonicalWord.startsWith("*") ? normalizeWord(canonicalWord.slice(1)) : undefined;
+
+  return [...new Set([normalizedWord, ...(unstarredWord ? [unstarredWord] : [])])];
+}
+
+/** Looks up raw and canonical spellings because Wiktextract is inconsistent about proto stars. */
+function entrySeedNormalizedWords(entry: WiktextractEntry): string[] {
+  if (!entry.word) {
+    return [];
+  }
+
+  const rawEntryWord = entry.word;
+  const rawWord = normalizeWord(rawEntryWord);
+  const canonicalWord = entry.lang_code ? normalizeWord(canonicalGraphWord(entry.lang_code, rawEntryWord)) : rawWord;
+
+  return [...new Set([canonicalWord, rawWord])];
 }
 
 /** Keeps lowercase seed targets from being satisfied by earlier proper-name homographs. */
@@ -1870,7 +1926,9 @@ function isCaseOnlyProperNameHomograph(
 
 /** Builds stable reporting keys for seed extraction counts. */
 export function seedTargetKey(target: SeedTarget): string {
-  return `${target.langCode ?? "*"}:${normalizeWord(target.word)}`;
+  return `${target.langCode ?? "*"}:${normalizeWord(
+    target.langCode ? canonicalGraphWord(target.langCode, target.word) : target.word
+  )}`;
 }
 
 /** Treats checkpoints as reusable only while their source JSONL file is unchanged. */

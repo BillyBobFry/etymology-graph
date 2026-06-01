@@ -79,6 +79,7 @@ function openStarterTerm(term: string): void {
         <Button
           v-for="query in etymologyStarterSet.queries"
           :key="query.term"
+          class="justify-start!"
           variant="secondary"
           full-width
           @click="openStarterTerm(query.term)"

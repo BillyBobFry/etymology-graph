@@ -68,12 +68,12 @@ pnpm import:db:popular
 For a more connected graph, replace the last three commands with:
 
 ```bash
-pnpm seed:expand:popular
-pnpm import:batch-preview:popular-expanded
-pnpm import:db:popular-expanded
+pnpm seed:extract:prod
+pnpm import:batch-preview:prod
+pnpm import:db:prod
 ```
 
-Record the chosen seed profile and checkpoint path for each deploy. The raw Wiktextract dump remains local/generated input and should not be copied into app images or static bundles.
+Record the chosen seed command and checkpoint path for each deploy. The raw Wiktextract dump remains local/generated input and should not be copied into app images or static bundles.
 
 ## Build Commands
 

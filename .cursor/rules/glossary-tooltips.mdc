@@ -1,0 +1,13 @@
+---
+description: Apply glossary tooltips to specialist linguistic body text
+globs: apps/web/src/**/*.ts, apps/web/src/**/*.vue
+alwaysApply: false
+---
+
+# Glossary Tooltips
+
+- When writing or revising user-facing body text, scan for linguistics terms that may be unclear to non-linguists, such as `cognate`, `doublet`, `reflex`, `reconstructed`, `voiced stop`, `fricative`, `descendant`, and similar specialist terms.
+- Apply glossary annotations where they help comprehension, especially in article prose, educational explanations, empty states, graph intros, and detail panels. Do not annotate every repeated occurrence if the page would become noisy.
+- Prefer the existing explicit glossary renderer in `apps/web/src/features/glossary/`: use `GlossaryText.vue` for annotated prose and add missing terms to `linguisticGlossary.ts`.
+- Keep tooltip definitions short and contextual. If the explanation needs more than a sentence or two, simplify the body copy or use a larger disclosure surface instead of overloading a tooltip.
+- For compact summaries, cards, metadata, titles, labels, and route text, keep plain strings unless inline glossary interaction is clearly useful. Use `plainTextFromGlossarySegments` when annotated text needs a plain-text version.

@@ -4,6 +4,8 @@ import { normalizeProps, useMachine, type PropTypes } from "@zag-js/vue";
 import type { ButtonHTMLAttributes, HTMLAttributes } from "vue";
 import { computed, useId } from "vue";
 
+import FloatingSurface from "./FloatingSurface.vue";
+
 const props = withDefaults(
   defineProps<{
     open?: boolean;
@@ -85,9 +87,9 @@ function handleOpenChange(details: popover.OpenChangeDetails): void {
 
   <Teleport to="body" :disabled="!api.portalled">
     <div v-if="api.open" v-bind="api.getPositionerProps()" class="z-1000" style="z-index: 1000">
-      <div
+      <FloatingSurface
         v-bind="api.getContentProps()"
-        class="min-w-64 max-w-[calc(100vw-32px)] rounded-md border border-border-strong bg-surface-raised p-3 shadow-paper outline-none"
+        class="min-w-64 max-w-[calc(100vw-32px)] outline-none"
       >
         <slot
           :content-props="api.getContentProps()"
@@ -97,7 +99,7 @@ function handleOpenChange(details: popover.OpenChangeDetails): void {
           :open="api.open"
           :api="api"
         />
-      </div>
+      </FloatingSurface>
     </div>
   </Teleport>
 </template>

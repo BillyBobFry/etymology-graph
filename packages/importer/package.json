@@ -7,9 +7,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "import:sample": "tsx src/sample.ts",
-    "seed:extract": "tsx src/extract-seed.ts",
     "seed:extract:popular": "tsx src/extract-popular-seed.ts",
-    "seed:expand:popular": "tsx src/expand-popular-seed.ts",
+    "seed:expand:prod": "tsx src/expand-popular-seed.ts",
     "seed:languages": "tsx src/import-languages.ts",
     "import:batch-preview": "tsx src/batch-preview.ts",
     "import:db": "tsx src/import-db.ts"

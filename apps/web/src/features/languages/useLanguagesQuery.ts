@@ -11,6 +11,8 @@ export type LanguagesQueryOptions = Omit<
   "queryKey" | "queryFn"
 >;
 
+const LANGUAGES_QUERY_GC_TIME = 7 * 24 * 60 * 60_000;
+
 /** Builds a stable cache key for imported language choices. */
 export function languagesQueryKey(): LanguagesQueryKey {
   return ["languages"] as const;
@@ -45,7 +47,8 @@ export function languagesQuery(): UseQueryOptions<
   return {
     queryKey: languagesQueryKey(),
     queryFn: ({ signal }) => fetchLanguages(signal),
-    staleTime: 5 * 60_000
+    gcTime: LANGUAGES_QUERY_GC_TIME,
+    staleTime: Number.POSITIVE_INFINITY
   };
 }
 

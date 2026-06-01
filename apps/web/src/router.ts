@@ -7,6 +7,8 @@ import EtymologySearchView from "./views/EtymologySearchView.vue";
 import EtymologyView from "./views/EtymologyView.vue";
 import HomeView from "./views/HomeView.vue";
 import NotFoundView from "./views/NotFoundView.vue";
+import SoundChangeArticleView from "./views/SoundChangeArticleView.vue";
+import SoundChangesView from "./views/SoundChangesView.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -48,6 +50,16 @@ const routes: RouteRecordRaw[] = [
     path: "/ancestor-languages/:langCode/:ancestorLangCode",
     name: "ancestor-language-results",
     component: AncestorLanguageSearchView
+  },
+  {
+    path: "/sound-changes",
+    name: "sound-changes",
+    component: SoundChangesView
+  },
+  {
+    path: "/sound-changes/:slug",
+    name: "sound-change-article",
+    component: SoundChangeArticleView
   },
   {
     path: "/:pathMatch(.*)*",

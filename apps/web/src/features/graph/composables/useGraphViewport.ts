@@ -1,4 +1,5 @@
-import { computed, ref, type ComputedRef, type Ref } from "vue";
+import { useElementSize } from "@vueuse/core";
+import { computed, ref, watch, type ComputedRef, type Ref } from "vue";
 
 type ViewportPoint = {
   x: number;
@@ -9,6 +10,20 @@ type ViewportState = {
   panX: number;
   panY: number;
   zoom: number;
+};
+
+export type GraphViewportFrame = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type GraphViewportContentBounds = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
 };
 
 type PinchSnapshot = {
@@ -23,6 +38,8 @@ type GraphViewportOptions = {
   maxZoom?: number;
   zoomStep?: number;
   keyboardPanStep?: number;
+  contentVisibleBuffer?: number;
+  contentBounds?: Readonly<Ref<GraphViewportContentBounds | null>>;
 };
 
 type GraphViewportControls = {
@@ -30,6 +47,8 @@ type GraphViewportControls = {
   panX: Ref<number>;
   panY: Ref<number>;
   zoom: Ref<number>;
+  viewportFrame: ComputedRef<GraphViewportFrame>;
+  viewBox: ComputedRef<string>;
   zoomPercentage: ComputedRef<number>;
   viewportTransform: ComputedRef<string>;
   isPanning: Ref<boolean>;
@@ -51,10 +70,13 @@ const defaultZoomStep = 1.2;
 const defaultKeyboardPanStep = 36;
 const wheelZoomSensitivity = 0.002;
 const lineWheelPixels = 16;
+const defaultContentVisibleBuffer = 24;
+const viewportChangeEpsilon = 0.01;
 
 /** Coordinates graph pan and zoom interactions around one SVG viewport transform. */
 export function useGraphViewport(options: GraphViewportOptions): GraphViewportControls {
   const svgRef = ref<SVGSVGElement | null>(null);
+  const { width: renderedWidth, height: renderedHeight } = useElementSize(svgRef);
   const panX = ref(0);
   const panY = ref(0);
   const zoom = ref(1);
@@ -66,20 +88,48 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
   const maxZoom = options.maxZoom ?? defaultMaxZoom;
   const zoomStep = options.zoomStep ?? defaultZoomStep;
   const keyboardPanStep = options.keyboardPanStep ?? defaultKeyboardPanStep;
+  const contentVisibleBuffer = options.contentVisibleBuffer ?? defaultContentVisibleBuffer;
   let lastSinglePointer: ViewportPoint | null = null;
   let lastPinch: PinchSnapshot | null = null;
 
+  const viewportFrame = computed(() =>
+    viewportFrameForRenderedSize(options.width, options.height, renderedWidth.value, renderedHeight.value)
+  );
+  const viewBox = computed(() => {
+    const frame = viewportFrame.value;
+
+    return `${frame.x} ${frame.y} ${frame.width} ${frame.height}`;
+  });
   const centerPoint = computed(() => ({
-    x: options.width / 2,
-    y: options.height / 2
+    x: viewportFrame.value.x + viewportFrame.value.width / 2,
+    y: viewportFrame.value.y + viewportFrame.value.height / 2
   }));
   const zoomPercentage = computed(() => Math.round(zoom.value * 100));
   const viewportTransform = computed(() => `translate(${panX.value}, ${panY.value}) scale(${zoom.value})`);
 
+  watch(
+    () => [
+      viewportFrame.value.x,
+      viewportFrame.value.y,
+      viewportFrame.value.width,
+      viewportFrame.value.height,
+      options.contentBounds?.value?.minX,
+      options.contentBounds?.value?.minY,
+      options.contentBounds?.value?.maxX,
+      options.contentBounds?.value?.maxY
+    ],
+    () => {
+      constrainCurrentViewport();
+    }
+  );
+
   /** Moves the graph by a viewport-space delta so drag and wheel panning stay natural. */
-  function panBy(deltaX: number, deltaY: number): void {
-    panX.value += deltaX;
-    panY.value += deltaY;
+  function panBy(deltaX: number, deltaY: number): boolean {
+    return applyViewport({
+      panX: panX.value + deltaX,
+      panY: panY.value + deltaY,
+      zoom: zoom.value
+    });
   }
 
   /** Changes zoom around an anchor point so the user's focus stays under the cursor. */
@@ -88,9 +138,11 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     const worldAnchorX = (anchor.x - panX.value) / zoom.value;
     const worldAnchorY = (anchor.y - panY.value) / zoom.value;
 
-    zoom.value = clampedZoom;
-    panX.value = anchor.x - worldAnchorX * clampedZoom;
-    panY.value = anchor.y - worldAnchorY * clampedZoom;
+    applyViewport({
+      panX: anchor.x - worldAnchorX * clampedZoom,
+      panY: anchor.y - worldAnchorY * clampedZoom,
+      zoom: clampedZoom
+    });
   }
 
   /** Applies relative zoom steps used by buttons, keyboard shortcuts, and wheels. */
@@ -100,9 +152,10 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
 
   /** Sets the absolute viewport transform, used for graph-aware home positions. */
   function setViewport(viewport: ViewportState): void {
-    panX.value = viewport.panX;
-    panY.value = viewport.panY;
-    zoom.value = clamp(viewport.zoom, minZoom, maxZoom);
+    applyViewport({
+      ...viewport,
+      zoom: clamp(viewport.zoom, minZoom, maxZoom)
+    });
   }
 
   /** Gives pointer and keyboard users a quick way back to the original graph view. */
@@ -190,19 +243,24 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
 
   /** Supports trackpad pan, trackpad pinch, mouse-wheel zoom, and horizontal wheel gestures. */
   function handleWheel(event: WheelEvent): void {
-    const deltaX = normalizeWheelDelta(event.deltaX, event.deltaMode, options.height);
-    const deltaY = normalizeWheelDelta(event.deltaY, event.deltaMode, options.height);
+    const deltaX = normalizeWheelDelta(event.deltaX, event.deltaMode, viewportFrame.value.height);
+    const deltaY = normalizeWheelDelta(event.deltaY, event.deltaMode, viewportFrame.value.height);
 
     if (event.ctrlKey || event.metaKey) {
       const anchor = clientPointToViewportPoint(event.clientX, event.clientY);
       zoomBy(Math.exp(-deltaY * wheelZoomSensitivity), anchor);
+      event.preventDefault();
+      return;
     } else if (event.shiftKey && deltaX === 0) {
-      panBy(-deltaY, 0);
-    } else {
-      panBy(-deltaX, -deltaY);
+      if (panBy(-deltaY, 0)) {
+        event.preventDefault();
+      }
+      return;
     }
 
-    event.preventDefault();
+    if (panBy(-deltaX, -deltaY)) {
+      event.preventDefault();
+    }
   }
 
   /** Treats double-click as a familiar map-style zoom gesture around the clicked point. */
@@ -265,9 +323,11 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
       return centerPoint.value;
     }
 
+    const frame = viewportFrame.value;
+
     return {
-      x: ((clientX - rect.left) / rect.width) * options.width,
-      y: ((clientY - rect.top) / rect.height) * options.height
+      x: frame.x + ((clientX - rect.left) / rect.width) * frame.width,
+      y: frame.y + ((clientY - rect.top) / rect.height) * frame.height
     };
   }
 
@@ -319,11 +379,60 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     };
   }
 
+  /** Applies viewport changes through the content bounds so panning cannot lose every node. */
+  function applyViewport(viewport: ViewportState): boolean {
+    const constrainedViewport = constrainedViewportForContent(viewport);
+    const didChange =
+      hasViewportValueChanged(panX.value, constrainedViewport.panX) ||
+      hasViewportValueChanged(panY.value, constrainedViewport.panY) ||
+      hasViewportValueChanged(zoom.value, constrainedViewport.zoom);
+
+    panX.value = constrainedViewport.panX;
+    panY.value = constrainedViewport.panY;
+    zoom.value = constrainedViewport.zoom;
+
+    return didChange;
+  }
+
+  /** Rechecks the current transform after content bounds or rendered frame dimensions change. */
+  function constrainCurrentViewport(): void {
+    applyViewport({
+      panX: panX.value,
+      panY: panY.value,
+      zoom: zoom.value
+    });
+  }
+
+  /** Clamps pan so a small strip of graph content remains visible at the viewport edge. */
+  function constrainedViewportForContent(viewport: ViewportState): ViewportState {
+    const bounds = options.contentBounds?.value;
+
+    if (!hasUsableContentBounds(bounds)) {
+      return viewport;
+    }
+
+    const frame = viewportFrame.value;
+    const horizontalBuffer = Math.min(contentVisibleBuffer, frame.width / 2);
+    const verticalBuffer = Math.min(contentVisibleBuffer, frame.height / 2);
+    const minPanX = frame.x + horizontalBuffer - bounds.maxX * viewport.zoom;
+    const maxPanX = frame.x + frame.width - horizontalBuffer - bounds.minX * viewport.zoom;
+    const minPanY = frame.y + verticalBuffer - bounds.maxY * viewport.zoom;
+    const maxPanY = frame.y + frame.height - verticalBuffer - bounds.minY * viewport.zoom;
+
+    return {
+      panX: clamp(viewport.panX, minPanX, maxPanX),
+      panY: clamp(viewport.panY, minPanY, maxPanY),
+      zoom: viewport.zoom
+    };
+  }
+
   return {
     svgRef,
     panX,
     panY,
     zoom,
+    viewportFrame,
+    viewBox,
     zoomPercentage,
     viewportTransform,
     isPanning,
@@ -343,6 +452,50 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
 /** Keeps zoom within usable limits so the graph cannot disappear or become unusably large. */
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+/** Treats sub-pixel pan differences as no movement so wheel overscroll can bubble naturally. */
+function hasViewportValueChanged(previousValue: number, nextValue: number): boolean {
+  return Math.abs(previousValue - nextValue) > viewportChangeEpsilon;
+}
+
+/** Checks whether layout bounds are finite before they influence user panning. */
+function hasUsableContentBounds(bounds: GraphViewportContentBounds | null | undefined): bounds is GraphViewportContentBounds {
+  return Boolean(
+    bounds &&
+      Number.isFinite(bounds.minX) &&
+      Number.isFinite(bounds.minY) &&
+      Number.isFinite(bounds.maxX) &&
+      Number.isFinite(bounds.maxY) &&
+      bounds.minX <= bounds.maxX &&
+      bounds.minY <= bounds.maxY
+  );
+}
+
+/** Expands the SVG coordinate frame to match the rendered aspect ratio without stretching graph marks. */
+function viewportFrameForRenderedSize(
+  baseWidth: number,
+  baseHeight: number,
+  renderedWidth: number,
+  renderedHeight: number
+): GraphViewportFrame {
+  if (renderedWidth <= 0 || renderedHeight <= 0) {
+    return { x: 0, y: 0, width: baseWidth, height: baseHeight };
+  }
+
+  const baseCenterX = baseWidth / 2;
+  const baseCenterY = baseHeight / 2;
+  const baseAspect = baseWidth / baseHeight;
+  const renderedAspect = renderedWidth / renderedHeight;
+  const width = renderedAspect > baseAspect ? baseHeight * renderedAspect : baseWidth;
+  const height = renderedAspect > baseAspect ? baseHeight : baseWidth / renderedAspect;
+
+  return {
+    x: baseCenterX - width / 2,
+    y: baseCenterY - height / 2,
+    width,
+    height
+  };
 }
 
 /** Normalizes wheel units so line-mode mouse wheels and pixel-mode trackpads behave similarly. */

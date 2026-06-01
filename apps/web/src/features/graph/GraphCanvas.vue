@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 import type { EtymologyGraph, GraphTraversalNode } from "@etymology-graph/graph";
+import GraphCanvasAnnotations from "./GraphCanvasAnnotations.vue";
 import GraphCanvasControls from "./GraphCanvasControls.vue";
 import GraphCanvasLinks from "./GraphCanvasLinks.vue";
 import GraphCanvasMapTexture from "./GraphCanvasMapTexture.vue";
@@ -22,13 +23,14 @@ import {
   type AncestorLanguageRouteParams,
   type GraphNodeRouteParams
 } from "./composables/useGraphNodeRoutes";
-import { useGraphViewport } from "./composables/useGraphViewport";
+import { useGraphViewport, type GraphViewportContentBounds } from "./composables/useGraphViewport";
 import { useLanguagesQuery } from "../languages/useLanguagesQuery";
 import { fallbackSearchLanguage, useSearchLanguageStore } from "../terms/searchLanguageStore";
 import { graphCanvasHeight, graphCanvasWidth } from "./graphCanvasConstants";
 import { isNodeContextAction, nodeActionItems, type NodeContextAction, type SelectedNodeRelationship } from "./graphNodeActions";
 import { wiktionaryHrefForNode } from "./graphNodeDisplay";
 import { edgeLabel, isSourceDirectedEdgeType } from "./graphRelationshipDisplay";
+import type { GraphNodeAnnotation } from "./graphAnnotations";
 import ContextMenu from "../../uiComponents/ContextMenu.vue";
 
 type ContextMenuInstance = {
@@ -41,10 +43,12 @@ const props = withDefaults(
     layoutPreset?: GraphLayoutPreset;
     rootNodeId?: string;
     showControls?: boolean;
+    annotations?: GraphNodeAnnotation[];
   }>(),
   {
     layoutPreset: "auto",
-    showControls: true
+    showControls: true,
+    annotations: () => []
   }
 );
 
@@ -63,11 +67,14 @@ const isGraphExpanded = ref(false);
 const isBodyScrollLocked = useScrollLock(() => document.body);
 const nodeContextMenu = ref<ContextMenuInstance | null>(null);
 const usesDesktopGraphLayout = useMediaQuery("(min-width: 768px)");
+const graphNodeBounds = ref<GraphViewportContentBounds | null>(null);
 const {
   svgRef,
   panX,
   panY,
   zoom,
+  viewportFrame,
+  viewBox,
   zoomPercentage,
   viewportTransform,
   isPanning,
@@ -83,7 +90,8 @@ const {
 } = useGraphViewport({
   width: graphCanvasWidth,
   height: graphCanvasHeight,
-  minZoom: 0.12
+  minZoom: 0.12,
+  contentBounds: graphNodeBounds
 });
 
 const {
@@ -91,9 +99,13 @@ const {
   links,
   renderedNodes,
   renderedLinks,
+  renderedAnnotations,
+  renderedNodeBounds,
   buildSimulation,
   resetLayout,
+  fitLayoutToViewport,
   requestRenderTick,
+  moveAnchoredAnnotations,
   nodeX,
   nodeY,
   hasResolvedEndpoints,
@@ -102,6 +114,7 @@ const {
 } = useGraphLayout({
   selectedNodeId,
   contextNodeId,
+  viewportFrame,
   setHomeViewport,
   onFreshLayout: closeFloatingGraphUi
 });
@@ -123,7 +136,10 @@ const {
   graphLayoutOrientation,
   nodeX,
   nodeY,
-  requestRenderTick
+  requestRenderTick,
+  onNodeDrag: (node, delta) => {
+    moveAnchoredAnnotations(node.id, delta.x, delta.y);
+  }
 });
 const selectedNode = computed(() => nodes.value.find((node) => node.id === selectedNodeId.value));
 const nodesById = computed(() => new Map(nodes.value.map((node) => [node.id, node])));
@@ -159,10 +175,36 @@ const nodeContextMenuItems = nodeActionItems;
 watch(
   [() => props.graph, graphLayoutOrientation, () => props.layoutPreset, () => props.rootNodeId],
   ([graph, orientation, layoutPreset, rootNodeId]) => {
-    buildSimulation(graph, orientation, { layoutPreset, rootNodeId });
+    buildSimulation(graph, orientation, { layoutPreset, rootNodeId, annotations: props.annotations });
     resetNodeDrag();
   },
   { immediate: true }
+);
+
+watch(
+  renderedNodeBounds,
+  (bounds) => {
+    graphNodeBounds.value = bounds;
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.annotations,
+  () => {
+    buildSimulation(props.graph, graphLayoutOrientation.value, {
+      layoutPreset: props.layoutPreset,
+      rootNodeId: props.rootNodeId,
+      annotations: props.annotations
+    });
+  }
+);
+
+watch(
+  () => [viewportFrame.value.x, viewportFrame.value.y, viewportFrame.value.width, viewportFrame.value.height],
+  () => {
+    fitLayoutToViewport();
+  }
 );
 
 watch(isGraphExpanded, (expanded) => {
@@ -214,7 +256,8 @@ function closeNodeContextMenu(): void {
 function resetGraphLayout(): void {
   resetLayout(props.graph, graphLayoutOrientation.value, {
     layoutPreset: props.layoutPreset,
-    rootNodeId: props.rootNodeId
+    rootNodeId: props.rootNodeId,
+    annotations: props.annotations
   });
   resetNodeDrag();
 }
@@ -380,12 +423,12 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
       <template #trigger="{ getContextTriggerProps }">
         <svg
           ref="svgRef"
-          class="relative z-1 block min-h-[360px] w-full cursor-grab touch-none select-none focus-visible:outline-[3px] focus-visible:outline-offset-[-6px] focus-visible:outline-accent/40 focus:outline-none"
+          class="relative z-1 block min-h-[min(72dvh,560px)] w-full cursor-grab touch-none select-none focus-visible:outline-[3px] focus-visible:outline-offset-[-6px] focus-visible:outline-accent/40 focus:outline-none md:min-h-[360px]"
           :class="[
             isGraphExpanded && 'h-full min-h-dvh',
             isPanning && 'cursor-grabbing'
           ]"
-          :viewBox="`0 0 ${graphCanvasWidth} ${graphCanvasHeight}`"
+          :viewBox="viewBox"
           role="img"
           tabindex="0"
           aria-keyshortcuts="+ - ArrowUp ArrowDown ArrowLeft ArrowRight 0 Home"
@@ -424,6 +467,10 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
               @pointer-move="dragNode"
               @pointer-up="endNodeDrag"
               @keydown="handleNodeKeydown"
+            />
+            <GraphCanvasAnnotations
+              v-if="renderedAnnotations.length > 0"
+              :positioned-annotations="renderedAnnotations"
             />
           </g>
         </svg>

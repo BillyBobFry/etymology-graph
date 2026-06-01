@@ -3,8 +3,6 @@ import { extname, join } from "node:path";
 
 import { z } from "zod";
 
-import { dedupeTargetSpecs } from "./seed-profiles.js";
-
 const popularWordSourceSchema = z.object({
   name: z.string().min(1),
   url: z.string().min(1).optional(),
@@ -155,4 +153,9 @@ async function loadExcludedWords(directoryPath: string): Promise<ReadonlySet<str
 /** Keeps curation list matching stable across casing and incidental whitespace. */
 function normalizeExcludedWord(word: string): string {
   return word.trim().toLocaleLowerCase();
+}
+
+/** Keeps target order stable while avoiding duplicate scans and duplicate report keys. */
+function dedupeTargetSpecs(targetSpecs: readonly string[]): string[] {
+  return [...new Set(targetSpecs)];
 }

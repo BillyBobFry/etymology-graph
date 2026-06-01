@@ -3,6 +3,7 @@ import type { EtymologyGraph, GraphTraversalNode } from "@etymology-graph/graph"
 
 import Skeleton from "../../uiComponents/Skeleton.vue";
 import GraphCanvas from "./GraphCanvas.vue";
+import type { GraphNodeAnnotation } from "./graphAnnotations";
 import type { GraphLayoutPreset } from "./composables/useGraphLayout";
 
 type GraphEvidenceStatus = "idle" | "loading" | "success" | "empty" | "error";
@@ -13,6 +14,8 @@ withDefaults(
     graph: EtymologyGraph | null;
     layoutPreset?: GraphLayoutPreset;
     rootNodeId?: string;
+    showControls?: boolean;
+    annotations?: GraphNodeAnnotation[];
     loadingLabel?: string;
     errorText?: string;
     emptyText?: string;
@@ -20,6 +23,8 @@ withDefaults(
   {
     layoutPreset: "auto",
     rootNodeId: undefined,
+    showControls: true,
+    annotations: () => [],
     loadingLabel: "Loading graph evidence...",
     errorText: "Graph evidence failed to load.",
     emptyText: "No graph evidence is available for this entry."
@@ -75,6 +80,8 @@ const emit = defineEmits<{
       :graph="graph"
       :layout-preset="layoutPreset"
       :root-node-id="rootNodeId"
+      :show-controls="showControls"
+      :annotations="annotations"
       @load-children="emit('load-children', $event)"
     />
   </div>

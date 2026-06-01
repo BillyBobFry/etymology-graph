@@ -160,6 +160,57 @@ export const ancestorPathResultSchema = z.object({
 
 export type AncestorPathResult = z.infer<typeof ancestorPathResultSchema>;
 
+export const comparisonSetTermSchema = z.object({
+  langCode: z.string().trim().min(1),
+  word: z.string().trim().min(1)
+});
+
+export type ComparisonSetTerm = z.infer<typeof comparisonSetTermSchema>;
+
+export const comparisonSetItemSchema = comparisonSetTermSchema.extend({
+  id: z.string().trim().min(1),
+  label: z.string().trim().min(1).optional(),
+  ...entryAnchorShape
+});
+
+export type ComparisonSetItem = z.infer<typeof comparisonSetItemSchema>;
+
+export const comparisonSetGroupSchema = z.object({
+  id: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  items: z.array(comparisonSetItemSchema).min(1).max(12)
+});
+
+export type ComparisonSetGroup = z.infer<typeof comparisonSetGroupSchema>;
+
+export const comparisonSetQuerySchema = z.object({
+  root: comparisonSetTermSchema,
+  groups: z.array(comparisonSetGroupSchema).min(1).max(8),
+  maxDepth: z.number().int().min(1).max(12).default(DEFAULT_ANCESTOR_MAX_DEPTH)
+});
+
+export type ComparisonSetQuery = z.infer<typeof comparisonSetQuerySchema>;
+
+export const comparisonSetItemResultSchema = comparisonSetItemSchema;
+
+export type ComparisonSetItemResult = z.infer<typeof comparisonSetItemResultSchema>;
+
+export const comparisonSetGroupResultSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  items: z.array(comparisonSetItemResultSchema)
+});
+
+export type ComparisonSetGroupResult = z.infer<typeof comparisonSetGroupResultSchema>;
+
+export const comparisonSetResultSchema = z.object({
+  root: graphNodeSchema.nullable(),
+  graph: etymologyGraphSchema.nullable(),
+  groups: z.array(comparisonSetGroupResultSchema)
+});
+
+export type ComparisonSetResult = z.infer<typeof comparisonSetResultSchema>;
+
 export const childTermsQuerySchema = z.object({
   langCode: z.string().trim().min(1),
   word: z.string().trim().min(1),
@@ -292,9 +343,22 @@ export function normalizeWord(word: string): string {
   return word.trim().normalize("NFC").toLocaleLowerCase();
 }
 
+/** Keeps reconstructed proto-language forms keyed with the Wiktionary leading star. */
+export function canonicalGraphWord(langCode: string, word: string): string {
+  const canonicalWord = word.trim().normalize("NFC");
+  if (!canonicalWord || canonicalWord.startsWith("*") || !isProtoLanguageCode(langCode)) {
+    return canonicalWord;
+  }
+
+  return `*${canonicalWord}`;
+}
+
+/** Identifies reconstructed proto-language codes such as `ine-pro`, `gem-pro`, and `gmw-pro`. */
+export const isProtoLanguageCode = (langCode: string): boolean => langCode.endsWith("-pro");
+
 /** Creates stable term IDs shared by import, API, and frontend graph code. */
 export function makeNodeId(langCode: string, word: string): string {
-  return `${langCode}:${normalizeWord(word)}`;
+  return `${langCode}:${normalizeWord(canonicalGraphWord(langCode, word))}`;
 }
 
 /** Builds stable lexical entry IDs that disambiguate homograph entries by part of speech and etymology section. */

@@ -27,6 +27,7 @@ type GraphNodeDragOptions = {
   nodeX: (node: PositionedGraphNode) => number;
   nodeY: (node: PositionedGraphNode) => number;
   requestRenderTick: () => void;
+  onNodeDrag?: (node: PositionedGraphNode, delta: GraphPoint) => void;
 };
 
 /** Keeps direct node dragging isolated from canvas pan and zoom gestures. */
@@ -72,6 +73,7 @@ export function useGraphNodeDrag(options: GraphNodeDragOptions) {
     node.fx = nextX;
     node.fy = nextY;
     node.preferredSiblingPosition = options.graphLayoutOrientation.value === "horizontal" ? nextY : nextX;
+    options.onNodeDrag?.(node, { x: deltaX, y: deltaY });
     dragState.lastPoint = point;
     dragState.hasMoved = dragState.hasMoved || Math.hypot(deltaX, deltaY) > 1;
     options.requestRenderTick();
