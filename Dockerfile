@@ -9,6 +9,7 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN npm install -g pnpm@10.19.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY scripts/prepare-husky.mjs scripts/prepare-husky.mjs
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/graph/package.json packages/graph/package.json
@@ -33,6 +34,7 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN npm install -g pnpm@10.19.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY scripts/prepare-husky.mjs scripts/prepare-husky.mjs
 COPY apps/api/package.json apps/api/package.json
 COPY packages/graph/package.json packages/graph/package.json
 RUN pnpm install --prod --frozen-lockfile --filter @etymology-graph/api...

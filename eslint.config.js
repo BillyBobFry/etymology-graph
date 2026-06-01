@@ -16,7 +16,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   ...vue.configs["flat/essential"],
   {
-    files: ["**/*.{js,ts,vue}"],
+    files: ["**/*.{js,mjs,ts,vue}"],
     languageOptions: {
       globals: {
         ...globals.browser,
