@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { Menu, Moon } from "@lucide/vue";
+import { useTitle } from "@vueuse/core";
 import * as navigationMenu from "@zag-js/navigation-menu";
 import { normalizeProps, useMachine, type PropTypes } from "@zag-js/vue";
 import { computed, onMounted, ref } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 
+import LingraphicLogo from "./features/brand/LingraphicLogo.vue";
+import { useLanguagesQuery } from "./features/languages/useLanguagesQuery";
+import { siteTitle, type RouteDocumentTitle, type RouteDocumentTitleContext } from "./router";
 import IconButton from "./uiComponents/IconButton.vue";
 
 type ThemePreference = "light" | "dark";
@@ -18,10 +22,15 @@ type SectionNavItem = {
 };
 
 const route = useRoute();
+const languagesQuery = useLanguagesQuery();
 const themePreference = ref<ThemePreference>("light");
 const mobileSectionsItem = {
   value: "sections"
 };
+const languageNamesByCode = computed(
+  () => new Map(languagesQuery.data.value?.languages.map((language) => [language.code, language.canonicalName]) ?? [])
+);
+const documentTitle = computed(() => formatDocumentTitle(resolveRouteDocumentTitle(route.meta.title)));
 
 const isEtymologyRoute = computed(
   () => route.name === "etymology-search" || route.name === "etymology"
@@ -87,13 +96,15 @@ const sectionNavItems = computed<SectionNavItem[]>(() => [
   }
 ]);
 
+useTitle(documentTitle);
+
 /** Gives primary section links a consistent selected state across search and detail routes. */
 const sectionLinkClass = (active: boolean): string => {
   if (active) {
     return `${sectionLinkBaseClass} border-accent text-accent`;
   }
 
-  return `${sectionLinkBaseClass} border-transparent text-text-muted hover:border-border-strong hover:text-text`;
+  return `${sectionLinkBaseClass} border-transparent text-text-page-muted hover:border-border-strong hover:text-text`;
 };
 
 /** Styles the compact mobile menu links without losing the active section cue. */
@@ -110,6 +121,27 @@ const mobileSectionLinkClass = (active: boolean): string => {
 
 /** Lets Zag dispatch link selection while Vue Router owns the actual navigation. */
 const handleMobileNavigationSelect = (): void => {};
+
+/** Resolves static and route-param-derived page titles from route metadata. */
+function resolveRouteDocumentTitle(title: RouteDocumentTitle | undefined): string {
+  if (typeof title === "function") {
+    return title(route, routeDocumentTitleContext());
+  }
+
+  return title ?? siteTitle;
+}
+
+/** Provides route title resolvers with loaded language names and code fallbacks. */
+function routeDocumentTitleContext(): RouteDocumentTitleContext {
+  return {
+    languageNameForCode: (langCode) => languageNamesByCode.value.get(langCode) ?? langCode
+  };
+}
+
+/** Keeps the brand suffix consistent while leaving the home route clean. */
+function formatDocumentTitle(pageTitle: string): string {
+  return pageTitle === siteTitle ? siteTitle : `${pageTitle} | ${siteTitle}`;
+}
 
 onMounted(() => {
   applyThemePreference(readStoredThemePreference() ?? preferredSystemTheme(), false);
@@ -189,10 +221,11 @@ function preferredSystemTheme(): ThemePreference {
             </ul>
           </nav>
           <RouterLink
-            class="truncate font-label text-base font-black uppercase tracking-[0.16em] text-text transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+            aria-label="Lingraphic home"
+            class="inline-flex min-w-0 text-text transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background"
             :to="{ name: 'home' }"
           >
-            Etymology Graph
+            <LingraphicLogo />
           </RouterLink>
         </div>
         <IconButton

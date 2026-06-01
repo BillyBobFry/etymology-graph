@@ -6,6 +6,7 @@ import { starterQueriesForLanguage } from "../features/terms/starterQueries";
 import { useSearchLanguageStore } from "../features/terms/searchLanguageStore";
 import TermSearchForm from "../features/terms/TermSearchForm.vue";
 import Button from "../uiComponents/Button.vue";
+import PageMain from "../uiComponents/PageMain.vue";
 
 const router = useRouter();
 const searchLanguageStore = useSearchLanguageStore();
@@ -31,15 +32,15 @@ function openStarterTerm(term: string): void {
 </script>
 
 <template>
-  <main class="mx-auto grid max-w-6xl gap-8 px-6 py-8 sm:gap-10 sm:py-12">
+  <PageMain>
     <section class="border-b border-border-strong pb-8">
-      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Etymology lookup
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
         Trace a word to its sources.
       </h1>
-      <p class="max-w-3xl text-lg leading-8 text-text-muted">
+      <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
         Open an etymology page to follow source languages, ancestor forms, and
         relationships across a word's lineage.
       </p>
@@ -47,14 +48,14 @@ function openStarterTerm(term: string): void {
 
     <section class="grid gap-5 lg:grid-cols-[minmax(180px,0.42fr)_minmax(0,1fr)] lg:items-start">
       <div>
-        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
           Search the index
         </p>
         <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
           Open a canonical word page
         </h2>
       </div>
-      <div class="rounded-md border border-border bg-surface/75 p-5 shadow-paper">
+      <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
         <TermSearchForm
           id-prefix="etymology-search"
           :lang-code="searchLanguageStore.selectedSearchLanguage"
@@ -63,7 +64,7 @@ function openStarterTerm(term: string): void {
       </div>
     </section>
 
-    <section class="rounded-md border border-border bg-surface/75 p-5 shadow-paper" aria-labelledby="etymology-search-starters">
+    <section class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper" aria-labelledby="etymology-search-starters">
       <div class="mb-5">
         <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
           Starting points
@@ -91,5 +92,5 @@ function openStarterTerm(term: string): void {
         </Button>
       </div>
     </section>
-  </main>
+  </PageMain>
 </template>

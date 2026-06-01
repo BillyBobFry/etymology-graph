@@ -9,6 +9,12 @@ export type NodeActionItem = {
   description: string;
 };
 
+export type NodeActionLanguageContext = {
+  nodeWord: string;
+  sourceLanguageName: string;
+  targetLanguageName: string;
+};
+
 export type SelectedNodeRelationship = {
   id: string;
   type: EdgeType;
@@ -16,7 +22,7 @@ export type SelectedNodeRelationship = {
   uncertain: boolean;
 };
 
-export const nodeActionItems: NodeActionItem[] = [
+const stableNodeActionItems: NodeActionItem[] = [
   {
     value: "load-children",
     label: "Load child terms",
@@ -31,13 +37,76 @@ export const nodeActionItems: NodeActionItem[] = [
     value: "view-doublets",
     label: "View doublets",
     description: "Find same-language terms with shared sources."
-  },
-  {
-    value: "find-source-language-links",
-    label: "Find source links",
-    description: "Search selected-language words that trace to this language."
   }
 ];
+
+/** Creates node action copy with optional source and result language context. */
+export function createNodeActionItems(languageContext?: NodeActionLanguageContext): NodeActionItem[] {
+  return [
+    ...stableNodeActionItems.map((item) => nodeActionItemWithContext(item, languageContext)),
+    {
+      value: "find-source-language-links",
+      label: sourceLanguageLinksLabel(languageContext),
+      description: sourceLanguageLinksDescription(languageContext)
+    }
+  ];
+}
+
+/** Adds selected-word context to reusable actions without changing their behavior. */
+function nodeActionItemWithContext(
+  item: NodeActionItem,
+  languageContext?: NodeActionLanguageContext
+): NodeActionItem {
+  if (!languageContext) {
+    return item;
+  }
+
+  switch (item.value) {
+    case "load-children":
+      return {
+        ...item,
+        label: `Load ${languageContext.nodeWord} children`,
+        description: `Show direct descendants of ${nodeActionSubject(languageContext)}.`
+      };
+    case "view-etymology":
+      return {
+        ...item,
+        label: `View ${languageContext.nodeWord} etymology`,
+        description: `Open the ancestry graph for ${nodeActionSubject(languageContext)}.`
+      };
+    case "view-doublets":
+      return {
+        ...item,
+        label: `View ${languageContext.nodeWord} doublets`,
+        description: `Find ${languageContext.sourceLanguageName} terms with sources shared by ${languageContext.nodeWord}.`
+      };
+    case "find-source-language-links":
+      return item;
+  }
+}
+
+/** Keeps term and language context compact enough for menu descriptions. */
+function nodeActionSubject(languageContext: NodeActionLanguageContext): string {
+  return `${languageContext.nodeWord} (${languageContext.sourceLanguageName})`;
+}
+
+/** Names the cross-language source-link search from the selected node's perspective. */
+function sourceLanguageLinksLabel(languageContext?: NodeActionLanguageContext): string {
+  if (!languageContext) {
+    return "Find source links";
+  }
+
+  return `Other links from ${languageContext.sourceLanguageName} to ${languageContext.targetLanguageName}`;
+}
+
+/** Explains which result language will be searched for this source language. */
+function sourceLanguageLinksDescription(languageContext?: NodeActionLanguageContext): string {
+  if (!languageContext) {
+    return "Search selected-language words that trace to this language.";
+  }
+
+  return `Search ${languageContext.targetLanguageName} words that trace to ${languageContext.sourceLanguageName}.`;
+}
 
 /** Narrows reusable menu values to the graph actions GraphCanvas can perform. */
 export function isNodeContextAction(value: string): value is NodeContextAction {

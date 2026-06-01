@@ -27,7 +27,13 @@ import { useGraphViewport, type GraphViewportContentBounds } from "./composables
 import { useLanguagesQuery } from "../languages/useLanguagesQuery";
 import { fallbackSearchLanguage, useSearchLanguageStore } from "../terms/searchLanguageStore";
 import { graphCanvasHeight, graphCanvasWidth } from "./graphCanvasConstants";
-import { isNodeContextAction, nodeActionItems, type NodeContextAction, type SelectedNodeRelationship } from "./graphNodeActions";
+import {
+  createNodeActionItems,
+  isNodeContextAction,
+  type NodeActionLanguageContext,
+  type NodeContextAction,
+  type SelectedNodeRelationship
+} from "./graphNodeActions";
 import { wiktionaryHrefForNode } from "./graphNodeDisplay";
 import { edgeLabel, isSourceDirectedEdgeType } from "./graphRelationshipDisplay";
 import type { GraphNodeAnnotation } from "./graphAnnotations";
@@ -170,7 +176,9 @@ const selectedNodeWiktionaryHref = computed(() => {
 
   return canonicalName ? wiktionaryHrefForNode(node, canonicalName) : undefined;
 });
-const nodeContextMenuItems = nodeActionItems;
+const selectedSearchLanguageCode = computed(() => searchLanguageStore.selectedSearchLanguage ?? fallbackSearchLanguage);
+const nodeContextMenuItems = computed(() => createNodeActionItems(nodeActionLanguageContextForNode(contextNode.value)));
+const selectedNodeActionItems = computed(() => createNodeActionItems(nodeActionLanguageContextForNode(selectedNode.value)));
 
 watch(
   [() => props.graph, graphLayoutOrientation, () => props.layoutPreset, () => props.rootNodeId],
@@ -320,6 +328,26 @@ function clearSelectedNode(): void {
   selectedNodeId.value = undefined;
 }
 
+/** Builds action copy from the clicked source language and current result language. */
+function nodeActionLanguageContextForNode(
+  node?: Pick<GraphTraversalNode, "langCode" | "word"> & { langName?: string }
+): NodeActionLanguageContext | undefined {
+  if (!node) {
+    return undefined;
+  }
+
+  return {
+    nodeWord: node.word,
+    sourceLanguageName: node.langName ?? languageNameForCode(node.langCode),
+    targetLanguageName: languageNameForCode(selectedSearchLanguageCode.value)
+  };
+}
+
+/** Uses loaded language metadata while keeping a readable fallback for unknown codes. */
+function languageNameForCode(langCode: string): string {
+  return languageNamesByCode.value.get(langCode) ?? langCode;
+}
+
 /** Routes context-menu selections to their shared graph action behavior. */
 function handleNodeContextAction(item: { value: string }): void {
   const node = contextNode.value;
@@ -398,8 +426,8 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
 
 <template>
   <div
-    class="relative z-0 overflow-hidden rounded-md border border-border [background:radial-gradient(ellipse_at_50%_42%,transparent_58%,color-mix(in_oklch,var(--theme-text)_6%,transparent)_100%),linear-gradient(135deg,color-mix(in_oklch,var(--theme-surface-muted)_82%,var(--theme-background))_0%,var(--theme-surface)_100%)] [box-shadow:inset_0_0_0_1px_color-mix(in_oklch,var(--theme-surface-raised)_72%,transparent)] after:absolute after:inset-0 after:pointer-events-none after:content-[''] after:opacity-[0.18] after:bg-[radial-gradient(color-mix(in_oklch,var(--theme-text)_12%,transparent)_0.7px,transparent_0.8px),radial-gradient(color-mix(in_oklch,var(--theme-surface-raised)_80%,transparent)_0.7px,transparent_0.8px)] after:bg-position-[0_0,11px_17px] after:bg-size-[19px_23px,29px_31px]"
-    :class="isGraphExpanded && 'fixed inset-0 z-900 rounded-none border-0'"
+    class="overflow-hidden [background:radial-gradient(ellipse_at_50%_42%,transparent_58%,color-mix(in_oklch,var(--theme-text)_6%,transparent)_100%),linear-gradient(135deg,color-mix(in_oklch,var(--theme-surface-muted)_82%,var(--theme-background))_0%,var(--theme-surface)_100%)] [box-shadow:inset_0_0_0_1px_color-mix(in_oklch,var(--theme-surface-raised)_72%,transparent)] after:absolute after:inset-0 after:pointer-events-none after:content-[''] after:opacity-[0.18] after:bg-[radial-gradient(color-mix(in_oklch,var(--theme-text)_12%,transparent)_0.7px,transparent_0.8px),radial-gradient(color-mix(in_oklch,var(--theme-surface-raised)_80%,transparent)_0.7px,transparent_0.8px)] after:bg-position-[0_0,11px_17px] after:bg-size-[19px_23px,29px_31px]"
+    :class="isGraphExpanded ? 'fixed inset-0 z-900 rounded-none border-0' : 'relative z-0 rounded-md border border-border'"
   >
     <GraphCanvasControls
       v-if="showControls"
@@ -423,9 +451,9 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
       <template #trigger="{ getContextTriggerProps }">
         <svg
           ref="svgRef"
-          class="relative z-1 block min-h-[min(72dvh,560px)] w-full cursor-grab touch-none select-none focus-visible:outline-[3px] focus-visible:outline-offset-[-6px] focus-visible:outline-accent/40 focus:outline-none md:min-h-[360px]"
+          class="relative z-1 block w-full cursor-grab touch-none select-none focus-visible:outline-[3px] focus-visible:outline-offset-[-6px] focus-visible:outline-accent/40 focus:outline-none"
           :class="[
-            isGraphExpanded && 'h-full min-h-dvh',
+            isGraphExpanded ? 'h-full min-h-dvh' : 'min-h-[min(72dvh,560px)] md:min-h-[360px]',
             isPanning && 'cursor-grabbing'
           ]"
           :viewBox="viewBox"
@@ -443,7 +471,13 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
           @keydown="handleKeydown"
         >
           <g class="graph-viewport" :transform="viewportTransform">
-            <GraphCanvasMapTexture :graph="graph" />
+            <GraphCanvasMapTexture
+              :graph="graph"
+              :pan-x="panX"
+              :pan-y="panY"
+              :zoom="zoom"
+              :viewport-frame="viewportFrame"
+            />
             <GraphCanvasLinks
               :links="renderedLinks"
               :has-resolved-endpoints="hasResolvedEndpoints"
@@ -481,7 +515,7 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
       v-if="selectedNode"
       :node="selectedNode"
       :relationships="selectedNodeRelationships"
-      :actions="nodeActionItems"
+      :actions="selectedNodeActionItems"
       :wiktionary-href="selectedNodeWiktionaryHref"
       :expanded="isGraphExpanded"
       @close="clearSelectedNode"

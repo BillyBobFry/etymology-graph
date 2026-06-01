@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
+
+import PageMain from "../uiComponents/PageMain.vue";
 </script>
 
 <template>
-  <main class="mx-auto grid max-w-6xl gap-8 px-6 py-8 sm:gap-10 sm:py-12">
+  <PageMain>
     <section class="border-b border-border-strong pb-8">
-      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Route not found
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
         This path is not in the atlas.
       </h1>
-      <p class="mb-6 max-w-3xl text-lg leading-8 text-text-muted">
+      <p class="mb-6 max-w-3xl text-lg leading-8 text-text-page-muted">
         Return to search and choose a term from the graph index.
       </p>
       <RouterLink
@@ -21,5 +23,5 @@ import { RouterLink } from "vue-router";
         Back to search
       </RouterLink>
     </section>
-  </main>
+  </PageMain>
 </template>

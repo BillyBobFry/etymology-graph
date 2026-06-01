@@ -43,7 +43,9 @@ const graphFitPadding = 64;
 const graphFitMaxZoom = 2.4;
 const graphFitTextHalfWidthPerCharacter = 4.2;
 export const graphAnnotationCalloutWidth = 228;
-export const graphAnnotationCalloutHeight = 118;
+// Editorial callouts use short, curated copy, so a slightly taller fixed box keeps
+// layout math simple without paying for DOM measurement inside the SVG graph.
+export const graphAnnotationCalloutHeight = 140;
 const annotationCalloutGap = 48;
 const annotationCalloutVerticalLift = 112;
 const annotationCollisionPadding = 18;
@@ -67,15 +69,20 @@ export type PositionedGraphLink = SimulationLinkDatum<PositionedGraphNode> & {
   uncertain: boolean;
 };
 
-export type PositionedGraphAnnotation = {
-  annotation: GraphNodeAnnotation;
-  node: PositionedGraphNode;
-  calloutX: number;
-  calloutY: number;
+export type PositionedGraphAnnotationLine = {
   anchorX: number;
   anchorY: number;
   lineEndX: number;
   lineEndY: number;
+};
+
+export type PositionedGraphAnnotation = {
+  annotation: GraphNodeAnnotation;
+  node: PositionedGraphNode;
+  nodes: PositionedGraphNode[];
+  calloutX: number;
+  calloutY: number;
+  lines: PositionedGraphAnnotationLine[];
 };
 
 export type LinkEndpoint = "source" | "target";
@@ -84,8 +91,8 @@ type PositionedAnnotationNode = SimulationNodeDatum & {
   id: string;
   layoutKind: "annotation";
   annotation: GraphNodeAnnotation;
-  anchorNode: PositionedGraphNode;
-  anchorNodeId: string;
+  anchorNodes: PositionedGraphNode[];
+  anchorNodeIds: string[];
   targetX: number;
   targetY: number;
 };
@@ -246,14 +253,14 @@ export function useGraphLayout(options: GraphLayoutOptions) {
       type: edge.type,
       uncertain: edge.uncertain ?? false
     }));
-    const annotationLinks = annotationNodes.map((node) => ({
-      id: `${node.id}:anchor`,
+    const annotationLinks = annotationNodes.flatMap((node) => node.anchorNodeIds.map((anchorNodeId) => ({
+      id: `${node.id}:anchor:${anchorNodeId}`,
       layoutKind: "annotation" as const,
       source: node.id,
-      target: node.anchorNodeId,
+      target: anchorNodeId,
       sourceNodeId: node.id,
-      targetNodeId: node.anchorNodeId
-    }));
+      targetNodeId: anchorNodeId
+    })));
     const layoutNodes: LayoutSimulationNode[] = [...positionedNodes, ...annotationNodes];
     const layoutLinks: LayoutSimulationLink[] = [...positionedLinks, ...annotationLinks];
 
@@ -320,14 +327,17 @@ export function useGraphLayout(options: GraphLayoutOptions) {
   /** Moves callout layout nodes with a manually dragged anchor so labels stay visually attached. */
   function moveAnchoredAnnotations(anchorNodeId: string, deltaX: number, deltaY: number): void {
     for (const annotationNode of annotationLayoutNodesRef.value) {
-      if (annotationNode.anchorNodeId !== anchorNodeId) {
+      if (!annotationNode.anchorNodeIds.includes(anchorNodeId)) {
         continue;
       }
 
-      annotationNode.x = layoutNodeX(annotationNode) + deltaX;
-      annotationNode.y = layoutNodeY(annotationNode) + deltaY;
-      annotationNode.targetX += deltaX;
-      annotationNode.targetY += deltaY;
+      const draggedAnchorShare = 1 / annotationNode.anchorNodeIds.length;
+      const target = annotationTargetForNodes(annotationNode.annotation, annotationNode.anchorNodes);
+
+      annotationNode.x = layoutNodeX(annotationNode) + deltaX * draggedAnchorShare;
+      annotationNode.y = layoutNodeY(annotationNode) + deltaY * draggedAnchorShare;
+      annotationNode.targetX = target.x;
+      annotationNode.targetY = target.y;
     }
   }
 
@@ -459,23 +469,21 @@ function annotationLayoutNodes(
   positionedNodes: PositionedGraphNode[]
 ): PositionedAnnotationNode[] {
   return annotations.flatMap((annotation) => {
-    const anchorNode = findAnnotatedNode(annotation, positionedNodes);
+    const anchorNodes = findAnnotatedNodes(annotation, positionedNodes);
 
-    if (!anchorNode) {
+    if (anchorNodes.length === 0) {
       return [];
     }
 
-    const anchorX = nodeX(anchorNode);
-    const anchorY = nodeY(anchorNode);
-    const target = annotationTargetPosition(annotation.placement ?? defaultAnnotationPlacement(annotation.tone), anchorX, anchorY);
+    const target = annotationTargetForNodes(annotation, anchorNodes);
 
     return [
       {
         id: `annotation:${annotation.id}`,
         layoutKind: "annotation" as const,
         annotation,
-        anchorNode,
-        anchorNodeId: anchorNode.id,
+        anchorNodes,
+        anchorNodeIds: anchorNodes.map((node) => node.id),
         targetX: target.x,
         targetY: target.y,
         x: target.x,
@@ -485,13 +493,27 @@ function annotationLayoutNodes(
   });
 }
 
-/** Matches an annotation to the first available graph node target, including fallbacks. */
-function findAnnotatedNode(
+/** Matches an annotation to available graph node targets, treating fallbacks as alternatives for the primary anchor. */
+function findAnnotatedNodes(
   annotation: GraphNodeAnnotation,
   positionedNodes: PositionedGraphNode[]
-): PositionedGraphNode | undefined {
+): PositionedGraphNode[] {
   const targets = [annotation.target, ...(annotation.fallbackTargets ?? [])];
+  const primaryNode = findFirstNodeTarget(targets, positionedNodes);
+  const additionalNodes = (annotation.additionalTargets ?? []).flatMap((target) => {
+    const node = findNodeTarget(target, positionedNodes);
 
+    return node ? [node] : [];
+  });
+
+  return uniqueNodesById([...(primaryNode ? [primaryNode] : []), ...additionalNodes]);
+}
+
+/** Finds the first graph node matching an ordered list of alternative annotation targets. */
+function findFirstNodeTarget(
+  targets: GraphNodeAnnotationTarget[],
+  positionedNodes: PositionedGraphNode[]
+): PositionedGraphNode | undefined {
   for (const target of targets) {
     const node = findNodeTarget(target, positionedNodes);
 
@@ -515,22 +537,78 @@ function findNodeTarget(
   );
 }
 
+/** Keeps repeated annotation targets from drawing duplicate leader lines to the same node. */
+function uniqueNodesById(nodes: PositionedGraphNode[]): PositionedGraphNode[] {
+  const seenNodeIds = new Set<string>();
+
+  return nodes.filter((node) => {
+    if (seenNodeIds.has(node.id)) {
+      return false;
+    }
+
+    seenNodeIds.add(node.id);
+    return true;
+  });
+}
+
+/** Places a callout relative to the center of all of its target nodes. */
+function annotationTargetForNodes(annotation: GraphNodeAnnotation, anchorNodes: PositionedGraphNode[]): GraphLayoutPoint {
+  const center = averageNodePosition(anchorNodes);
+
+  return annotationTargetPosition(annotation.placement ?? defaultAnnotationPlacement(annotation.tone), center.x, center.y);
+}
+
+/** Finds the visual center of a multi-branch annotation target set. */
+function averageNodePosition(nodes: PositionedGraphNode[]): GraphLayoutPoint {
+  const total = nodes.reduce(
+    (point, node) => ({
+      x: point.x + nodeX(node),
+      y: point.y + nodeY(node)
+    }),
+    { x: 0, y: 0 }
+  );
+
+  return {
+    x: total.x / nodes.length,
+    y: total.y / nodes.length
+  };
+}
+
 /** Converts a settled annotation layout node into the card/leader-line coordinates used by the renderer. */
 function positionedAnnotationFromNode(node: PositionedAnnotationNode): PositionedGraphAnnotation {
-  const anchorX = nodeX(node.anchorNode);
-  const anchorY = nodeY(node.anchorNode);
+  const primaryAnchorNode = node.anchorNodes[0];
   const centerX = layoutNodeX(node);
   const centerY = layoutNodeY(node);
   const calloutX = centerX - graphAnnotationCalloutWidth / 2;
   const calloutY = centerY - graphAnnotationCalloutHeight / 2;
-  const lineStartX = anchorX < centerX ? calloutX : calloutX + graphAnnotationCalloutWidth;
-  const lineStartY = clamp(anchorY, calloutY + 14, calloutY + graphAnnotationCalloutHeight - 14);
+
+  if (!primaryAnchorNode) {
+    throw new Error(`Annotation ${node.annotation.id} has no target nodes.`);
+  }
 
   return {
     annotation: node.annotation,
-    node: node.anchorNode,
+    node: primaryAnchorNode,
+    nodes: node.anchorNodes,
     calloutX,
     calloutY,
+    lines: node.anchorNodes.map((anchorNode) => annotationLineForNode(anchorNode, centerX, calloutX, calloutY))
+  };
+}
+
+/** Draws one leader line from a shared callout to a specific annotated graph node. */
+function annotationLineForNode(
+  anchorNode: PositionedGraphNode,
+  calloutCenterX: number,
+  calloutX: number,
+  calloutY: number
+): PositionedGraphAnnotationLine {
+  const anchorX = nodeX(anchorNode);
+  const anchorY = nodeY(anchorNode);
+  const lineStartX = anchorX < calloutCenterX ? calloutX : calloutX + graphAnnotationCalloutWidth;
+  const lineStartY = clamp(anchorY, calloutY + 14, calloutY + graphAnnotationCalloutHeight - 14);
+
+  return {
     anchorX: lineStartX,
     anchorY: lineStartY,
     lineEndX: anchorX + Math.sign(lineStartX - anchorX || 1) * graphNodeRadius,
@@ -704,9 +782,11 @@ function doubletArmLayoutPlan(
     return null;
   }
 
-  const laneIndexes = doubletArmLaneIndexes(leafNodeIds);
+  const orderedLeafNodeIds =
+    doubletArmContiguousLeafNodeIds(rootNodeId, leafNodeIds, sourceMap.childrenByParentId, depths, graph) ?? leafNodeIds;
+  const laneIndexes = doubletArmLaneIndexes(orderedLeafNodeIds);
   const laneContributions = doubletArmLaneContributions(
-    leafNodeIds,
+    orderedLeafNodeIds,
     rootNodeId,
     laneIndexes,
     depths,
@@ -720,7 +800,7 @@ function doubletArmLayoutPlan(
   return {
     shape: "doublet-arms",
     rootNodeId,
-    nodePositions: doubletArmNodePositions(graph, rootNodeId, leafNodeIds, depths, laneContributions, orientation)
+    nodePositions: doubletArmNodePositions(graph, rootNodeId, orderedLeafNodeIds, depths, laneContributions, orientation)
   };
 }
 
@@ -733,13 +813,26 @@ type SourceEdgeMap = {
 function sourceEdgeMap(sourceEdges: EtymologyGraph["edges"]): SourceEdgeMap {
   const childrenByParentId = new Map<string, string[]>();
   const parentsByChildId = new Map<string, string[]>();
+  const seenSourcePairIds = new Set<string>();
 
   for (const edge of sourceEdges) {
+    const pairId = sourceEdgePairId(edge.toNodeId, edge.fromNodeId);
+
+    if (seenSourcePairIds.has(pairId)) {
+      continue;
+    }
+
+    seenSourcePairIds.add(pairId);
     childrenByParentId.set(edge.toNodeId, [...(childrenByParentId.get(edge.toNodeId) ?? []), edge.fromNodeId]);
     parentsByChildId.set(edge.fromNodeId, [...(parentsByChildId.get(edge.fromNodeId) ?? []), edge.toNodeId]);
   }
 
   return { childrenByParentId, parentsByChildId };
+}
+
+/** Gives directed source relationships stable keys so duplicate imported edges do not duplicate layout branches. */
+function sourceEdgePairId(parentNodeId: string, childNodeId: string): string {
+  return `${parentNodeId}\u0000${childNodeId}`;
 }
 
 /** Finds the common source root, respecting an explicit root when it is a source sink. */
@@ -819,6 +912,218 @@ function doubletArmLeafNodeIds(
 /** Assigns a stable vertical or horizontal lane to each doublet destination. */
 function doubletArmLaneIndexes(leafNodeIds: string[]): Map<string, number> {
   return new Map(leafNodeIds.map((nodeId, index) => [nodeId, index]));
+}
+
+/** Reorders leaves so every child branch owns one contiguous lane block. */
+function doubletArmContiguousLeafNodeIds(
+  rootNodeId: string,
+  leafNodeIds: string[],
+  childrenByParentId: Map<string, string[]>,
+  depths: Map<string, number>,
+  graph: EtymologyGraph
+): string[] | null {
+  const leafOrderIndexes = new Map(leafNodeIds.map((nodeId, index) => [nodeId, index]));
+  const leafNodeIdSet = new Set(leafNodeIds);
+  const descendantLeafNodeIdsByNodeId = new Map<string, Set<string>>();
+  const orderedLeafNodeIds = orderedDoubletArmLeafNodeIdsFor(
+    rootNodeId,
+    leafNodeIdSet,
+    leafOrderIndexes,
+    childrenByParentId,
+    depths,
+    descendantLeafNodeIdsByNodeId,
+    graph
+  );
+
+  return orderedLeafNodeIds && orderedLeafNodeIds.length === leafNodeIds.length ? orderedLeafNodeIds : null;
+}
+
+/** Walks sibling subtrees in a stable order while rejecting cycles or overlapping child branches. */
+function orderedDoubletArmLeafNodeIdsFor(
+  nodeId: string,
+  leafNodeIdSet: Set<string>,
+  leafOrderIndexes: Map<string, number>,
+  childrenByParentId: Map<string, string[]>,
+  depths: Map<string, number>,
+  descendantLeafNodeIdsByNodeId: Map<string, Set<string>>,
+  graph: EtymologyGraph,
+  visitedNodeIds = new Set<string>()
+): string[] | null {
+  if (visitedNodeIds.has(nodeId)) {
+    return null;
+  }
+
+  if (leafNodeIdSet.has(nodeId)) {
+    return [nodeId];
+  }
+
+  const childNodeIds = sortedDoubletArmChildNodeIds(
+    nodeId,
+    leafOrderIndexes,
+    childrenByParentId,
+    depths,
+    descendantLeafNodeIdsByNodeId,
+    graph
+  );
+
+  if (!childNodeIds) {
+    return null;
+  }
+
+  const nextVisitedNodeIds = new Set(visitedNodeIds);
+  nextVisitedNodeIds.add(nodeId);
+  const orderedLeafNodeIds: string[] = [];
+  const usedLeafNodeIds = new Set<string>();
+
+  for (const childNodeId of childNodeIds) {
+    const childLeafNodeIds = orderedDoubletArmLeafNodeIdsFor(
+      childNodeId,
+      leafNodeIdSet,
+      leafOrderIndexes,
+      childrenByParentId,
+      depths,
+      descendantLeafNodeIdsByNodeId,
+      graph,
+      nextVisitedNodeIds
+    );
+
+    if (!childLeafNodeIds) {
+      return null;
+    }
+
+    for (const leafNodeId of childLeafNodeIds) {
+      if (usedLeafNodeIds.has(leafNodeId)) {
+        return null;
+      }
+
+      usedLeafNodeIds.add(leafNodeId);
+      orderedLeafNodeIds.push(leafNodeId);
+    }
+  }
+
+  return orderedLeafNodeIds;
+}
+
+/** Sorts branch children by their earliest current leaf lane, preserving existing stable ordering where possible. */
+function sortedDoubletArmChildNodeIds(
+  nodeId: string,
+  leafOrderIndexes: Map<string, number>,
+  childrenByParentId: Map<string, string[]>,
+  depths: Map<string, number>,
+  descendantLeafNodeIdsByNodeId: Map<string, Set<string>>,
+  graph: EtymologyGraph
+): string[] | null {
+  const nodeDepth = depths.get(nodeId);
+
+  if (nodeDepth === undefined) {
+    return null;
+  }
+
+  const childRanks: Array<{ nodeId: string; firstLeafOrder: number }> = [];
+
+  for (const childNodeId of childrenByParentId.get(nodeId) ?? []) {
+    const childDepth = depths.get(childNodeId);
+
+    if (childDepth === undefined || childDepth <= nodeDepth) {
+      continue;
+    }
+
+    const descendantLeafNodeIds = doubletArmDescendantLeafNodeIds(
+      childNodeId,
+      childrenByParentId,
+      depths,
+      descendantLeafNodeIdsByNodeId
+    );
+
+    if (!descendantLeafNodeIds || descendantLeafNodeIds.size === 0) {
+      return null;
+    }
+
+    childRanks.push({
+      nodeId: childNodeId,
+      firstLeafOrder: Math.min(...[...descendantLeafNodeIds].map((leafNodeId) => leafOrderIndexes.get(leafNodeId) ?? 0))
+    });
+  }
+
+  childRanks.sort((left, right) => {
+    const rankDifference = left.firstLeafOrder - right.firstLeafOrder;
+
+    return rankDifference === 0 ? compareDoubletArmNodeIds(left.nodeId, right.nodeId, graph) : rankDifference;
+  });
+
+  return childRanks.map((child) => child.nodeId);
+}
+
+/** Finds descendant leaves for a branch so sibling branch ranges can be kept disjoint. */
+function doubletArmDescendantLeafNodeIds(
+  nodeId: string,
+  childrenByParentId: Map<string, string[]>,
+  depths: Map<string, number>,
+  descendantLeafNodeIdsByNodeId: Map<string, Set<string>>,
+  visitedNodeIds = new Set<string>()
+): Set<string> | null {
+  const cachedLeafNodeIds = descendantLeafNodeIdsByNodeId.get(nodeId);
+
+  if (cachedLeafNodeIds) {
+    return cachedLeafNodeIds;
+  }
+
+  if (visitedNodeIds.has(nodeId)) {
+    return null;
+  }
+
+  const nodeDepth = depths.get(nodeId);
+
+  if (nodeDepth === undefined) {
+    return null;
+  }
+
+  const nextVisitedNodeIds = new Set(visitedNodeIds);
+  nextVisitedNodeIds.add(nodeId);
+  const childNodeIds = (childrenByParentId.get(nodeId) ?? []).filter((childNodeId) => {
+    const childDepth = depths.get(childNodeId);
+
+    return childDepth !== undefined && childDepth > nodeDepth;
+  });
+  const leafNodeIds = new Set<string>();
+
+  if (childNodeIds.length === 0) {
+    leafNodeIds.add(nodeId);
+  }
+
+  for (const childNodeId of childNodeIds) {
+    const childLeafNodeIds = doubletArmDescendantLeafNodeIds(
+      childNodeId,
+      childrenByParentId,
+      depths,
+      descendantLeafNodeIdsByNodeId,
+      nextVisitedNodeIds
+    );
+
+    if (!childLeafNodeIds) {
+      return null;
+    }
+
+    for (const leafNodeId of childLeafNodeIds) {
+      leafNodeIds.add(leafNodeId);
+    }
+  }
+
+  descendantLeafNodeIdsByNodeId.set(nodeId, leafNodeIds);
+
+  return leafNodeIds;
+}
+
+/** Keeps branch ordering deterministic when two subtrees start from the same leaf rank. */
+function compareDoubletArmNodeIds(leftNodeId: string, rightNodeId: string, graph: EtymologyGraph): number {
+  const leftNode = graph.nodes.find((node) => node.id === leftNodeId);
+  const rightNode = graph.nodes.find((node) => node.id === rightNodeId);
+
+  return (
+    (leftNode?.word ?? leftNodeId).localeCompare(rightNode?.word ?? rightNodeId) ||
+    (leftNode?.langCode ?? "").localeCompare(rightNode?.langCode ?? "") ||
+    leftNodeId.localeCompare(rightNodeId)
+  );
 }
 
 /** Propagates destination lanes back through every source path so shared ancestors sit between their arms. */

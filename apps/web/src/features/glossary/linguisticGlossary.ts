@@ -1,13 +1,17 @@
 export type LinguisticGlossaryTermId =
+  | "affricate"
   | "aspirated-voiced-stop"
   | "cognate"
+  | "descendant"
   | "doublet"
   | "front-vowel"
   | "fricative"
   | "lineage"
+  | "palatal"
   | "palatalization"
   | "reflex"
   | "reconstructed"
+  | "sibilant"
   | "stop-consonant"
   | "stress"
   | "voiced-stop"
@@ -29,6 +33,14 @@ export type GlossaryTermSegment = {
 export type GlossaryTextSegment = string | GlossaryTermSegment;
 
 export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, LinguisticGlossaryTerm> = {
+  affricate: {
+    id: "affricate",
+    label: "Affricate",
+    aliases: ["affricates"],
+    shortDefinition:
+      "A consonant that starts with a full stop in airflow and releases into a fricative.",
+    example: "The sounds written ts, ch, and pf are common affricates."
+  },
   "aspirated-voiced-stop": {
     id: "aspirated-voiced-stop",
     label: "Aspirated voiced stop",
@@ -43,6 +55,13 @@ export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, Linguisti
     aliases: ["cognates"],
     shortDefinition: "A word related to another word because both descend from the same older source.",
     example: "English father and Latin pater are cognates."
+  },
+  descendant: {
+    id: "descendant",
+    label: "Descendant",
+    aliases: ["descendants"],
+    shortDefinition: "A later word or form that developed from an older source.",
+    example: "Italian uomo and French homme are Romance descendants of Latin homō."
   },
   doublet: {
     id: "doublet",
@@ -72,6 +91,13 @@ export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, Linguisti
     shortDefinition: "The chain of historical forms that connects a word to an older source.",
     example: "A word lineage can pass through Latin, Old French, and Middle English."
   },
+  palatal: {
+    id: "palatal",
+    label: "Palatal",
+    aliases: ["palatal stops", "palatal sound", "palatal sounds", "palatal consonants", "palatalizing"],
+    shortDefinition: "Pronounced with the tongue raised toward the hard palate, near the roof of the mouth.",
+    example: "Palatal sounds often develop toward y-like or sh-like pronunciations."
+  },
   palatalization: {
     id: "palatalization",
     label: "Palatalization",
@@ -92,6 +118,13 @@ export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, Linguisti
     aliases: ["reconstructed form", "reconstructed forms"],
     shortDefinition: "Inferred from related evidence rather than directly written in a surviving source.",
     example: "A leading asterisk usually marks a reconstructed form."
+  },
+  sibilant: {
+    id: "sibilant",
+    label: "Sibilant",
+    aliases: ["sibilants", "sibilant-like sounds"],
+    shortDefinition: "A hissing or hushing consonant made by directing air through a narrow channel.",
+    example: "The sounds s, z, sh, and zh are sibilants."
   },
   "stop-consonant": {
     id: "stop-consonant",

@@ -16,12 +16,14 @@ import GraphCanvas from "../features/graph/GraphCanvas.vue";
 import TermSearchForm from "../features/terms/TermSearchForm.vue";
 import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
 import { useChildTermsGraphQuery } from "../features/graph/composables/useChildTermsGraphQuery";
+import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
 import { useTermEntrySelection } from "../features/terms/composables/useTermEntrySelection";
 import { mergeEtymologyGraphs } from "../features/graph/mergeEtymologyGraphs";
 import { starterQueriesForLanguage } from "../features/terms/starterQueries";
 import { useSearchLanguageStore } from "../features/terms/searchLanguageStore";
 import Button from "../uiComponents/Button.vue";
 import Divider from "../uiComponents/Divider.vue";
+import PageMain from "../uiComponents/PageMain.vue";
 
 type GraphStatus = "idle" | "loading" | "success" | "empty" | "error";
 type ChildTermsStatus = "idle" | "loading" | "success" | "empty" | "error";
@@ -61,7 +63,21 @@ const ancestorGraphInput = computed<AncestorsQuery | null>(() => {
 
 const ancestorGraphQuery = useAncestorGraphQuery(ancestorGraphInput);
 const childTermsGraphQuery = useChildTermsGraphQuery(childTermsGraphInput);
+const languagesQuery = useLanguagesQuery();
+const languages = computed(() => languagesQuery.data.value?.languages ?? []);
 const selectedGraph = computed(() => expandedGraph.value ?? ancestorGraphQuery.data.value?.graph ?? null);
+const selectedLanguageLabel = computed(() => {
+  if (!langCode.value) {
+    return null;
+  }
+
+  return languages.value.find((language) => language.code === langCode.value)?.canonicalName ?? langCode.value;
+});
+const selectedEntryPronunciation = computed(() => entrySelection.selectedEntry.value?.primaryIpa);
+const selectedEntryDefinition = computed(() => entrySelection.selectedEntry.value?.primaryGloss);
+const hasSelectedEntryContext = computed(
+  () => Boolean(selectedLanguageLabel.value) || Boolean(selectedEntryPronunciation.value) || Boolean(selectedEntryDefinition.value)
+);
 
 const graphStatus = computed<GraphStatus>(() => {
   if (!ancestorGraphInput.value) {
@@ -202,28 +218,49 @@ watch(
 </script>
 
 <template>
-  <main class="mx-auto grid max-w-6xl gap-8 px-6 py-8 sm:gap-10 sm:py-12">
+  <PageMain>
     <section>
-      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Etymology
       </p>
       <h1 class="text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
         {{ term ?? "Unknown term" }}
       </h1>
+      <dl
+        v-if="hasSelectedEntryContext"
+        class="mt-4 flex max-w-3xl flex-wrap items-baseline gap-y-1 text-lg leading-7 text-text-page-muted"
+      >
+        <template v-if="selectedLanguageLabel">
+          <dt class="sr-only">Language</dt>
+          <dd class="after:mx-3 after:text-text-page-muted after:content-['·'] last:after:hidden">
+            {{ selectedLanguageLabel }}
+          </dd>
+        </template>
+        <template v-if="selectedEntryPronunciation">
+          <dt class="sr-only">Pronunciation</dt>
+          <dd class="after:mx-3 after:text-text-page-muted after:content-['·'] last:after:hidden">
+            {{ selectedEntryPronunciation }}
+          </dd>
+        </template>
+        <template v-if="selectedEntryDefinition">
+          <dt class="sr-only">Definition</dt>
+          <dd>{{ selectedEntryDefinition }}</dd>
+        </template>
+      </dl>
     </section>
 
     <Divider />
 
     <section class="grid gap-5 lg:grid-cols-[minmax(180px,0.42fr)_minmax(0,1fr)] lg:items-start">
       <div>
-        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
           Explore another term
         </p>
         <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
           Choose a language, then search its words
         </h2>
       </div>
-      <div class="rounded-md border border-border bg-surface/75 p-5 shadow-paper">
+      <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
         <TermSearchForm
           id-prefix="etymology-term-search"
           compact
@@ -250,7 +287,7 @@ watch(
     <section ref="graphResultRef" class="scroll-mt-6 grid gap-5">
       <section
         v-if="graphStatus === 'idle' || graphStatus === 'empty'"
-        class="rounded-md border border-border bg-surface/75 p-5 shadow-paper"
+        class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper"
         aria-labelledby="etymology-empty-starters"
       >
         <p v-if="graphStatus === 'idle'" class="mb-4 text-text-muted">
@@ -285,14 +322,14 @@ watch(
           </Button>
         </div>
       </section>
-      <p v-else-if="graphStatus === 'loading'" class="text-text-muted">
+      <p v-else-if="graphStatus === 'loading'" class="text-text-page-muted">
         Loading the ancestry graph...
       </p>
       <p v-else-if="graphStatus === 'error'" class="text-danger">
         {{ graphError }}
       </p>
       <template v-else-if="selectedGraph">
-        <p v-if="childTermsStatus === 'loading'" class="text-text-muted">
+        <p v-if="childTermsStatus === 'loading'" class="text-text-page-muted">
           Loading direct child terms for {{ childTermsRouteLabel }}...
         </p>
         <p v-else-if="childTermsStatus === 'error'" class="text-danger">
@@ -305,5 +342,5 @@ watch(
         />
       </template>
     </section>
-  </main>
+  </PageMain>
 </template>

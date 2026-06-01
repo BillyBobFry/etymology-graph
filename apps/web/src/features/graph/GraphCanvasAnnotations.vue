@@ -52,16 +52,20 @@ function annotationToneLabel(tone: GraphAnnotationTone): string {
       :class="annotationToneClass(item.annotation.tone)"
     >
       <line
-        class="stroke-(--annotation-color) stroke-2 [stroke-linecap:round]"
-        :x1="item.anchorX"
-        :y1="item.anchorY"
-        :x2="item.lineEndX"
-        :y2="item.lineEndY"
+        v-for="(line, lineIndex) in item.lines"
+        :key="`${item.annotation.id}:line:${lineIndex}`"
+        class="stroke-[color-mix(in_oklch,var(--theme-graph-edge)_72%,transparent)] stroke-2 [stroke-linecap:round]"
+        :x1="line.anchorX"
+        :y1="line.anchorY"
+        :x2="line.lineEndX"
+        :y2="line.lineEndY"
       />
       <circle
-        class="fill-(--annotation-color) stroke-surface stroke-2"
-        :cx="item.lineEndX"
-        :cy="item.lineEndY"
+        v-for="(line, lineIndex) in item.lines"
+        :key="`${item.annotation.id}:dot:${lineIndex}`"
+        class="fill-[color-mix(in_oklch,var(--theme-graph-edge)_86%,var(--theme-surface))] stroke-surface stroke-2"
+        :cx="line.lineEndX"
+        :cy="line.lineEndY"
         r="4"
       />
       <foreignObject

@@ -1,17 +1,25 @@
 <script setup lang="ts">
 import * as combobox from "@zag-js/combobox";
 import { normalizeProps, useMachine, type PropTypes } from "@zag-js/vue";
-import { computed, ref, useId, watch } from "vue";
+import { computed, nextTick, ref, useId, watch } from "vue";
 import MenuItem from "./MenuItem.vue";
 import TextField from "./TextField.vue";
 
 
-interface ComboboxOption {
+type ComboboxOption = {
   value: string;
   label: string;
   description?: string;
   disabled?: boolean;
-}
+};
+
+type VirtualizedOption = {
+  option: ComboboxOption;
+  index: number;
+};
+
+const defaultListMaxHeight = 288;
+const virtualOverscan = 4;
 
 const props = withDefaults(
   defineProps<{
@@ -33,6 +41,9 @@ const props = withDefaults(
     openOnClick?: boolean;
     allowCustomValue?: boolean;
     closeOnEmpty?: boolean;
+    virtualizeOptions?: boolean;
+    optionHeight?: number;
+    listMaxHeight?: number;
     positioning?: combobox.Props['positioning'];
   }>(),
   {
@@ -52,6 +63,9 @@ const props = withDefaults(
     openOnClick: true,
     allowCustomValue: false,
     closeOnEmpty: false,
+    virtualizeOptions: false,
+    optionHeight: 44,
+    listMaxHeight: defaultListMaxHeight,
     positioning: () => ({
       placement: "bottom-start",
       strategy: "fixed",
@@ -75,9 +89,11 @@ defineSlots<{
 const generatedId = useId();
 const inputId = computed(() => props.id ?? `combobox-${generatedId}`);
 const internalInputValue = ref(resolveInitialInputValue());
+const listboxRef = ref<HTMLUListElement | null>(null);
+const listScrollTop = ref(0);
 const inputValue = computed(() => props.inputValue ?? internalInputValue.value);
 const resolvedHelpText = computed(() => props.helpText ?? undefined);
-const filteredOptions = computed(filterOptions);
+const filteredOptions = computed(buildFilteredOptions);
 const optionCollection = computed(() => (combobox.collection<ComboboxOption>({
     items: filteredOptions.value,
     itemToValue: (option) => option.value,
@@ -113,9 +129,52 @@ const inputAttrs = computed(() => ({
     autocomplete: props.autocomplete
   }));
 const visibleOptions = computed(() => api.value.collection.items);
+const highlightedOptionIndex = computed(() => visibleOptions.value.findIndex((option) => api.value.getItemState({ item: option }).highlighted));
+const virtualStartIndex = computed(() => {
+  if (!props.virtualizeOptions) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(listScrollTop.value / props.optionHeight) - virtualOverscan);
+});
+const virtualEndIndex = computed(() => {
+  if (!props.virtualizeOptions) {
+    return visibleOptions.value.length;
+  }
+
+  const visibleRowCount = Math.ceil(props.listMaxHeight / props.optionHeight);
+
+  return Math.min(visibleOptions.value.length, virtualStartIndex.value + visibleRowCount + (virtualOverscan * 2));
+});
+const renderedOptionEntries = computed<VirtualizedOption[]>(() => visibleOptions.value
+  .slice(virtualStartIndex.value, virtualEndIndex.value)
+  .map((option, offset) => ({
+    option,
+    index: virtualStartIndex.value + offset
+  })));
+const virtualPaddingTop = computed(() => props.virtualizeOptions ? virtualStartIndex.value * props.optionHeight : 0);
+const virtualPaddingBottom = computed(() => {
+  if (!props.virtualizeOptions) {
+    return 0;
+  }
+
+  return Math.max(0, (visibleOptions.value.length - virtualEndIndex.value) * props.optionHeight);
+});
+const listboxStyle = computed(() => ({
+  maxHeight: `${props.listMaxHeight}px`
+}));
 
 watch(() => props.modelValue, syncInputToSelectedValue);
 watch(() => props.options, syncInputToSelectedValue);
+watch(inputValue, resetVirtualScroll);
+watch(() => api.value.open, (isOpen) => {
+  if (isOpen) {
+    void nextTick(() => scrollHighlightedOptionIntoView(highlightedOptionIndex.value));
+  }
+});
+watch(highlightedOptionIndex, (index) => {
+  void nextTick(() => scrollHighlightedOptionIntoView(index));
+}, { flush: "post" });
 
 /** Uses the selected option label as the initial typed value when possible. */
 function resolveInitialInputValue(): string {
@@ -141,7 +200,7 @@ function findOptionByValue(value: string | undefined): ComboboxOption | undefine
 }
 
 /** Narrows the list to useful matches while letting callers opt into server-filtered lists. */
-function filterOptions(): ComboboxOption[] {
+function buildFilteredOptions(): ComboboxOption[] {
   if (!props.filterOptions) {
     return [...props.options];
   }
@@ -161,6 +220,48 @@ function filterOptions(): ComboboxOption[] {
   });
 }
 
+
+/** Records the listbox scroll position so virtualized option windows stay in sync. */
+function handleListScroll(event: Event): void {
+  listScrollTop.value = event.currentTarget instanceof HTMLUListElement ? event.currentTarget.scrollTop : 0;
+}
+
+/** Starts a new filtered result set at the top of the option list. */
+function resetVirtualScroll(): void {
+  if (!props.virtualizeOptions) {
+    return;
+  }
+
+  listScrollTop.value = 0;
+
+  if (listboxRef.value) {
+    listboxRef.value.scrollTop = 0;
+  }
+}
+
+/** Keeps keyboard navigation from moving the active option outside the scroll viewport. */
+function scrollHighlightedOptionIntoView(index: number): void {
+  if (!props.virtualizeOptions || index < 0 || !listboxRef.value) {
+    return;
+  }
+
+  const optionTop = index * props.optionHeight;
+  const optionBottom = optionTop + props.optionHeight;
+  const viewportTop = listboxRef.value.scrollTop;
+  const viewportBottom = viewportTop + listboxRef.value.clientHeight;
+
+  if (optionTop < viewportTop) {
+    listboxRef.value.scrollTop = optionTop;
+    listScrollTop.value = optionTop;
+    return;
+  }
+
+  if (optionBottom > viewportBottom) {
+    const nextScrollTop = optionBottom - listboxRef.value.clientHeight;
+    listboxRef.value.scrollTop = nextScrollTop;
+    listScrollTop.value = nextScrollTop;
+  }
+}
 
 /** Updates local and parent typing state when Zag processes keyboard input. */
 function handleInputValueChange(details: combobox.InputValueChangeDetails): void {
@@ -218,7 +319,13 @@ watch(() => props.closeOnEmpty && !inputValue.value.trim(), (shouldClose) => {
           v-bind="api.getContentProps()"
           class="overflow-hidden rounded-2xl border border-border-strong bg-surface-raised shadow-overlay"
         >
-          <ul v-bind="api.getListProps()" class="max-h-72 overflow-y-auto p-1 overscroll-contain">
+          <ul
+            v-bind="api.getListProps()"
+            ref="listboxRef"
+            class="overflow-y-auto p-1 overscroll-contain"
+            :style="listboxStyle"
+            @scroll.passive="handleListScroll"
+          >
             <li
               v-if="visibleOptions.length === 0"
               class="px-4 py-3 font-sans text-sm text-text-muted"
@@ -226,24 +333,39 @@ watch(() => props.closeOnEmpty && !inputValue.value.trim(), (shouldClose) => {
               <slot name="empty">{{ emptyText }}</slot>
             </li>
 
+            <li
+              v-if="virtualizeOptions && virtualPaddingTop > 0"
+              role="presentation"
+              aria-hidden="true"
+              :style="{ height: `${virtualPaddingTop}px` }"
+            />
+
             <MenuItem
-              v-for="option in visibleOptions"
-              :key="option.value"
-              :label="option.label"
-              :description="option.description"
-              :selected="api.getItemState({ item: option }).selected"
-              :highlighted="api.getItemState({ item: option }).highlighted"
-              v-bind="api.getItemProps({ item: option })"
+              v-for="entry in renderedOptionEntries"
+              :key="entry.option.value"
+              :label="entry.option.label"
+              :description="entry.option.description"
+              :selected="api.getItemState({ item: entry.option }).selected"
+              :highlighted="api.getItemState({ item: entry.option }).highlighted"
+              :style="virtualizeOptions ? { height: `${optionHeight}px` } : undefined"
+              v-bind="api.getItemProps({ item: entry.option })"
             >
               <template v-if="$slots.option" #default="{ selected, highlighted }">
                 <slot
                   name="option"
-                  :option="option"
+                  :option="entry.option"
                   :selected="selected"
                   :highlighted="highlighted"
                 />
               </template>
             </MenuItem>
+
+            <li
+              v-if="virtualizeOptions && virtualPaddingBottom > 0"
+              role="presentation"
+              aria-hidden="true"
+              :style="{ height: `${virtualPaddingBottom}px` }"
+            />
           </ul>
         </div>
       </div>

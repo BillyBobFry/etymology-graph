@@ -6,10 +6,10 @@ Curated multilingual seed concepts derived from English [dariusk/corpora](https:
 - Retrieved: 2026-05-28.
 - Manifest: `manifest.json` records the reviewed upstream files, JSON keys, and curation policy.
 - Concept file: `concepts.json`.
-- Concepts: 1663.
-- Active concepts: 715 after `exclusions.json`.
-- Active language targets: 20090 across English and translated terms.
-- Translated active concepts: 671.
+- Concepts: 1787.
+- Active concepts: 839 after `exclusions.json`.
+- Active language targets: 22183 across English and translated terms (21017 unique loader target specs).
+- Translated active concepts: 795.
 
 This dataset intentionally includes ordinary lexical categories such as animals, fruit, body parts, materials, and color names, while avoiding noisier Corpora files such as brands, beers, cocktails, celebrities, quotes, teams, broad technical glossaries, and other proper-noun-heavy lists. Committed concepts are filtered to single-token alphabetic English terms, excluding multi-word names and punctuation-heavy variants from the upstream lists.
 
@@ -39,6 +39,12 @@ Counts reflect committed concepts after term-level filters. A concept may appear
 - materials/fibers: 18
 - materials/gemstones: 326
 - colors/web: 140
+- core/basic-verbs: 27
+- core/body-and-senses: 22
+- core/culture-common: 26
+- core/home-tools: 27
+- core/kinship-and-people: 21
+- core/natural-world: 30
 - science/elements: 118
 - words/units-of-time: 15
 - humans/body-parts: 39

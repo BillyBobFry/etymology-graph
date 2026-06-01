@@ -185,6 +185,34 @@ describe("previewEntry", () => {
     `);
   });
 
+  it("attaches unrendered root templates to the terminal source term", () => {
+    const entry: WiktextractEntry = {
+      word: "hacer",
+      lang: "Spanish",
+      lang_code: "es",
+      pos: "verb",
+      etymology_text:
+        "From Old Spanish fazer, from Latin facere. The first-person indicative and present subjunctive may have been influenced by Latin agō (compare English gesture), but more likely present voicing of the Latin -c- between vowels, after dropping the -i-; for example: *facō; *facam; et cetera.",
+      etymology_templates: [
+        template("inh", "es", "osp", "fazer", "Old Spanish fazer"),
+        template("inh", "es", "la", "faciō", "Latin facere", { "4": "facere" }),
+        template("noncog", "la", "agō", undefined, "Latin agō"),
+        template("root", "es", "ine-pro", "*dʰeh₁-", "")
+      ]
+    };
+
+    const edgeIds = previewEdgeIds(entry);
+
+    expect(edgeIds).toMatchInlineSnapshot(`
+      [
+        "es:hacer:inherited_from:osp:fazer:from:es:hacer:entry:verb:0",
+        "osp:fazer:inherited_from:la:faciō:from:es:hacer:entry:verb:0",
+        "la:faciō:derived_from:ine-pro:*dʰeh₁-:from:es:hacer:entry:verb:0",
+      ]
+    `);
+    expect(edgeIds).not.toContain("la:faciō:derived_from:la:agō:from:es:hacer:entry:verb:0");
+  });
+
   it("does not split an ancestry chain for or inside a parenthetical gloss", () => {
     const entry: WiktextractEntry = {
       word: "wait",
@@ -275,6 +303,40 @@ describe("previewEntry", () => {
         "fro:sample:derived_from:la:exemplum:from:en:sample:entry:noun:0",
       ]
     `);
+  });
+
+  it("keeps attributed follow-up sources attached to the previous source term", () => {
+    const entry: WiktextractEntry = {
+      word: "rise",
+      lang: "English",
+      lang_code: "en",
+      pos: "verb",
+      etymology_number: 1,
+      etymology_text:
+        "From Middle English risen, from Old English rīsan, from Proto-West Germanic *rīsan, from Proto-Germanic *rīsaną (“to rise”), from Proto-Indo-European *h₁rey- (“to arise, rise”). According to Kroonen (2013), from Proto-Indo-European *h₃er- (“to rise, spring”).",
+      etymology_templates: [
+        template("der", "en", "enm", "risen", "Middle English risen"),
+        template("der", "en", "ang", "rīsan", "Old English rīsan"),
+        template("der", "en", "gmw-pro", "*rīsan", "Proto-West Germanic *rīsan"),
+        template("der", "en", "gem-pro", "*rīsaną", "Proto-Germanic *rīsaną (“to rise”)"),
+        template("der", "en", "ine-pro", "*h₁rey-", "Proto-Indo-European *h₁rey- (“to arise, rise”)"),
+        template("der", "en", "ine-pro", "*h₃er-", "Proto-Indo-European *h₃er- (“to rise, spring”)")
+      ]
+    };
+
+    const edgeIds = previewEdgeIds(entry);
+
+    expect(edgeIds).toMatchInlineSnapshot(`
+      [
+        "en:rise:derived_from:enm:risen:from:en:rise:entry:verb:1",
+        "enm:risen:derived_from:ang:rīsan:from:en:rise:entry:verb:1",
+        "ang:rīsan:derived_from:gmw-pro:*rīsan:from:en:rise:entry:verb:1",
+        "gmw-pro:*rīsan:derived_from:gem-pro:*rīsaną:from:en:rise:entry:verb:1",
+        "gem-pro:*rīsaną:derived_from:ine-pro:*h₁rey-:from:en:rise:entry:verb:1",
+        "ine-pro:*h₁rey-:derived_from:ine-pro:*h₃er-:from:en:rise:entry:verb:1",
+      ]
+    `);
+    expect(edgeIds).not.toContain("en:rise:derived_from:ine-pro:*h₃er-:from:en:rise:entry:verb:1");
   });
 
   it("keeps conflated sources parallel when both share the same ancestor", () => {
@@ -439,6 +501,39 @@ describe("previewEntry", () => {
     const edgeIds = previewEdgeIds(loadFixtureEntry("en-father-tree-header.json"));
 
     expect(edgeIds).toContain("gem-pro:*fadēr:inherited_from:ine-pro:*ph₂tḗr:from:en:father:entry:noun:0");
+  });
+
+  it("keeps multi-hop flat-template roots above an etymon tree", () => {
+    const entry: WiktextractEntry = {
+      word: "blood",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_text:
+        "From Middle English blood, from Old English blōd, from Proto-West Germanic *blōd, from Proto-Germanic *blōþą, possibly from Proto-Indo-European *bʰel-.",
+      etymology_templates: [
+        {
+          name: "etymon",
+          args: {
+            "1": "en",
+            "2": ":inh",
+            "3": "enm:blood",
+            tree: "1"
+          },
+          expansion:
+            'Etymology tree\nProto-West Germanic *blōd\nOld English blōd\nMiddle English blood\nEnglish blood\n"terms" : [ { "children" : [ { "keyword" : "inherited", "terms" : [ { "children" : [ { "keyword" : "inherited", "terms" : [ { "children" : [ { "keyword" : "inherited", "terms" : [ { "children" : [ ], "term" : "*blōd", "lang" : "gmw-pro" } ] } ], "term" : "blōd", "lang" : "ang" } ] } ], "term" : "blood", "lang" : "enm" } ] } ], "term" : "blood", "lang" : "en" } ]'
+        },
+        template("inh", "en", "enm", "blood", "Middle English blood"),
+        template("inh", "en", "ang", "blōd", "Old English blōd"),
+        template("inh", "en", "gmw-pro", "*blōd", "Proto-West Germanic *blōd"),
+        template("inh", "en", "gem-pro", "*blōþą", "Proto-Germanic *blōþą"),
+        template("inh", "en", "ine-pro", "*bʰel-", "Proto-Indo-European *bʰel-")
+      ]
+    };
+    const edgeIds = previewEdgeIds(entry);
+
+    expect(edgeIds).toContain("gmw-pro:*blōd:inherited_from:gem-pro:*blōþą:from:en:blood:entry:noun:0");
+    expect(edgeIds).toContain("gem-pro:*blōþą:inherited_from:ine-pro:*bʰel-:from:en:blood:entry:noun:0");
   });
 
   it("strips Wiktionary etymology anchors from linked source terms", () => {
@@ -649,6 +744,7 @@ describe("previewEntry merged neighborhoods", () => {
         "en:nation:inherited_from:enm:nacioun:from:en:nation:entry:noun:1",
         "enm:nacioun:derived_from:fro:nacion:from:en:nation:entry:noun:1",
         "fro:nacion:derived_from:la:nātiōnem:from:en:nation:entry:noun:1",
+        "la:nātiōnem:derived_from:ine-pro:*ǵenh₁-:from:en:nation:entry:noun:1",
         "fr:nation:inherited_from:frm:nation:from:fr:nation:entry:noun:0",
         "frm:nation:inherited_from:fro:nacion:from:fr:nation:entry:noun:0",
         "fro:nacion:borrowed_from:la:natio:from:fr:nation:entry:noun:0",
@@ -657,6 +753,7 @@ describe("previewEntry merged neighborhoods", () => {
         "de:nation:borrowed_from:la:nātiō:from:de:nation:entry:noun:0",
         "it:nazione:borrowed_from:la:natio:from:it:nazione:entry:noun:0",
         "la:natio:derived_from:itc-pro:*gnātiō:from:la:natio:entry:noun:0",
+        "itc-pro:*gnātiō:derived_from:ine-pro:*ǵenh₁-:from:la:natio:entry:noun:0",
         "de:nation:borrowed_from:la:natio:from:la:natio:entry:noun:0",
         "it:nazione:borrowed_from:la:natio:from:la:natio:entry:noun:0",
         "fro:nacion:borrowed_from:la:natio:from:la:natio:entry:noun:0",
@@ -729,6 +826,232 @@ describe("traverseAncestors against merged neighborhoods", () => {
       "gem-pro:*hundaz:derived_from:ine-pro:*ḱwṓ:from:gem-pro:*hundaz:entry:noun:0"
     );
     expect(reached.nodeDepthsById.get("ine-pro:*ḱwṓ")).toBe(5);
+  });
+
+  it("uses descendant-owned ancestry when the current term has a single lexical entry", () => {
+    const entries: WiktextractEntry[] = [
+      {
+        word: "loan",
+        lang: "English",
+        lang_code: "en",
+        pos: "noun",
+        etymology_number: 1
+      },
+      {
+        word: "source",
+        lang: "Latin",
+        lang_code: "la",
+        pos: "noun",
+        descendants: [
+          {
+            lang: "French",
+            lang_code: "fr",
+            word: "source-child",
+            raw_tags: ["borrowed"],
+            descendants: [
+              {
+                lang: "English",
+                lang_code: "en",
+                word: "loan",
+                raw_tags: ["borrowed"]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const neighborhood = mergeNeighborhood(entries);
+    const reached = traverseAncestors({
+      ...neighborhood,
+      rootEntryId: expectEntryId("en", "loan", "noun", 1),
+      edgeTypes: ANCESTOR_EDGE_TYPES,
+      maxDepth: 10
+    });
+
+    expect([...reached.reachedEdgeIds]).toEqual(
+      expect.arrayContaining([
+        "en:loan:borrowed_from:fr:source-child:from:la:source:entry:noun:0",
+        "fr:source-child:borrowed_from:la:source:from:la:source:entry:noun:0"
+      ])
+    );
+    expect(reached.nodeDepthsById.get("la:source")).toBe(2);
+  });
+
+  it("does not add descendant spelling variants when the entry has its own ancestry", () => {
+    const entries: WiktextractEntry[] = [
+      {
+        word: "wine",
+        lang: "English",
+        lang_code: "en",
+        pos: "noun",
+        etymology_number: 1,
+        etymology_text: "From Middle English wyn, from Old English wīn.",
+        etymology_templates: [
+          template("inh", "en", "enm", "wyn", "Middle English wyn"),
+          template("inh", "en", "ang", "wīn", "Old English wīn")
+        ]
+      },
+      {
+        word: "wīn",
+        lang: "Old English",
+        lang_code: "ang",
+        pos: "noun",
+        descendants: [
+          {
+            lang: "Middle English",
+            lang_code: "enm",
+            word: "wyn",
+            descendants: [
+              {
+                lang: "English",
+                lang_code: "en",
+                word: "wine"
+              }
+            ]
+          },
+          {
+            lang: "Middle English",
+            lang_code: "enm",
+            word: "win",
+            descendants: [
+              {
+                lang: "English",
+                lang_code: "en",
+                word: "wine"
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const neighborhood = mergeNeighborhood(entries);
+    const reached = traverseAncestors({
+      ...neighborhood,
+      rootEntryId: expectEntryId("en", "wine", "noun", 1),
+      edgeTypes: ANCESTOR_EDGE_TYPES,
+      maxDepth: 10
+    });
+
+    expect([...reached.reachedEdgeIds]).toEqual(
+      expect.arrayContaining([
+        "en:wine:inherited_from:enm:wyn:from:en:wine:entry:noun:1",
+        "enm:wyn:inherited_from:ang:wīn:from:en:wine:entry:noun:1"
+      ])
+    );
+    expect([...reached.reachedEdgeIds]).not.toContain(
+      "en:wine:inherited_from:enm:win:from:ang:wīn:entry:noun:0"
+    );
+    expect(reached.nodeDepthsById.has("enm:win")).toBe(false);
+  });
+
+  it("continues through descendant-owned source branches in a different language", () => {
+    const entries: WiktextractEntry[] = [
+      {
+        word: "orange",
+        lang: "English",
+        lang_code: "en",
+        pos: "noun",
+        etymology_text:
+          "Inherited from Middle English orenge, from Middle French orange, from Old French orenge, from Old French pomme d'orenge.",
+        etymology_templates: [
+          template("inh", "en", "enm", "orenge", "Middle English orenge"),
+          template("bor", "en", "frm", "orange", "Middle French orange"),
+          template("inh", "en", "fro", "orenge", "Old French orenge"),
+          template("der", "en", "fro", "pomme d'orenge", "Old French pomme d'orenge")
+        ]
+      },
+      {
+        word: "arancia",
+        lang: "Italian",
+        lang_code: "it",
+        pos: "noun",
+        etymology_text:
+          "From Arabic نَارَنْج (nāranj), from Persian نارنگ (nârang), from Sanskrit नारङ्ग (nāraṅga).",
+        etymology_templates: [
+          template("bor", "it", "ar", "نَارَنْج", "Arabic نَارَنْج (nāranj)"),
+          template("der", "it", "fa", "نارنگ", "Persian نارنگ (nârang)"),
+          template("der", "it", "sa", "नारङ्ग", "Sanskrit नारङ्ग (nāraṅga)")
+        ],
+        descendants: [
+          {
+            lang: "Old Occitan",
+            lang_code: "pro",
+            word: "auranja",
+            descendants: [
+              {
+                lang: "Old French",
+                lang_code: "fro",
+                word: "orenge",
+                raw_tags: ["borrowed"]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const neighborhood = mergeNeighborhood(entries);
+    const reached = traverseAncestors({
+      ...neighborhood,
+      rootEntryId: expectEntryId("en", "orange", "noun", 0),
+      edgeTypes: ANCESTOR_EDGE_TYPES,
+      maxDepth: 10
+    });
+
+    expect([...reached.reachedEdgeIds]).toEqual(
+      expect.arrayContaining([
+        "fro:orenge:borrowed_from:pro:auranja:from:it:arancia:entry:noun:0",
+        "pro:auranja:inherited_from:it:arancia:from:it:arancia:entry:noun:0",
+        "it:arancia:borrowed_from:ar:نَارَنْج:from:it:arancia:entry:noun:0",
+        "ar:نَارَنْج:derived_from:fa:نارنگ:from:it:arancia:entry:noun:0",
+        "fa:نارنگ:derived_from:sa:नारङ्ग:from:it:arancia:entry:noun:0"
+      ])
+    );
+    expect(reached.nodeDepthsById.has("sa:नारङ्ग")).toBe(true);
+  });
+
+  it("does not use descendant-owned ancestry across a homograph node", () => {
+    const entries: WiktextractEntry[] = [
+      {
+        word: "bank",
+        lang: "English",
+        lang_code: "en",
+        pos: "noun",
+        etymology_number: 1
+      },
+      {
+        word: "bank",
+        lang: "English",
+        lang_code: "en",
+        pos: "verb",
+        etymology_number: 2
+      },
+      {
+        word: "source",
+        lang: "Latin",
+        lang_code: "la",
+        pos: "noun",
+        descendants: [
+          {
+            lang: "English",
+            lang_code: "en",
+            word: "bank",
+            raw_tags: ["borrowed"]
+          }
+        ]
+      }
+    ];
+    const neighborhood = mergeNeighborhood(entries);
+    const reached = traverseAncestors({
+      ...neighborhood,
+      rootEntryId: expectEntryId("en", "bank", "noun", 1),
+      edgeTypes: ANCESTOR_EDGE_TYPES,
+      maxDepth: 10
+    });
+
+    expect([...reached.reachedEdgeIds]).not.toContain(
+      "en:bank:borrowed_from:la:source:from:la:source:entry:noun:0"
+    );
+    expect(reached.nodeDepthsById.has("la:source")).toBe(false);
   });
 
   it("keeps ice ancestry inside the ice chain when en:is verb-be shares enm:is", () => {

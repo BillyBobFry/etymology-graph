@@ -228,7 +228,9 @@ const ANCHOR_ENTRY_CTE_SQL = `
  * Recursive CTE that walks ancestor edges away from the seed entry while only following edges whose
  * originating entry is currently in the allowed set. The allowed set is seeded with the anchor entry
  * and expands at each visited node when another homed entry agrees with the seed (case b) or is the
- * only entry homed at the node (case a). This mirrors the pure `traverseAncestors` reference function.
+ * only entry homed at the node (case a). Descendant-tree edges from another source page may also bridge
+ * single-entry nodes when the entry's own evidence does not already cover that target language, matching
+ * the pure `traverseAncestors` reference function.
  */
 const ANCESTOR_WALK_CTE_SQL = `
   ancestor_walk AS (
@@ -253,42 +255,62 @@ const ANCESTOR_WALK_CTE_SQL = `
       next_edge.id AS edge_id,
       ancestor_walk.path || next_edge.to_node_id AS path,
       ancestor_walk.edge_path || next_edge.id AS edge_path,
-      CASE
-        WHEN NOT ancestor_walk.entry_scoped THEN ARRAY[]::TEXT[]
-        ELSE ancestor_walk.allowed_entry_ids || COALESCE((
-          SELECT ARRAY_AGG(candidate.id)
-          FROM lexical_entries candidate
-          WHERE candidate.node_id = ancestor_walk.node_id
-            AND NOT candidate.id = ANY(ancestor_walk.allowed_entry_ids)
-            AND (
-              (
-                SELECT COUNT(*) FROM lexical_entries
-                WHERE lexical_entries.node_id = ancestor_walk.node_id
-              ) = 1
-              OR EXISTS (
-                SELECT 1
-                FROM graph_edges adopt_edge
-                JOIN graph_edges seed_edge
-                  ON seed_edge.from_node_id = adopt_edge.from_node_id
-                  AND seed_edge.to_node_id = adopt_edge.to_node_id
-                  AND seed_edge.edge_type = ANY($4::TEXT[])
-                  AND seed_edge.originating_entry_id = ANY(ancestor_walk.allowed_entry_ids)
-                WHERE adopt_edge.originating_entry_id = candidate.id
-                  AND adopt_edge.from_node_id = ancestor_walk.node_id
-                  AND adopt_edge.edge_type = ANY($4::TEXT[])
-              )
-            )
-        ), ARRAY[]::TEXT[])
-      END AS allowed_entry_ids,
+      current_allowed.allowed_entry_ids AS allowed_entry_ids,
       ancestor_walk.entry_scoped AS entry_scoped
     FROM ancestor_walk
+    CROSS JOIN LATERAL (
+      SELECT
+        CASE
+          WHEN NOT ancestor_walk.entry_scoped THEN ARRAY[]::TEXT[]
+          ELSE ancestor_walk.allowed_entry_ids || COALESCE((
+            SELECT ARRAY_AGG(candidate.id)
+            FROM lexical_entries candidate
+            WHERE candidate.node_id = ancestor_walk.node_id
+              AND NOT candidate.id = ANY(ancestor_walk.allowed_entry_ids)
+              AND (
+                (
+                  SELECT COUNT(*) FROM lexical_entries
+                  WHERE lexical_entries.node_id = ancestor_walk.node_id
+                ) = 1
+                OR EXISTS (
+                  SELECT 1
+                  FROM graph_edges adopt_edge
+                  JOIN graph_edges seed_edge
+                    ON seed_edge.from_node_id = adopt_edge.from_node_id
+                    AND seed_edge.to_node_id = adopt_edge.to_node_id
+                    AND seed_edge.edge_type = ANY($4::TEXT[])
+                    AND seed_edge.originating_entry_id = ANY(ancestor_walk.allowed_entry_ids)
+                  WHERE adopt_edge.originating_entry_id = candidate.id
+                    AND adopt_edge.from_node_id = ancestor_walk.node_id
+                    AND adopt_edge.edge_type = ANY($4::TEXT[])
+                )
+              )
+          ), ARRAY[]::TEXT[])
+        END AS allowed_entry_ids
+    ) current_allowed
     JOIN graph_edges next_edge
       ON next_edge.from_node_id = ancestor_walk.node_id
     WHERE ancestor_walk.depth < $3
       AND next_edge.edge_type = ANY($4::TEXT[])
       AND (
         NOT ancestor_walk.entry_scoped
-        OR next_edge.originating_entry_id = ANY(ancestor_walk.allowed_entry_ids)
+        OR next_edge.originating_entry_id = ANY(current_allowed.allowed_entry_ids)
+        OR (
+          next_edge.template_name = 'descendants'
+          AND (
+            SELECT COUNT(*)
+            FROM lexical_entries
+            WHERE lexical_entries.node_id = ancestor_walk.node_id
+          ) <= 1
+          AND NOT EXISTS (
+            SELECT 1
+            FROM graph_edges own_edge
+            WHERE own_edge.from_node_id = ancestor_walk.node_id
+              AND own_edge.edge_type = ANY($4::TEXT[])
+              AND own_edge.originating_entry_id = ANY(current_allowed.allowed_entry_ids)
+              AND split_part(own_edge.to_node_id, ':', 1) = split_part(next_edge.to_node_id, ':', 1)
+          )
+        )
       )
       AND NOT next_edge.to_node_id = ANY(ancestor_walk.path)
   )
@@ -477,7 +499,10 @@ export class PostgresGraphRepository implements GraphRepository {
                 next_edge.id AS edge_id,
                 ancestor_walk.path || next_edge.to_node_id AS path,
                 ancestor_walk.edge_path || next_edge.id AS edge_path,
-                ancestor_walk.allowed_entry_ids || COALESCE((
+                current_allowed.allowed_entry_ids AS allowed_entry_ids
+              FROM ancestor_walk
+              CROSS JOIN LATERAL (
+                SELECT ancestor_walk.allowed_entry_ids || COALESCE((
                   SELECT ARRAY_AGG(candidate.id)
                   FROM lexical_entries candidate
                   WHERE candidate.node_id = ancestor_walk.node_id
@@ -501,12 +526,12 @@ export class PostgresGraphRepository implements GraphRepository {
                       )
                     )
                 ), ARRAY[]::TEXT[]) AS allowed_entry_ids
-              FROM ancestor_walk
+              ) current_allowed
               JOIN graph_edges next_edge
                 ON next_edge.from_node_id = ancestor_walk.node_id
               WHERE ancestor_walk.depth < $2
                 AND next_edge.edge_type = ANY($3::TEXT[])
-                AND next_edge.originating_entry_id = ANY(ancestor_walk.allowed_entry_ids)
+                AND next_edge.originating_entry_id = ANY(current_allowed.allowed_entry_ids)
                 AND NOT next_edge.to_node_id = ANY(ancestor_walk.path)
             ),
             selected_matches AS (
@@ -974,7 +999,10 @@ export class PostgresGraphRepository implements GraphRepository {
               next_edge.to_node_id AS node_id,
               ancestor_walk.depth + 1 AS depth,
               ancestor_walk.path || next_edge.to_node_id AS path,
-              ancestor_walk.allowed_entry_ids || COALESCE((
+              current_allowed.allowed_entry_ids AS allowed_entry_ids
+            FROM ancestor_walk
+            CROSS JOIN LATERAL (
+              SELECT ancestor_walk.allowed_entry_ids || COALESCE((
                 SELECT ARRAY_AGG(candidate.id)
                 FROM lexical_entries candidate
                 WHERE candidate.node_id = ancestor_walk.node_id
@@ -998,12 +1026,12 @@ export class PostgresGraphRepository implements GraphRepository {
                     )
                   )
               ), ARRAY[]::TEXT[]) AS allowed_entry_ids
-            FROM ancestor_walk
+            ) current_allowed
             JOIN graph_edges next_edge
               ON next_edge.from_node_id = ancestor_walk.node_id
             WHERE ancestor_walk.depth < $2
               AND next_edge.edge_type = ANY($3::TEXT[])
-              AND next_edge.originating_entry_id = ANY(ancestor_walk.allowed_entry_ids)
+              AND next_edge.originating_entry_id = ANY(current_allowed.allowed_entry_ids)
               AND NOT next_edge.to_node_id = ANY(ancestor_walk.path)
           ),
           reachable_ancestors AS (

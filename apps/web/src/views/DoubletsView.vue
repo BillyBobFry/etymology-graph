@@ -22,6 +22,7 @@ import { mergeEtymologyGraphs } from "../features/graph/mergeEtymologyGraphs";
 import { starterQueriesForLanguage } from "../features/terms/starterQueries";
 import Button from "../uiComponents/Button.vue";
 import Divider from "../uiComponents/Divider.vue";
+import PageMain from "../uiComponents/PageMain.vue";
 import StatusNote from "../uiComponents/StatusNote.vue";
 
 type GraphStatus = "idle" | "loadingDoublets" | "loadingFallback" | "success" | "empty" | "error" | "fallbackError";
@@ -250,22 +251,22 @@ watch(
 </script>
 
 <template>
-  <main class="mx-auto grid max-w-6xl gap-8 px-6 py-8 sm:gap-10 sm:py-12">
+  <PageMain>
     <section>
-      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Doublets
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
         {{ term ?? "Unknown term" }}
       </h1>
-      <p class="max-w-3xl text-lg leading-8 text-text-muted">
+      <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
         Exploring same-language candidates that reconnect with
         <span class="font-bold text-text">{{ routeLabel }}</span> through shared ancestors.
       </p>
       <RouterLink
         v-if="langCode"
         :to="{ name: 'doublet-groups', params: { langCode } }"
-        class="mt-5 inline-flex w-fit items-center justify-center rounded-lg border border-border-strong bg-surface-muted px-4 py-2.5 font-label text-sm font-bold leading-none text-text transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        class="mt-5 inline-flex w-fit items-center justify-center rounded-md border border-border-strong bg-surface/65 px-4 py-2.5 font-label text-sm font-bold leading-none text-text transition duration-200 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {{ doubletGroupsLabel }}
       </RouterLink>
@@ -285,7 +286,7 @@ watch(
     <section ref="graphResultRef" class="scroll-mt-6 grid gap-5">
       <section
         v-if="graphStatus === 'idle' || graphStatus === 'empty'"
-        class="rounded-md border border-border bg-surface/75 p-5 shadow-paper"
+        class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper"
         aria-labelledby="doublets-empty-starters"
       >
         <p v-if="graphStatus === 'idle'" class="mb-4 text-text-muted">
@@ -320,10 +321,10 @@ watch(
           </Button>
         </div>
       </section>
-      <p v-else-if="graphStatus === 'loadingDoublets'" class="text-text-muted">
+      <p v-else-if="graphStatus === 'loadingDoublets'" class="text-text-page-muted">
         Loading doublet candidates...
       </p>
-      <p v-else-if="graphStatus === 'loadingFallback'" class="text-text-muted">
+      <p v-else-if="graphStatus === 'loadingFallback'" class="text-text-page-muted">
         No same-language doublets found yet. Loading the known ancestry for {{ routeLabel }}...
       </p>
       <p v-else-if="graphStatus === 'error'" class="text-danger">
@@ -362,5 +363,5 @@ watch(
         </div>
       </template>
     </section>
-  </main>
+  </PageMain>
 </template>

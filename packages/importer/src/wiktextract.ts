@@ -446,15 +446,22 @@ export function previewEntry(entry: WiktextractEntry, sourceMetadata?: ImportSou
   const templateEdges = extractTemplateAncestryEdges(entry, currentNode, nodesById, originatingEntryId);
   const ancestryEdges =
     treeEdges.length > 0 ? supplementTreeEdgesWithMissingRootEdges(treeEdges, templateEdges) : templateEdges;
-  const affixBaseEdges = hasOutgoingAncestryEdge(ancestryEdges, currentNode.id)
+  const ancestryEdgesWithRoots = supplementAncestryEdgesWithRootTemplates(
+    ancestryEdges,
+    entry,
+    currentNode,
+    nodesById,
+    originatingEntryId
+  );
+  const affixBaseEdges = hasOutgoingAncestryEdge(ancestryEdgesWithRoots, currentNode.id)
     ? []
     : extractAffixBaseEdges(entry, currentNode, nodesById, originatingEntryId);
   const compoundEdges =
-    ancestryEdges.length === 0 && affixBaseEdges.length === 0
+    ancestryEdgesWithRoots.length === 0 && affixBaseEdges.length === 0
       ? extractCompoundEdges(entry, currentNode, nodesById, originatingEntryId)
       : [];
   const edges = [
-    ...ancestryEdges,
+    ...ancestryEdgesWithRoots,
     ...affixBaseEdges,
     ...compoundEdges,
     ...extractDescendantEdges(entry, currentNode, nodesById, originatingEntryId)
@@ -721,19 +728,118 @@ function appendTemplateAncestryEdge(
 
 /**
  * Preserves etymon-tree adjacency while recovering upstream roots that Wiktextract only exposes in
- * flat templates. Supplemental edges are limited to the tree's current topmost ancestor so independent
- * prose branches cannot become direct edges from the current entry again.
+ * flat templates. Supplemental walks start at the tree's topmost ancestor so independent prose
+ * branches cannot become direct edges from the current entry again.
  */
 function supplementTreeEdgesWithMissingRootEdges(treeEdges: GraphEdge[], templateEdges: GraphEdge[]): GraphEdge[] {
   const treeEdgeIds = new Set(treeEdges.map((edge) => edge.id));
   const treeFromNodeIds = new Set(treeEdges.map((edge) => edge.fromNodeId));
   const treeToNodeIds = new Set(treeEdges.map((edge) => edge.toNodeId));
   const topmostTreeNodeIds = new Set([...treeToNodeIds].filter((nodeId) => !treeFromNodeIds.has(nodeId)));
-  const supplementalEdges = templateEdges.filter(
-    (edge) => topmostTreeNodeIds.has(edge.fromNodeId) && !treeEdgeIds.has(edge.id)
-  );
+  const templateEdgesByFromNodeId = new Map<string, GraphEdge[]>();
+  const supplementalEdges: GraphEdge[] = [];
+  const supplementalEdgeIds = new Set<string>();
+
+  for (const edge of templateEdges) {
+    const edgesFromNode = templateEdgesByFromNodeId.get(edge.fromNodeId) ?? [];
+    edgesFromNode.push(edge);
+    templateEdgesByFromNodeId.set(edge.fromNodeId, edgesFromNode);
+  }
+
+  const frontier = [...topmostTreeNodeIds];
+  const visitedFromNodeIds = new Set<string>();
+  while (frontier.length > 0) {
+    const fromNodeId = frontier.shift();
+    if (!fromNodeId || visitedFromNodeIds.has(fromNodeId)) {
+      continue;
+    }
+
+    visitedFromNodeIds.add(fromNodeId);
+    for (const edge of templateEdgesByFromNodeId.get(fromNodeId) ?? []) {
+      if (treeEdgeIds.has(edge.id) || supplementalEdgeIds.has(edge.id)) {
+        continue;
+      }
+
+      supplementalEdges.push(edge);
+      supplementalEdgeIds.add(edge.id);
+      frontier.push(edge.toNodeId);
+    }
+  }
 
   return [...treeEdges, ...supplementalEdges];
+}
+
+/** Adds unrendered Wiktionary root-category anchors after the visible ancestry chain. */
+function supplementAncestryEdgesWithRootTemplates(
+  ancestryEdges: GraphEdge[],
+  entry: WiktextractEntry,
+  currentNode: GraphNode,
+  nodesById: Map<string, GraphNode>,
+  originatingEntryId: string
+): GraphEdge[] {
+  const rootTemplates = (entry.etymology_templates ?? []).filter((template) => template.name === "root");
+  if (rootTemplates.length === 0 || ancestryEdges.length === 0) {
+    return ancestryEdges;
+  }
+
+  const terminalSourceNodes = terminalSourceNodesForAncestry(ancestryEdges, currentNode, nodesById);
+  if (terminalSourceNodes.length !== 1) {
+    return ancestryEdges;
+  }
+
+  const edgeIds = new Set(ancestryEdges.map((edge) => edge.id));
+  const rootEdges: GraphEdge[] = [];
+  for (const terminalSourceNode of terminalSourceNodes) {
+    for (const rootTemplate of rootTemplates) {
+      const rootTerm = templateTerm(rootTemplate);
+      if (!rootTerm) {
+        continue;
+      }
+
+      const rootNode = makeNode(rootTerm.langCode, rootTerm.term);
+      const edgeId = makeGraphEdgeId(terminalSourceNode.id, "derived_from", rootNode.id, originatingEntryId);
+      if (edgeIds.has(edgeId)) {
+        continue;
+      }
+
+      appendTemplateAncestryEdge(
+        rootEdges,
+        nodesById,
+        terminalSourceNode,
+        rootNode,
+        "derived_from",
+        entry.etymology_number,
+        rootTemplate.name,
+        templateIsUncertain(rootTemplate),
+        originatingEntryId
+      );
+      edgeIds.add(edgeId);
+    }
+  }
+
+  return [...ancestryEdges, ...rootEdges];
+}
+
+/** Finds topmost source nodes so root-category templates extend, rather than restart, ancestry. */
+function terminalSourceNodesForAncestry(
+  ancestryEdges: GraphEdge[],
+  currentNode: GraphNode,
+  nodesById: Map<string, GraphNode>
+): GraphNode[] {
+  const sourceDirectedEdges = ancestryEdges.filter((edge) => sourceDirectedAncestryEdgeTypes.has(edge.type));
+  const childNodeIds = new Set(sourceDirectedEdges.map((edge) => edge.fromNodeId));
+  const terminalSourceNodeIds = new Set(
+    sourceDirectedEdges.map((edge) => edge.toNodeId).filter((nodeId) => !childNodeIds.has(nodeId))
+  );
+
+  return [...terminalSourceNodeIds].flatMap((nodeId) => {
+    const matchingNode = nodesById.get(nodeId);
+    if (!matchingNode || matchingNode.id === currentNode.id) {
+      return [];
+    }
+
+    return [matchingNode];
+  });
 }
 
 /** Finds rendered template text so independent prose sentences do not become one false ancestry chain. */
@@ -822,14 +928,17 @@ function templateStartsContinuingSourceSentence(
   );
 }
 
-/** Allows follow-up prose like "Believed to be derived from..." to continue the current etymon chain. */
+/** Allows attributed follow-up prose to continue the previous source term's ancestry. */
 function sentenceContinuesPreviousSource(etymologyText: string | undefined, location: TemplateTextLocation): boolean {
   if (!etymologyText || location.startIndex === undefined) {
     return false;
   }
 
-  return /^believed to be (?:derived|borrowed|inherited) from\b/i.test(
-    sentencePrefixBeforeLocation(etymologyText, location.startIndex).trim()
+  const prefix = sentencePrefixBeforeLocation(etymologyText, location.startIndex).trim();
+
+  return (
+    /^believed to be (?:derived|borrowed|inherited) from\b/i.test(prefix) ||
+    /^according to\b.*,\s*from\b/i.test(prefix)
   );
 }
 

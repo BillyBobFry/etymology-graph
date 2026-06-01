@@ -6,6 +6,8 @@
     "db:start": "docker compose up -d postgres",
     "dev": "pnpm --filter @etymology-graph/graph build && pnpm --parallel --filter @etymology-graph/api --filter @etymology-graph/web dev",
     "build": "pnpm -r build",
+    "lint": "eslint .",
+    "prepare": "husky",
     "typecheck": "pnpm --filter @etymology-graph/graph build && pnpm -r typecheck",
     "test:importer": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer test",
     "import:sample": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer import:sample",
@@ -20,8 +22,14 @@
     "import:db:prod": "IMPORT_INPUT_PATH=../../wikidata_downloads/seeds/prod-seed.jsonl IMPORT_CHECKPOINT_PATH=../../wikidata_downloads/checkpoints/prod-import-db.json pnpm import:db"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.9.1",
+    "eslint": "^10.4.1",
+    "eslint-plugin-vue": "^10.9.1",
+    "globals": "^17.6.0",
+    "husky": "^9.1.7",
     "tsx": "^4.22.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.0"
   }
 }

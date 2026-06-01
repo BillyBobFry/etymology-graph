@@ -17,6 +17,7 @@ import { useDoubletGroupsQuery } from "../features/graph/composables/useDoubletG
 import LanguageSelector from "../features/languages/LanguageSelector.vue";
 import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
 import { fallbackSearchLanguage, useSearchLanguageStore } from "../features/terms/searchLanguageStore";
+import PageMain from "../uiComponents/PageMain.vue";
 import Skeleton from "../uiComponents/Skeleton.vue";
 
 const defaultGroupLimit = 24;
@@ -239,15 +240,15 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
 </script>
 
 <template>
-  <main class="mx-auto grid max-w-6xl gap-8 px-6 py-8 sm:gap-10 sm:py-12">
+  <PageMain>
     <section class="border-b border-border-strong pb-8">
-      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Doublet lookup
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
         Find words with a shared ancestry.
       </h1>
-      <p class="max-w-3xl text-lg leading-8 text-text-muted">
+      <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
         Doublets are words in the same language that trace back to one source, like
         fragile and frail. Choose a language to find those pairs and follow their
         shared lineage.
@@ -256,14 +257,14 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
 
     <section class="grid gap-5 lg:grid-cols-[minmax(180px,0.42fr)_minmax(0,1fr)] lg:items-start">
       <div>
-        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
           Language
         </p>
         <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
           Choose a language to group its doublets
         </h2>
       </div>
-      <div class="rounded-md border border-border bg-surface/75 p-5 shadow-paper">
+      <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
         <LanguageSelector
           id="doublet-groups-language"
           v-model="selectedLangCode"
@@ -276,19 +277,19 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
     <section class="grid gap-5" aria-labelledby="doublet-groups-results">
       <div class="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
         <div>
-          <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+          <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
             {{ resultsStatus === 'idle' ? 'Starting point' : 'Groups' }}
           </p>
           <h2 id="doublet-groups-results" class="text-2xl font-bold leading-tight text-text">
             {{ resultHeading }}
           </h2>
-          <p class="mt-1 max-w-2xl text-sm leading-6 text-text-muted">
+          <p class="mt-1 max-w-2xl text-sm leading-6 text-text-page-muted">
             {{ resultHelpText }}
           </p>
         </div>
       </div>
 
-      <div v-if="resultsStatus === 'idle'" class="grid max-w-2xl gap-2 py-2 text-text-muted">
+      <div v-if="resultsStatus === 'idle'" class="grid max-w-2xl gap-2 py-2 text-text-page-muted">
         <h3 class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
           Choose an imported language
         </h3>
@@ -310,15 +311,15 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
           :key="item"
           variant="block"
           tone="raised"
-          class="h-25 rounded-md shadow-paper"
+          class="h-25 rounded-[3px] shadow-paper"
         />
       </div>
 
-      <div v-else-if="resultsStatus === 'error'" class="rounded-md border border-danger/50 bg-surface/75 p-5 text-danger shadow-paper">
+      <div v-else-if="resultsStatus === 'error'" class="rounded-[3px] border border-danger/50 bg-surface/60 p-5 text-danger shadow-paper">
         Doublet groups failed to load.
       </div>
 
-      <div v-else-if="resultsStatus === 'empty'" class="grid gap-2 py-2 text-text-muted">
+      <div v-else-if="resultsStatus === 'empty'" class="grid gap-2 py-2 text-text-page-muted">
         <h3 class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
           No imported doublet groups
         </h3>
@@ -359,9 +360,9 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
           :key="item"
           variant="block"
           tone="raised"
-          class="h-22 rounded-md shadow-paper"
+          class="h-22 rounded-[3px] shadow-paper"
         />
       </div>
     </section>
-  </main>
+  </PageMain>
 </template>

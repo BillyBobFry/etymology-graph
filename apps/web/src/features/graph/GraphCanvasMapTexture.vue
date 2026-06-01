@@ -2,13 +2,26 @@
 import { computed } from "vue";
 
 import type { EtymologyGraph } from "@etymology-graph/graph";
+import type { GraphViewportFrame } from "./composables/useGraphViewport";
 import { graphCanvasHeight, graphCanvasWidth } from "./graphCanvasConstants";
 
 const props = defineProps<{
   graph: EtymologyGraph;
+  panX: number;
+  panY: number;
+  zoom: number;
+  viewportFrame: GraphViewportFrame;
 }>();
 
+type GraphMapPlaneBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 const graphContourTransform = computed(() => contourTransformForGraph(props.graph));
+const graphMapPlaneBounds = computed(() => visibleMapPlaneBounds(props.viewportFrame, props.panX, props.panY, props.zoom));
 const graphMapPlaneClass = "pointer-events-none opacity-[0.42]";
 const graphMapContoursClass = "opacity-[0.3]";
 const graphMapPathBaseClass = "fill-none [vector-effect:non-scaling-stroke]";
@@ -61,6 +74,23 @@ function hashGraphIdentity(graph: EtymologyGraph): number {
 function normalizedHashValue(hash: number, shift: number, range: number): number {
   return (((hash >>> shift) & 0xff) / 255) * range;
 }
+
+/** Covers the currently visible graph coordinates so panning never outruns the map texture. */
+function visibleMapPlaneBounds(
+  viewportFrame: GraphViewportFrame,
+  panX: number,
+  panY: number,
+  zoom: number
+): GraphMapPlaneBounds {
+  const safeZoom = Math.max(zoom, 0.001);
+  const padding = Math.max(graphCanvasWidth, graphCanvasHeight) / safeZoom;
+  const x = (viewportFrame.x - panX) / safeZoom - padding;
+  const y = (viewportFrame.y - panY) / safeZoom - padding;
+  const width = viewportFrame.width / safeZoom + padding * 2;
+  const height = viewportFrame.height / safeZoom + padding * 2;
+
+  return { x, y, width, height };
+}
 </script>
 
 <template>
@@ -69,7 +99,7 @@ function normalizedHashValue(hash: number, shift: number, range: number): number
       <path :class="graphMapGridMinorClass" d="M 32 0 V 160 M 64 0 V 160 M 96 0 V 160 M 128 0 V 160 M 0 32 H 160 M 0 64 H 160 M 0 96 H 160 M 0 128 H 160" />
       <path :class="graphMapGridMajorClass" d="M 0 0 H 160 V 160 H 0 Z" />
     </pattern>
-    <pattern id="graph-map-contours" width="1920" height="1560" patternUnits="userSpaceOnUse">
+    <pattern id="graph-map-contours" width="1920" height="1560" patternUnits="userSpaceOnUse" overflow="visible">
       <g :transform="graphContourTransform">
         <path
           :class="graphMapIndexContourLineClass"
@@ -124,18 +154,18 @@ function normalizedHashValue(hash: number, shift: number, range: number): number
   </defs>
   <rect
     :class="graphMapPlaneClass"
-    :x="-graphCanvasWidth"
-    :y="-graphCanvasHeight"
-    :width="graphCanvasWidth * 3"
-    :height="graphCanvasHeight * 3"
+    :x="graphMapPlaneBounds.x"
+    :y="graphMapPlaneBounds.y"
+    :width="graphMapPlaneBounds.width"
+    :height="graphMapPlaneBounds.height"
     fill="url(#graph-map-grid)"
   />
   <rect
     :class="[graphMapPlaneClass, graphMapContoursClass]"
-    :x="-graphCanvasWidth"
-    :y="-graphCanvasHeight"
-    :width="graphCanvasWidth * 3"
-    :height="graphCanvasHeight * 3"
+    :x="graphMapPlaneBounds.x"
+    :y="graphMapPlaneBounds.y"
+    :width="graphMapPlaneBounds.width"
+    :height="graphMapPlaneBounds.height"
     fill="url(#graph-map-contours)"
   />
 </template>

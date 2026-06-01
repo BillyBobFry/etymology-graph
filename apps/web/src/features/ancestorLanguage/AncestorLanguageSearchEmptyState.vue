@@ -17,8 +17,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="grid gap-4 py-2 text-text-muted">
-    <div class="grid max-w-2xl gap-2">
+  <div class="grid gap-4 py-2 text-text-page-muted">
+    <div class="grid gap-2">
       <h3 class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
         No imported matches for this pair
       </h3>

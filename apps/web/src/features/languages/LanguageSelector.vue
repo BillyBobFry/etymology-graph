@@ -9,7 +9,6 @@ import { useLanguagesQuery } from "./useLanguagesQuery";
 type LanguageOption = {
   value: string;
   label: string;
-  description: string;
 };
 
 const props = withDefaults(
@@ -67,8 +66,7 @@ watch([() => props.modelValue, languages], syncInputToSelection, { immediate: tr
 function languageOptionFor(language: Language): LanguageOption {
   return {
     value: language.code,
-    label: language.canonicalName,
-    description: language.code
+    label: language.canonicalName
   };
 }
 
@@ -96,8 +94,7 @@ function languageMatchRank(option: LanguageOption, query: string): number {
 
   const searchableParts = [
     option.label.toLocaleLowerCase(),
-    option.value.toLocaleLowerCase(),
-    option.description.toLocaleLowerCase()
+    option.value.toLocaleLowerCase()
   ];
 
   if (searchableParts.some((part) => part.startsWith(query))) {
@@ -131,10 +128,10 @@ function syncInputToSelection(): void {
     :disabled="isUnavailable"
     :required="required"
     :empty-text="emptyText"
+    virtualize-options
   >
     <template #option="{ option }">
       <span class="font-label font-bold">{{ option.label }}</span>
-      <span class="text-xs leading-5 text-text-muted">{{ option.description }}</span>
     </template>
   </Combobox>
 </template>

@@ -8,10 +8,13 @@ import {
   type DoubletsQuery
 } from "@etymology-graph/graph";
 
+import { plainTextFromGlossarySegments } from "../features/glossary/linguisticGlossary";
 import GraphEvidencePanel from "../features/graph/GraphEvidencePanel.vue";
 import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
 import { useDoubletGraphQuery } from "../features/graph/composables/useDoubletGraphQuery";
 import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLayout";
+import { soundChangeArticles } from "../features/soundChanges/soundChanges";
+import PageMain from "../uiComponents/PageMain.vue";
 
 type GraphEvidenceStatus = "idle" | "loading" | "success" | "empty" | "error";
 
@@ -52,9 +55,13 @@ const dayInMs = 86_400_000;
 const featuredGraphLimit = 18;
 const currentUtcDayIndex = Math.floor(Date.now() / dayInMs);
 const primaryLinkClass =
-  "inline-flex w-fit items-center justify-center rounded-lg border border-accent bg-accent px-5 py-3 font-label text-base font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex w-fit items-center justify-center rounded-md border border-accent bg-accent px-5 py-3 font-label text-base font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 const secondaryLinkClass =
-  "inline-flex w-fit items-center justify-center rounded-lg border border-border-strong bg-surface-muted px-4 py-2.5 font-label text-sm font-bold leading-none text-text transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex w-fit items-center justify-center rounded-md border border-border-strong bg-surface/65 px-4 py-2.5 font-label text-sm font-bold leading-none text-text transition duration-200 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+const doubletPrimaryLinkClass =
+  "inline-flex h-12 w-full items-center justify-center rounded-md border border-accent bg-accent px-5 py-3 text-center font-label text-base font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+const doubletSecondaryLinkClass =
+  "inline-flex h-12 w-full items-center justify-center rounded-md border border-border-strong bg-surface/65 px-5 py-3 text-center font-label text-base font-bold leading-none text-text transition duration-200 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 const featuredEtymologyExamples: Array<FeaturedGraphExample<AncestorsQuery>> = [
   {
@@ -64,7 +71,7 @@ const featuredEtymologyExamples: Array<FeaturedGraphExample<AncestorsQuery>> = [
     exampleTitle: "wine passes through Latin",
     exampleText:
       "English wine is a compact example of borrowing. The word travels through Latin before the trail reaches a much older Indo-European form.",
-    ctaLabel: "Trace wine",
+    ctaLabel: "Explore etymologies",
     query: { langCode: "en", word: "wine", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH }
   },
   {
@@ -74,7 +81,7 @@ const featuredEtymologyExamples: Array<FeaturedGraphExample<AncestorsQuery>> = [
     exampleTitle: "father keeps an old kinship root",
     exampleText:
       "Kinship words are often stable. Father links English to Old English, Proto-Germanic, and an older Indo-European family term.",
-    ctaLabel: "Trace father",
+    ctaLabel: "Explore etymologies",
     query: { langCode: "en", word: "father", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH }
   },
   {
@@ -84,7 +91,7 @@ const featuredEtymologyExamples: Array<FeaturedGraphExample<AncestorsQuery>> = [
     exampleTitle: "school keeps a Greek source visible",
     exampleText:
       "School reaches English through Latin, then back to Ancient Greek. The graph turns that chain into a readable source path.",
-    ctaLabel: "Trace school",
+    ctaLabel: "Explore etymologies",
     query: { langCode: "en", word: "school", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH }
   },
   {
@@ -94,7 +101,7 @@ const featuredEtymologyExamples: Array<FeaturedGraphExample<AncestorsQuery>> = [
     exampleTitle: "royal enters English through French",
     exampleText:
       "Royal points to Old French and then Latin. The route makes the Norman and Latin layers of English vocabulary visible.",
-    ctaLabel: "Trace royal",
+    ctaLabel: "Explore etymologies",
     query: { langCode: "en", word: "royal", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH }
   },
   {
@@ -104,7 +111,7 @@ const featuredEtymologyExamples: Array<FeaturedGraphExample<AncestorsQuery>> = [
     exampleTitle: "sugar records a trade route",
     exampleText:
       "Sugar is useful because the path is not a single jump. The word shows how goods and names can move together.",
-    ctaLabel: "Trace sugar",
+    ctaLabel: "Explore etymologies",
     query: { langCode: "en", word: "sugar", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH }
   },
   {
@@ -114,7 +121,7 @@ const featuredEtymologyExamples: Array<FeaturedGraphExample<AncestorsQuery>> = [
     exampleTitle: "night preserves an old sky-word",
     exampleText:
       "Night connects English to Old English, Proto-Germanic, and an Indo-European root shared across many related languages.",
-    ctaLabel: "Trace night",
+    ctaLabel: "Explore etymologies",
     query: { langCode: "en", word: "night", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH }
   }
 ];
@@ -290,6 +297,7 @@ const featuredAncestorLanguageExamples: FeaturedAncestorLanguageExample[] = [
 const featuredEtymologyExample = pickFeaturedExample(featuredEtymologyExamples, 0);
 const featuredDoubletExample = pickFeaturedExample(featuredDoubletExamples, 11);
 const featuredAncestorLanguageExample = pickFeaturedExample(featuredAncestorLanguageExamples, 23);
+const featuredSoundChangeArticles = soundChangeArticles.slice(0, 3);
 const featuredEtymologyGraphQuery = useAncestorGraphQuery(() => featuredEtymologyExample.query);
 const featuredDoubletGraphQuery = useDoubletGraphQuery(() => featuredDoubletExample.query);
 const featuredEtymologyGraphStatus = computed(() => graphEvidenceStatus(featuredEtymologyGraphQuery));
@@ -326,17 +334,17 @@ function graphEvidenceStatus(query: {
 </script>
 
 <template>
-  <main class="mx-auto grid max-w-6xl gap-10 px-6 py-8 text-text sm:gap-12 sm:py-12">
+  <PageMain>
     <section class="border-b border-border-strong pb-10">
-      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Wiktionary-powered graph exploration
       </p>
       <h1 class="mb-5 max-w-4xl text-5xl font-black leading-none tracking-[-0.06em] sm:text-7xl">
         Explore how words inherit, borrow, split, and reconnect.
       </h1>
-      <p class="max-w-3xl text-lg leading-8 text-text-muted">
-        Learn the main ways to use the graph through featured examples. Trace one word,
-        compare doublets, or browse entries that reach back to a source language.
+      <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
+        Trace a word's lineage, compare related forms, and see how languages borrow,
+        inherit, and reshape words over time.
       </p>
     </section>
 
@@ -344,18 +352,18 @@ function graphEvidenceStatus(query: {
       <div class="grid gap-6 lg:grid-cols-[minmax(260px,0.45fr)_minmax(0,1fr)] lg:items-stretch">
         <div class="grid content-between gap-6">
           <div>
-            <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+            <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
               Etymology
             </p>
             <h2 id="home-etymology-heading" class="text-3xl font-black leading-tight tracking-[-0.04em]">
               {{ featuredEtymologyExample.heading }}
             </h2>
-            <p class="mt-4 leading-7 text-text-muted">
+            <p class="mt-4 leading-7 text-text-page-muted">
               {{ featuredEtymologyExample.concept }}
             </p>
           </div>
 
-          <div class="rounded-md border border-border bg-surface/75 p-5 shadow-paper">
+          <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
             <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-muted">
               Featured today
             </p>
@@ -367,11 +375,7 @@ function graphEvidenceStatus(query: {
             </p>
             <RouterLink
               :to="{
-                name: 'etymology',
-                params: {
-                  langCode: featuredEtymologyExample.query.langCode,
-                  term: featuredEtymologyExample.query.word
-                }
+                name: 'etymology-search'
               }"
               :class="primaryLinkClass"
               class="mt-5"
@@ -407,18 +411,18 @@ function graphEvidenceStatus(query: {
 
         <div class="grid content-between gap-6">
           <div>
-            <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+            <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
               Doublets
             </p>
             <h2 id="home-doublets-heading" class="text-3xl font-black leading-tight tracking-[-0.04em]">
               {{ featuredDoubletExample.heading }}
             </h2>
-            <p class="mt-4 leading-7 text-text-muted">
+            <p class="mt-4 leading-7 text-text-page-muted">
               {{ featuredDoubletExample.concept }}
             </p>
           </div>
 
-          <div class="rounded-md border border-border bg-surface/75 p-5 shadow-paper">
+          <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
             <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-muted">
               Featured today
             </p>
@@ -428,7 +432,7 @@ function graphEvidenceStatus(query: {
             <p class="mt-3 leading-7 text-text-muted">
               {{ featuredDoubletExample.exampleText }}
             </p>
-            <div class="mt-5 flex flex-wrap gap-3">
+            <div class="mt-5 flex flex-col gap-3">
               <RouterLink
                 :to="{
                   name: 'doublets',
@@ -437,13 +441,13 @@ function graphEvidenceStatus(query: {
                     term: featuredDoubletExample.query.word
                   }
                 }"
-                :class="primaryLinkClass"
+                :class="doubletPrimaryLinkClass"
               >
                 {{ featuredDoubletExample.ctaLabel }}
               </RouterLink>
               <RouterLink
                 :to="{ name: 'doublet-groups', params: { langCode: featuredDoubletExample.query.langCode } }"
-                :class="secondaryLinkClass"
+                :class="doubletSecondaryLinkClass"
               >
                 {{ featuredDoubletExample.browseCtaLabel }}
               </RouterLink>
@@ -453,17 +457,71 @@ function graphEvidenceStatus(query: {
       </div>
     </section>
 
-    <section class="grid gap-5" aria-labelledby="home-source-languages-heading">
+    <section class="grid gap-5 border-b border-border pb-10" aria-labelledby="home-sound-changes-heading">
       <div class="grid gap-6 lg:grid-cols-[minmax(260px,0.45fr)_minmax(0,1fr)] lg:items-start">
-        <div class="grid gap-6">
+        <div class="grid content-between gap-6">
           <div>
-            <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+            <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
+              Sound changes
+            </p>
+            <h2 id="home-sound-changes-heading" class="text-3xl font-black leading-tight tracking-[-0.04em]">
+              Learn why related words stop looking alike.
+            </h2>
+            <p class="mt-4 leading-7 text-text-page-muted">
+              Regular pronunciation shifts can hide a shared source. These notes pair short explanations with graph
+              examples, so each pattern stays tied to real word lineages.
+            </p>
+          </div>
+
+          <RouterLink :to="{ name: 'sound-changes' }" :class="primaryLinkClass">
+            Browse sound-change notes
+          </RouterLink>
+        </div>
+
+        <div class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper">
+          <div class="mb-5 border-b border-border pb-4">
+            <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-muted">
+              Current articles
+            </p>
+            <h3 class="text-2xl font-bold leading-tight">
+              Patterns in the graph
+            </h3>
+            <p class="mt-3 max-w-2xl leading-7 text-text-muted">
+              Start with a named sound change, then open the examples to see the older relationships behind it.
+            </p>
+          </div>
+
+          <div class="grid gap-3">
+            <RouterLink
+              v-for="article in featuredSoundChangeArticles"
+              :key="article.slug"
+              :to="{ name: 'sound-change-article', params: { slug: article.slug } }"
+              class="grid gap-2 rounded-[3px] border border-border bg-surface/45 p-4 text-left transition hover:border-border-strong hover:bg-surface/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <span class="font-label text-xs font-black uppercase tracking-[0.12em] text-text-muted">
+                {{ article.families.join(" / ") }}
+              </span>
+              <span class="text-lg font-bold leading-tight text-text">{{ article.title }}</span>
+              <span class="text-sm leading-6 text-text-muted">
+                {{ plainTextFromGlossarySegments(article.overview) }}
+              </span>
+            </RouterLink>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid gap-5" aria-labelledby="home-source-languages-heading">
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.45fr)] lg:items-start">
+        <div class="grid gap-6 lg:order-2">
+          <div>
+            <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
               Source languages
             </p>
             <h2 id="home-source-languages-heading" class="text-3xl font-black leading-tight tracking-[-0.04em]">
               {{ featuredAncestorLanguageExample.heading }}
             </h2>
-            <p class="mt-4 leading-7 text-text-muted">
+            <p class="mt-4 leading-7 text-text-page-muted">
               {{ featuredAncestorLanguageExample.concept }}
             </p>
           </div>
@@ -482,7 +540,7 @@ function graphEvidenceStatus(query: {
           </RouterLink>
         </div>
 
-        <div class="rounded-md border border-border bg-surface/75 p-5 shadow-paper">
+        <div class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper lg:order-1">
           <div class="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4">
             <div>
               <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-muted">
@@ -495,7 +553,7 @@ function graphEvidenceStatus(query: {
                 {{ featuredAncestorLanguageExample.exampleText }}
               </p>
             </div>
-            <p class="rounded-full border border-border bg-surface-muted px-3 py-1 font-label text-xs font-black uppercase tracking-[0.12em] text-text-muted">
+            <p class="rounded-full border border-border bg-surface/65 px-3 py-1 font-label text-xs font-black uppercase tracking-[0.12em] text-text-muted">
               {{ featuredAncestorLanguageExample.descendantLanguage }} to {{ featuredAncestorLanguageExample.ancestorLanguage }}
             </p>
           </div>
@@ -505,7 +563,7 @@ function graphEvidenceStatus(query: {
               v-for="link in featuredAncestorLanguageExample.links"
               :key="link.term"
               :to="{ name: 'etymology', params: { langCode: featuredAncestorLanguageExample.descendantLangCode, term: link.term } }"
-              class="grid gap-2 rounded-md border border-border bg-background/55 p-4 text-left transition hover:border-border-strong hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              class="grid gap-2 rounded-[3px] border border-border bg-surface/45 p-4 text-left transition hover:border-border-strong hover:bg-surface/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span class="text-lg font-bold leading-tight text-text">{{ link.term }}</span>
@@ -527,5 +585,5 @@ function graphEvidenceStatus(query: {
         </div>
       </div>
     </section>
-  </main>
+  </PageMain>
 </template>

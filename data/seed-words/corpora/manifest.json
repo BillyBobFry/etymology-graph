@@ -4,12 +4,13 @@
     "url": "https://github.com/dariusk/corpora",
     "license": "CC0-1.0",
     "retrievedAt": "2026-05-28",
-    "notes": "Reviewed allowlist of ordinary English lexical categories useful for etymology seed expansion."
+    "notes": "Reviewed allowlist of ordinary English lexical categories useful for etymology seed expansion, supplemented with manually curated core vocabulary concepts."
   },
   "sourceLanguageCode": "en",
   "curation": {
     "termFilter": "Commit only single-token alphabetic English terms from the reviewed upstream selectors. Exclude multi-word names and punctuation-heavy variants from generated seed concepts.",
-    "agentReviewPolicy": "Agent judgment can flag specialist, brand-like, taxonomic, or otherwise low-value terms in exclusions.json. Popular seed loading applies that denylist automatically; remove terms from exclusions.json to keep them."
+    "agentReviewPolicy": "Agent judgment can flag specialist, brand-like, taxonomic, or otherwise low-value terms in exclusions.json. Popular seed loading applies that denylist automatically; remove terms from exclusions.json to keep them.",
+    "supplementPolicy": "Core vocabulary concepts may be added directly when they fill common etymology seed gaps not covered by the reviewed Corpora selectors. Keep them single-token English IDs, assign core/* categories, and include multilingual translations."
   },
   "includes": [
     {

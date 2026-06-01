@@ -446,7 +446,10 @@ export function traverseAncestors(input: AncestorTraversalInput): AncestorTraver
     });
 
     for (const edge of candidateEdges) {
-      if (!allowedEntryIds.has(edge.originatingEntryId)) {
+      if (
+        !allowedEntryIds.has(edge.originatingEntryId) &&
+        !canFollowDescendantOwnedEdge(edge, current.nodeId, entriesByNode, candidateEdges, allowedEntryIds)
+      ) {
         continue;
       }
 
@@ -472,6 +475,28 @@ export function traverseAncestors(input: AncestorTraversalInput): AncestorTraver
     reachedEdgeIds,
     allowedEntryIds
   };
+}
+
+/** Allows descendant-tree evidence to bridge single-entry nodes without adopting the source page entry. */
+function canFollowDescendantOwnedEdge(
+  edge: GraphEdge,
+  fromNodeId: string,
+  entriesByNode: Map<string, readonly AncestorTraversalEntry[]>,
+  candidateEdges: readonly GraphEdge[],
+  allowedEntryIds: ReadonlySet<string>
+): boolean {
+  if (edge.templateName !== "descendants" || edge.fromNodeId !== fromNodeId) {
+    return false;
+  }
+
+  const edgeTargetLanguage = nodeIdLanguage(edge.toNodeId);
+  const hasOwnAncestryEvidenceInTargetLanguage = candidateEdges.some(
+    (candidateEdge) =>
+      allowedEntryIds.has(candidateEdge.originatingEntryId) &&
+      nodeIdLanguage(candidateEdge.toNodeId) === edgeTargetLanguage
+  );
+
+  return !hasOwnAncestryEvidenceInTargetLanguage && (entriesByNode.get(fromNodeId) ?? []).length <= 1;
 }
 
 /**
@@ -536,6 +561,11 @@ function indexEntriesByNode(
   }
 
   return byNode;
+}
+
+/** Extracts the language prefix from stable node ids so traversal can compare same-stage source branches. */
+function nodeIdLanguage(nodeId: string): string {
+  return nodeId.slice(0, nodeId.indexOf(":"));
 }
 
 /** Indexes ancestor-typed edges by their from-node for fast outgoing-edge lookup during traversal. */

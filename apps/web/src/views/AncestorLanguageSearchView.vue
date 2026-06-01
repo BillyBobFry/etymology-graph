@@ -25,6 +25,7 @@ import { resolveAncestorLanguageSuggestions } from "../features/ancestorLanguage
 import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
 import { useTermsWithAncestorLanguageQuery } from "../features/ancestorLanguage/composables/useTermsWithAncestorLanguageQuery";
 import { fallbackSearchLanguage, useSearchLanguageStore } from "../features/terms/searchLanguageStore";
+import PageMain from "../uiComponents/PageMain.vue";
 import Skeleton from "../uiComponents/Skeleton.vue";
 
 const defaultResultLimit = 24;
@@ -261,16 +262,6 @@ function prefetchAncestorPath(match: TermsWithAncestorLanguageMatch): void {
   });
 }
 
-/** Resolves imported language names for evidence labels while keeping code fallbacks. */
-function languageLabel(term: { langCode: string; langName?: string }): string {
-  return term.langName ?? term.langCode;
-}
-
-/** Formats words with language codes so same-spelling terms remain unambiguous. */
-function wordLabel(term: { langCode: string; word: string }): string {
-  return `${term.langCode}:${term.word}`;
-}
-
 /** Extracts the first string value from Vue Router params. */
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -278,29 +269,29 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
 </script>
 
 <template>
-  <main class="mx-auto grid max-w-6xl gap-8 px-6 py-8 sm:gap-10 sm:py-12">
+  <PageMain>
     <section class="border-b border-border-strong pb-8">
-      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+      <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Source language lookup
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
         Find links between languages.
       </h1>
-      <p class="max-w-3xl text-lg leading-8 text-text-muted">
+      <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
         Search one language for entries whose ancestry reaches a selected source language.
       </p>
     </section>
 
-    <section class="grid gap-5 lg:grid-cols-[minmax(180px,0.42fr)_minmax(0,1fr)] lg:items-start">
+    <section class="grid gap-5">
       <div>
-        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
           Language pair
         </p>
         <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
           Set the result language and the source language.
         </h2>
       </div>
-      <div class="grid gap-3 rounded-md border border-border bg-surface/75 p-5 shadow-paper sm:grid-cols-2">
+      <div class="grid gap-3 rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper sm:grid-cols-2">
         <LanguageSelector
           id="ancestor-language-descendant"
           v-model="descendantLangCode"
@@ -320,7 +311,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
     <section class="grid gap-5" aria-labelledby="ancestor-language-results">
       <div class="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
         <div>
-          <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+          <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
             {{ resultsStatus === 'idle' ? 'Starting points' : 'Matches' }}
           </p>
           <h2 id="ancestor-language-results" class="text-2xl font-bold leading-tight text-text">
@@ -330,7 +321,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
       </div>
 
       <div v-if="resultsStatus === 'idle'" class="grid gap-4">
-        <p class="text-sm leading-6 text-text-muted">
+        <p class="text-sm leading-6 text-text-page-muted">
           {{ suggestionsHelpText }}
         </p>
         <AncestorLanguageSuggestions :suggestions="suggestedAncestors" @select="selectAncestorLanguage" />
@@ -348,11 +339,11 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
           :key="item"
           variant="block"
           tone="raised"
-          class="h-25 rounded-md shadow-paper"
+          class="h-25 rounded-[3px] shadow-paper"
         />
       </div>
 
-      <div v-else-if="resultsStatus === 'error'" class="rounded-md border border-danger/50 bg-surface/75 p-5 text-danger shadow-paper">
+      <div v-else-if="resultsStatus === 'error'" class="rounded-[3px] border border-danger/50 bg-surface/60 p-5 text-danger shadow-paper">
         Ancestor language search failed.
       </div>
 
@@ -391,9 +382,9 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
           :key="item"
           variant="block"
           tone="raised"
-          class="h-22 rounded-md shadow-paper"
+          class="h-22 rounded-[3px] shadow-paper"
         />
       </div>
     </section>
-  </main>
+  </PageMain>
 </template>

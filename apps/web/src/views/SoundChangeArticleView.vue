@@ -7,6 +7,7 @@ import type { GlossaryTextSegment } from "../features/glossary/linguisticGlossar
 import SoundChangeExampleGraph from "../features/soundChanges/SoundChangeExampleGraph.vue";
 import { findSoundChangeArticle } from "../features/soundChanges/soundChanges";
 import Divider from "../uiComponents/Divider.vue";
+import PageMain from "../uiComponents/PageMain.vue";
 
 const route = useRoute();
 const article = computed(() => findSoundChangeArticle(firstRouteParam(route.params.slug) ?? ""));
@@ -29,10 +30,10 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
 </script>
 
 <template>
-  <main v-if="article" class="mx-auto grid max-w-6xl gap-8 px-6 py-8 text-text sm:gap-10 sm:py-12">
+  <PageMain v-if="article">
     <section class="grid gap-5 border-b border-border-strong pb-8">
       <RouterLink
-        class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+        class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background"
         :to="{ name: 'sound-changes' }"
       >
         Sound changes
@@ -43,12 +44,12 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
           <h1 class="text-5xl font-black leading-none tracking-[-0.06em] sm:text-7xl">
             {{ article.title }}
           </h1>
-          <p class="mt-5 max-w-3xl text-xl leading-8 text-text-muted">
+          <p class="mt-5 max-w-3xl text-xl leading-8 text-text-page-muted">
             {{ article.subtitle }}
           </p>
         </div>
 
-        <dl class="grid gap-4 rounded-md border border-border bg-surface/80 p-5 shadow-paper">
+        <dl class="grid gap-4 rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper">
           <div>
             <dt class="font-label text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Families
@@ -71,13 +72,13 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
 
     <section class="grid gap-6 lg:grid-cols-[minmax(180px,0.24fr)_minmax(0,0.76fr)] lg:items-start">
       <div>
-        <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+        <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
           Note
         </p>
       </div>
 
       <div class="grid gap-6 text-lg leading-8">
-        <p class="text-text-muted">
+        <p class="text-text-page-muted">
           <GlossaryText :segments="article.overview" />
         </p>
         <div class="grid gap-5">
@@ -85,7 +86,7 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
             <h2 class="text-2xl font-black tracking-[-0.04em] text-text">
               {{ section.heading }}
             </h2>
-            <p class="text-text-muted">
+            <p class="text-text-page-muted">
               <GlossaryText :segments="section.body" />
             </p>
           </section>
@@ -97,13 +98,13 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
 
     <section class="grid gap-5" aria-labelledby="sound-change-examples-heading">
       <div class="grid gap-3">
-        <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
-          Graph examples
+        <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
+          Sound-change paths
         </p>
         <h2 id="sound-change-examples-heading" class="text-4xl font-black tracking-tighter">
-          Examples in the imported graph
+          Compare related words in the graph
         </h2>
-        <p class="max-w-3xl text-text-muted">
+        <p class="max-w-3xl text-text-page-muted">
           <GlossaryText :segments="graphExamplesIntro" />
         </p>
       </div>
@@ -116,23 +117,23 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
         />
       </div>
     </section>
-  </main>
+  </PageMain>
 
-  <main v-else class="mx-auto grid max-w-3xl gap-6 px-6 py-12 text-text">
-    <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+  <PageMain v-else>
+    <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
       Sound changes
     </p>
     <h1 class="text-5xl font-black tracking-[-0.06em]">
       Article not found.
     </h1>
-    <p class="text-text-muted">
+    <p class="text-text-page-muted">
       This sound-change note is not available yet.
     </p>
     <RouterLink
-      class="inline-flex w-fit items-center justify-center rounded-lg border border-accent bg-accent px-5 py-3 font-label text-sm font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      class="inline-flex w-fit items-center justify-center rounded-md border border-accent bg-accent px-5 py-3 font-label text-sm font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       :to="{ name: 'sound-changes' }"
     >
       Back to sound changes
     </RouterLink>
-  </main>
+  </PageMain>
 </template>

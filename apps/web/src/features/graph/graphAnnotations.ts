@@ -10,6 +10,7 @@ export type GraphNodeAnnotationTarget = {
 export type GraphNodeAnnotation = {
   id: string;
   target: GraphNodeAnnotationTarget;
+  additionalTargets?: GraphNodeAnnotationTarget[];
   fallbackTargets?: GraphNodeAnnotationTarget[];
   tone: GraphAnnotationTone;
   title: string;

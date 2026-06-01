@@ -73,47 +73,50 @@ const graphStatus = computed<GraphEvidenceStatus>(() => {
   return comparisonGraph.value ? "success" : "empty";
 });
 
-/** Targets group annotations at the first branch-specific node below the shared root. */
+/** Targets group annotations at every branch-specific node below the shared root. */
 function resolveAnnotationTarget(annotation: SoundChangeGraphAnnotation): GraphNodeAnnotation {
   const { targetGroupId: _targetGroupId, ...graphAnnotation } = annotation;
-  const branchTarget = annotation.targetGroupId
-    ? firstBranchTargetForGroup(annotation.targetGroupId)
+  const branchTargets = annotation.targetGroupId
+    ? branchTargetsForGroup(annotation.targetGroupId)
     : undefined;
+  const [primaryTarget, ...additionalTargets] = branchTargets ?? [];
 
-  if (!branchTarget) {
+  if (!primaryTarget) {
     return graphAnnotation;
   }
 
   return {
     ...graphAnnotation,
-    target: branchTarget,
+    target: primaryTarget,
+    additionalTargets: [...additionalTargets, ...(graphAnnotation.additionalTargets ?? [])],
     fallbackTargets: [graphAnnotation.target, ...(graphAnnotation.fallbackTargets ?? [])]
   };
 }
 
-/** Finds the earliest branch node after the root for a comparison group. */
-function firstBranchTargetForGroup(groupId: string): GraphNodeAnnotationTarget | undefined {
+/** Finds every unique earliest branch node after the root for a comparison group. */
+function branchTargetsForGroup(groupId: string): GraphNodeAnnotationTarget[] {
   const graph = comparisonGraph.value;
   const rootNodeId = comparisonGraphRootNodeId.value;
   const group = comparisonSetQuery.data.value?.groups.find((group) => group.id === groupId);
 
   if (!graph || !rootNodeId || !group) {
-    return undefined;
+    return [];
   }
 
-  const branchNodeId = mostCommonBranchNodeId(graph, rootNodeId, group);
-  const branchNode = graph.nodes.find((node) => node.id === branchNodeId);
+  return branchNodeIdsForGroup(graph, rootNodeId, group).flatMap((branchNodeId) => {
+    const branchNode = graph.nodes.find((node) => node.id === branchNodeId);
 
-  return branchNode ? { langCode: branchNode.langCode, word: branchNode.word } : undefined;
+    return branchNode ? [{ langCode: branchNode.langCode, word: branchNode.word }] : [];
+  });
 }
 
-/** Chooses the branch node most represented by the group's visible target paths. */
-function mostCommonBranchNodeId(
+/** Collects unique branch nodes in the same order as the group's visible target paths. */
+function branchNodeIdsForGroup(
   graph: EtymologyGraph,
   rootNodeId: string,
   group: ComparisonSetGroupResult
-): string | undefined {
-  const countsByNodeId = new Map<string, number>();
+): string[] {
+  const nodeIds = new Set<string>();
 
   for (const item of group.items) {
     const branchNodeId = firstBranchNodeIdForItem(graph, rootNodeId, item);
@@ -122,13 +125,10 @@ function mostCommonBranchNodeId(
       continue;
     }
 
-    countsByNodeId.set(branchNodeId, (countsByNodeId.get(branchNodeId) ?? 0) + 1);
+    nodeIds.add(branchNodeId);
   }
 
-  return [...countsByNodeId.entries()].sort(
-    ([leftNodeId, leftCount], [rightNodeId, rightCount]) =>
-      rightCount - leftCount || leftNodeId.localeCompare(rightNodeId)
-  )[0]?.[0];
+  return [...nodeIds];
 }
 
 /** Walks one endpoint path back to the root and returns the node immediately below the root. */

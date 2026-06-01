@@ -4,7 +4,7 @@
     "url": "https://github.com/dariusk/corpora",
     "license": "CC0-1.0",
     "retrievedAt": "2026-05-28",
-    "notes": "Concept seed data normalized from the reviewed allowlist in manifest.json. Terms are filtered to single-token alphabetic English entries; category-specific provenance is preserved on each concept."
+    "notes": "Concept seed data normalized from the reviewed allowlist in manifest.json, plus manually curated core vocabulary additions. Terms are filtered to single-token alphabetic English entries; category-specific provenance is preserved on each concept."
   },
   "concepts": [
     {
@@ -1913,6 +1913,7 @@
     {
       "id": "arm",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -2663,6 +2664,38 @@
       }
     },
     {
+      "id": "axe",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Axt"
+        ],
+        "en": [
+          "axe"
+        ],
+        "es": [
+          "hacha"
+        ],
+        "fr": [
+          "hache"
+        ],
+        "it": [
+          "ascia"
+        ],
+        "nl": [
+          "bijl"
+        ],
+        "pt": [
+          "machado"
+        ],
+        "sv": [
+          "yxa"
+        ]
+      }
+    },
+    {
       "id": "axinite",
       "categories": [
         "materials/gemstones"
@@ -2848,6 +2881,7 @@
     {
       "id": "back",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -3933,6 +3967,38 @@
       }
     },
     {
+      "id": "basket",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Korb"
+        ],
+        "en": [
+          "basket"
+        ],
+        "es": [
+          "cesta"
+        ],
+        "fr": [
+          "panier"
+        ],
+        "it": [
+          "cesto"
+        ],
+        "nl": [
+          "mand"
+        ],
+        "pt": [
+          "cesto"
+        ],
+        "sv": [
+          "korg"
+        ]
+      }
+    },
+    {
       "id": "bat",
       "categories": [
         "animals/common"
@@ -4419,6 +4485,38 @@
       }
     },
     {
+      "id": "bed",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Bett"
+        ],
+        "en": [
+          "bed"
+        ],
+        "es": [
+          "cama"
+        ],
+        "fr": [
+          "lit"
+        ],
+        "it": [
+          "letto"
+        ],
+        "nl": [
+          "bed"
+        ],
+        "pt": [
+          "cama"
+        ],
+        "sv": [
+          "säng"
+        ]
+      }
+    },
+    {
       "id": "beech",
       "categories": [
         "plants/common-names"
@@ -4630,6 +4728,7 @@
     {
       "id": "belly",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -5495,6 +5594,38 @@
       }
     },
     {
+      "id": "blood",
+      "categories": [
+        "core/body-and-senses"
+      ],
+      "languages": {
+        "de": [
+          "Blut"
+        ],
+        "en": [
+          "blood"
+        ],
+        "es": [
+          "sangre"
+        ],
+        "fr": [
+          "sang"
+        ],
+        "it": [
+          "sangue"
+        ],
+        "nl": [
+          "bloed"
+        ],
+        "pt": [
+          "sangue"
+        ],
+        "sv": [
+          "blod"
+        ]
+      }
+    },
+    {
       "id": "blouse",
       "categories": [
         "objects/clothing"
@@ -5835,6 +5966,38 @@
       }
     },
     {
+      "id": "boat",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Boot"
+        ],
+        "en": [
+          "boat"
+        ],
+        "es": [
+          "barco"
+        ],
+        "fr": [
+          "bateau"
+        ],
+        "it": [
+          "barca"
+        ],
+        "nl": [
+          "boot"
+        ],
+        "pt": [
+          "barco"
+        ],
+        "sv": [
+          "båt"
+        ]
+      }
+    },
+    {
       "id": "bobbinet",
       "categories": [
         "materials/fabrics"
@@ -5904,6 +6067,7 @@
     {
       "id": "bone",
       "categories": [
+        "core/body-and-senses",
         "materials/gemstones"
       ],
       "languages": {
@@ -6330,6 +6494,7 @@
     {
       "id": "bowl",
       "categories": [
+        "core/home-tools",
         "objects/containers"
       ],
       "languages": {
@@ -6614,6 +6779,38 @@
       }
     },
     {
+      "id": "boy",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Junge"
+        ],
+        "en": [
+          "boy"
+        ],
+        "es": [
+          "niño"
+        ],
+        "fr": [
+          "garçon"
+        ],
+        "it": [
+          "ragazzo"
+        ],
+        "nl": [
+          "jongen"
+        ],
+        "pt": [
+          "menino"
+        ],
+        "sv": [
+          "pojke"
+        ]
+      }
+    },
+    {
       "id": "boysenberry",
       "categories": [
         "foods/fruits"
@@ -6724,6 +6921,38 @@
       "languages": {
         "en": [
           "breadfruit"
+        ]
+      }
+    },
+    {
+      "id": "break",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "brechen"
+        ],
+        "en": [
+          "break"
+        ],
+        "es": [
+          "romper"
+        ],
+        "fr": [
+          "casser"
+        ],
+        "it": [
+          "rompere"
+        ],
+        "nl": [
+          "breken"
+        ],
+        "pt": [
+          "quebrar"
+        ],
+        "sv": [
+          "bryta"
         ]
       }
     },
@@ -7303,6 +7532,38 @@
       }
     },
     {
+      "id": "brother",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Bruder"
+        ],
+        "en": [
+          "brother"
+        ],
+        "es": [
+          "hermano"
+        ],
+        "fr": [
+          "frère"
+        ],
+        "it": [
+          "fratello"
+        ],
+        "nl": [
+          "broer"
+        ],
+        "pt": [
+          "irmão"
+        ],
+        "sv": [
+          "bror"
+        ]
+      }
+    },
+    {
       "id": "brown",
       "categories": [
         "colors/web"
@@ -7750,6 +8011,38 @@
       "languages": {
         "en": [
           "burlywood"
+        ]
+      }
+    },
+    {
+      "id": "burn",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "brennen"
+        ],
+        "en": [
+          "burn"
+        ],
+        "es": [
+          "quemar"
+        ],
+        "fr": [
+          "brûler"
+        ],
+        "it": [
+          "bruciare"
+        ],
+        "nl": [
+          "branden"
+        ],
+        "pt": [
+          "queimar"
+        ],
+        "sv": [
+          "brinna"
         ]
       }
     },
@@ -9579,6 +9872,38 @@
       }
     },
     {
+      "id": "cart",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Wagen"
+        ],
+        "en": [
+          "cart"
+        ],
+        "es": [
+          "carro"
+        ],
+        "fr": [
+          "charrette"
+        ],
+        "it": [
+          "carro"
+        ],
+        "nl": [
+          "kar"
+        ],
+        "pt": [
+          "carro"
+        ],
+        "sv": [
+          "kärra"
+        ]
+      }
+    },
+    {
       "id": "casalinga",
       "categories": [
         "foods/breads-and-pastries"
@@ -10389,6 +10714,38 @@
       "languages": {
         "en": [
           "ceylonite"
+        ]
+      }
+    },
+    {
+      "id": "chair",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Stuhl"
+        ],
+        "en": [
+          "chair"
+        ],
+        "es": [
+          "silla"
+        ],
+        "fr": [
+          "chaise"
+        ],
+        "it": [
+          "sedia"
+        ],
+        "nl": [
+          "stoel"
+        ],
+        "pt": [
+          "cadeira"
+        ],
+        "sv": [
+          "stol"
         ]
       }
     },
@@ -11497,6 +11854,7 @@
     {
       "id": "child",
       "categories": [
+        "core/kinship-and-people",
         "humans/family-relations"
       ],
       "languages": {
@@ -12631,6 +12989,38 @@
       }
     },
     {
+      "id": "cloud",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Wolke"
+        ],
+        "en": [
+          "cloud"
+        ],
+        "es": [
+          "nube"
+        ],
+        "fr": [
+          "nuage"
+        ],
+        "it": [
+          "nuvola"
+        ],
+        "nl": [
+          "wolk"
+        ],
+        "pt": [
+          "nuvem"
+        ],
+        "sv": [
+          "moln"
+        ]
+      }
+    },
+    {
       "id": "cloudberry",
       "categories": [
         "foods/fruits"
@@ -13225,6 +13615,38 @@
       "languages": {
         "en": [
           "columbine"
+        ]
+      }
+    },
+    {
+      "id": "come",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "kommen"
+        ],
+        "en": [
+          "come"
+        ],
+        "es": [
+          "venir"
+        ],
+        "fr": [
+          "venir"
+        ],
+        "it": [
+          "venire"
+        ],
+        "nl": [
+          "komen"
+        ],
+        "pt": [
+          "vir"
+        ],
+        "sv": [
+          "komma"
         ]
       }
     },
@@ -15210,6 +15632,7 @@
     {
       "id": "cup",
       "categories": [
+        "core/home-tools",
         "objects/containers"
       ],
       "languages": {
@@ -15442,6 +15865,38 @@
       "languages": {
         "en": [
           "cusk"
+        ]
+      }
+    },
+    {
+      "id": "cut",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "schneiden"
+        ],
+        "en": [
+          "cut"
+        ],
+        "es": [
+          "cortar"
+        ],
+        "fr": [
+          "couper"
+        ],
+        "it": [
+          "tagliare"
+        ],
+        "nl": [
+          "snijden"
+        ],
+        "pt": [
+          "cortar"
+        ],
+        "sv": [
+          "skära"
         ]
       }
     },
@@ -16134,8 +16589,41 @@
       }
     },
     {
+      "id": "daughter",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Tochter"
+        ],
+        "en": [
+          "daughter"
+        ],
+        "es": [
+          "hija"
+        ],
+        "fr": [
+          "fille"
+        ],
+        "it": [
+          "figlia"
+        ],
+        "nl": [
+          "dochter"
+        ],
+        "pt": [
+          "filha"
+        ],
+        "sv": [
+          "dotter"
+        ]
+      }
+    },
+    {
       "id": "day",
       "categories": [
+        "core/culture-common",
         "words/units-of-time"
       ],
       "languages": {
@@ -16244,6 +16732,38 @@
       "languages": {
         "en": [
           "deadnettle"
+        ]
+      }
+    },
+    {
+      "id": "death",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Tod"
+        ],
+        "en": [
+          "death"
+        ],
+        "es": [
+          "muerte"
+        ],
+        "fr": [
+          "mort"
+        ],
+        "it": [
+          "morte"
+        ],
+        "nl": [
+          "dood"
+        ],
+        "pt": [
+          "morte"
+        ],
+        "sv": [
+          "död"
         ]
       }
     },
@@ -16639,6 +17159,38 @@
       "languages": {
         "en": [
           "diaspore"
+        ]
+      }
+    },
+    {
+      "id": "die",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "sterben"
+        ],
+        "en": [
+          "die"
+        ],
+        "es": [
+          "morir"
+        ],
+        "fr": [
+          "mourir"
+        ],
+        "it": [
+          "morire"
+        ],
+        "nl": [
+          "sterven"
+        ],
+        "pt": [
+          "morrer"
+        ],
+        "sv": [
+          "dö"
         ]
       }
     },
@@ -17231,6 +17783,38 @@
       }
     },
     {
+      "id": "door",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Tür"
+        ],
+        "en": [
+          "door"
+        ],
+        "es": [
+          "puerta"
+        ],
+        "fr": [
+          "porte"
+        ],
+        "it": [
+          "porta"
+        ],
+        "nl": [
+          "deur"
+        ],
+        "pt": [
+          "porta"
+        ],
+        "sv": [
+          "dörr"
+        ]
+      }
+    },
+    {
       "id": "dornix",
       "categories": [
         "materials/fabrics"
@@ -17440,6 +18024,38 @@
       }
     },
     {
+      "id": "dream",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Traum"
+        ],
+        "en": [
+          "dream"
+        ],
+        "es": [
+          "sueño"
+        ],
+        "fr": [
+          "rêve"
+        ],
+        "it": [
+          "sogno"
+        ],
+        "nl": [
+          "droom"
+        ],
+        "pt": [
+          "sonho"
+        ],
+        "sv": [
+          "dröm"
+        ]
+      }
+    },
+    {
       "id": "dress",
       "categories": [
         "objects/clothing"
@@ -17638,6 +18254,38 @@
         "tr": [
           "burgulamak",
           "delmek"
+        ]
+      }
+    },
+    {
+      "id": "drink",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "trinken"
+        ],
+        "en": [
+          "drink"
+        ],
+        "es": [
+          "beber"
+        ],
+        "fr": [
+          "boire"
+        ],
+        "it": [
+          "bere"
+        ],
+        "nl": [
+          "drinken"
+        ],
+        "pt": [
+          "beber"
+        ],
+        "sv": [
+          "dricka"
         ]
       }
     },
@@ -17969,6 +18617,38 @@
       }
     },
     {
+      "id": "dust",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Staub"
+        ],
+        "en": [
+          "dust"
+        ],
+        "es": [
+          "polvo"
+        ],
+        "fr": [
+          "poussière"
+        ],
+        "it": [
+          "polvere"
+        ],
+        "nl": [
+          "stof"
+        ],
+        "pt": [
+          "pó"
+        ],
+        "sv": [
+          "damm"
+        ]
+      }
+    },
+    {
       "id": "dysprosium",
       "categories": [
         "materials/metals",
@@ -17983,6 +18663,7 @@
     {
       "id": "ear",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -18055,6 +18736,70 @@
         ],
         "tr": [
           "kulak"
+        ]
+      }
+    },
+    {
+      "id": "earth",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Erde"
+        ],
+        "en": [
+          "earth"
+        ],
+        "es": [
+          "tierra"
+        ],
+        "fr": [
+          "terre"
+        ],
+        "it": [
+          "terra"
+        ],
+        "nl": [
+          "aarde"
+        ],
+        "pt": [
+          "terra"
+        ],
+        "sv": [
+          "jord"
+        ]
+      }
+    },
+    {
+      "id": "eat",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "essen"
+        ],
+        "en": [
+          "eat"
+        ],
+        "es": [
+          "comer"
+        ],
+        "fr": [
+          "manger"
+        ],
+        "it": [
+          "mangiare"
+        ],
+        "nl": [
+          "eten"
+        ],
+        "pt": [
+          "comer"
+        ],
+        "sv": [
+          "äta"
         ]
       }
     },
@@ -18273,6 +19018,7 @@
     {
       "id": "elbow",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -18559,6 +19305,38 @@
       }
     },
     {
+      "id": "enemy",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Feind"
+        ],
+        "en": [
+          "enemy"
+        ],
+        "es": [
+          "enemigo"
+        ],
+        "fr": [
+          "ennemi"
+        ],
+        "it": [
+          "nemico"
+        ],
+        "nl": [
+          "vijand"
+        ],
+        "pt": [
+          "inimigo"
+        ],
+        "sv": [
+          "fiende"
+        ]
+      }
+    },
+    {
       "id": "enstatite",
       "categories": [
         "materials/gemstones"
@@ -18815,6 +19593,7 @@
     {
       "id": "eye",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -19079,6 +19858,70 @@
       }
     },
     {
+      "id": "fall",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "fallen"
+        ],
+        "en": [
+          "fall"
+        ],
+        "es": [
+          "caer"
+        ],
+        "fr": [
+          "tomber"
+        ],
+        "it": [
+          "cadere"
+        ],
+        "nl": [
+          "vallen"
+        ],
+        "pt": [
+          "cair"
+        ],
+        "sv": [
+          "falla"
+        ]
+      }
+    },
+    {
+      "id": "father",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Vater"
+        ],
+        "en": [
+          "father"
+        ],
+        "es": [
+          "padre"
+        ],
+        "fr": [
+          "père"
+        ],
+        "it": [
+          "padre"
+        ],
+        "nl": [
+          "vader"
+        ],
+        "pt": [
+          "pai"
+        ],
+        "sv": [
+          "far"
+        ]
+      }
+    },
+    {
       "id": "fayalite",
       "categories": [
         "materials/gemstones"
@@ -19086,6 +19929,38 @@
       "languages": {
         "en": [
           "fayalite"
+        ]
+      }
+    },
+    {
+      "id": "fear",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "fürchten"
+        ],
+        "en": [
+          "fear"
+        ],
+        "es": [
+          "temer"
+        ],
+        "fr": [
+          "craindre"
+        ],
+        "it": [
+          "temere"
+        ],
+        "nl": [
+          "vrezen"
+        ],
+        "pt": [
+          "temer"
+        ],
+        "sv": [
+          "frukta"
         ]
       }
     },
@@ -19599,6 +20474,7 @@
     {
       "id": "finger",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -19675,6 +20551,38 @@
       "languages": {
         "en": [
           "fingerroot"
+        ]
+      }
+    },
+    {
+      "id": "fire",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Feuer"
+        ],
+        "en": [
+          "fire"
+        ],
+        "es": [
+          "fuego"
+        ],
+        "fr": [
+          "feu"
+        ],
+        "it": [
+          "fuoco"
+        ],
+        "nl": [
+          "vuur"
+        ],
+        "pt": [
+          "fogo"
+        ],
+        "sv": [
+          "eld"
         ]
       }
     },
@@ -20208,6 +21116,38 @@
       }
     },
     {
+      "id": "floor",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Boden"
+        ],
+        "en": [
+          "floor"
+        ],
+        "es": [
+          "suelo"
+        ],
+        "fr": [
+          "sol"
+        ],
+        "it": [
+          "pavimento"
+        ],
+        "nl": [
+          "vloer"
+        ],
+        "pt": [
+          "chão"
+        ],
+        "sv": [
+          "golv"
+        ]
+      }
+    },
+    {
       "id": "floralwhite",
       "categories": [
         "colors/web"
@@ -20257,6 +21197,38 @@
         ],
         "tr": [
           "pisi balığı"
+        ]
+      }
+    },
+    {
+      "id": "flower",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Blume"
+        ],
+        "en": [
+          "flower"
+        ],
+        "es": [
+          "flor"
+        ],
+        "fr": [
+          "fleur"
+        ],
+        "it": [
+          "fiore"
+        ],
+        "nl": [
+          "bloem"
+        ],
+        "pt": [
+          "flor"
+        ],
+        "sv": [
+          "blomma"
         ]
       }
     },
@@ -20341,6 +21313,7 @@
     {
       "id": "foot",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -20570,6 +21543,38 @@
       }
     },
     {
+      "id": "forest",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Wald"
+        ],
+        "en": [
+          "forest"
+        ],
+        "es": [
+          "bosque"
+        ],
+        "fr": [
+          "forêt"
+        ],
+        "it": [
+          "foresta"
+        ],
+        "nl": [
+          "bos"
+        ],
+        "pt": [
+          "floresta"
+        ],
+        "sv": [
+          "skog"
+        ]
+      }
+    },
+    {
       "id": "forestgreen",
       "categories": [
         "colors/web"
@@ -20577,6 +21582,38 @@
       "languages": {
         "en": [
           "forestgreen"
+        ]
+      }
+    },
+    {
+      "id": "fork",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Gabel"
+        ],
+        "en": [
+          "fork"
+        ],
+        "es": [
+          "tenedor"
+        ],
+        "fr": [
+          "fourchette"
+        ],
+        "it": [
+          "forchetta"
+        ],
+        "nl": [
+          "vork"
+        ],
+        "pt": [
+          "garfo"
+        ],
+        "sv": [
+          "gaffel"
         ]
       }
     },
@@ -20839,6 +21876,38 @@
       "languages": {
         "en": [
           "freesia"
+        ]
+      }
+    },
+    {
+      "id": "friend",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Freund"
+        ],
+        "en": [
+          "friend"
+        ],
+        "es": [
+          "amigo"
+        ],
+        "fr": [
+          "ami"
+        ],
+        "it": [
+          "amico"
+        ],
+        "nl": [
+          "vriend"
+        ],
+        "pt": [
+          "amigo"
+        ],
+        "sv": [
+          "vän"
         ]
       }
     },
@@ -21548,6 +22617,70 @@
       }
     },
     {
+      "id": "girl",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Mädchen"
+        ],
+        "en": [
+          "girl"
+        ],
+        "es": [
+          "niña"
+        ],
+        "fr": [
+          "fille"
+        ],
+        "it": [
+          "ragazza"
+        ],
+        "nl": [
+          "meisje"
+        ],
+        "pt": [
+          "menina"
+        ],
+        "sv": [
+          "flicka"
+        ]
+      }
+    },
+    {
+      "id": "give",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "geben"
+        ],
+        "en": [
+          "give"
+        ],
+        "es": [
+          "dar"
+        ],
+        "fr": [
+          "donner"
+        ],
+        "it": [
+          "dare"
+        ],
+        "nl": [
+          "geven"
+        ],
+        "pt": [
+          "dar"
+        ],
+        "sv": [
+          "ge"
+        ]
+      }
+    },
+    {
       "id": "gladiolus",
       "categories": [
         "plants/flowers"
@@ -21844,6 +22977,38 @@
       }
     },
     {
+      "id": "go",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "gehen"
+        ],
+        "en": [
+          "go"
+        ],
+        "es": [
+          "ir"
+        ],
+        "fr": [
+          "aller"
+        ],
+        "it": [
+          "andare"
+        ],
+        "nl": [
+          "gaan"
+        ],
+        "pt": [
+          "ir"
+        ],
+        "sv": [
+          "gå"
+        ]
+      }
+    },
+    {
       "id": "goat",
       "categories": [
         "animals/common"
@@ -21939,6 +23104,38 @@
       "languages": {
         "en": [
           "gochujang"
+        ]
+      }
+    },
+    {
+      "id": "god",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Gott"
+        ],
+        "en": [
+          "god"
+        ],
+        "es": [
+          "dios"
+        ],
+        "fr": [
+          "dieu"
+        ],
+        "it": [
+          "dio"
+        ],
+        "nl": [
+          "god"
+        ],
+        "pt": [
+          "deus"
+        ],
+        "sv": [
+          "gud"
         ]
       }
     },
@@ -22675,6 +23872,38 @@
       }
     },
     {
+      "id": "grass",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Gras"
+        ],
+        "en": [
+          "grass"
+        ],
+        "es": [
+          "hierba"
+        ],
+        "fr": [
+          "herbe"
+        ],
+        "it": [
+          "erba"
+        ],
+        "nl": [
+          "gras"
+        ],
+        "pt": [
+          "grama"
+        ],
+        "sv": [
+          "gräs"
+        ]
+      }
+    },
+    {
       "id": "gravel",
       "categories": [
         "materials/building"
@@ -23068,6 +24297,38 @@
       }
     },
     {
+      "id": "guest",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Gast"
+        ],
+        "en": [
+          "guest"
+        ],
+        "es": [
+          "invitado"
+        ],
+        "fr": [
+          "invité"
+        ],
+        "it": [
+          "ospite"
+        ],
+        "nl": [
+          "gast"
+        ],
+        "pt": [
+          "convidado"
+        ],
+        "sv": [
+          "gäst"
+        ]
+      }
+    },
+    {
       "id": "guineafowl",
       "categories": [
         "foods/poultry"
@@ -23239,6 +24500,7 @@
     {
       "id": "hair",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -23491,6 +24753,38 @@
       }
     },
     {
+      "id": "hammer",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Hammer"
+        ],
+        "en": [
+          "hammer"
+        ],
+        "es": [
+          "martillo"
+        ],
+        "fr": [
+          "marteau"
+        ],
+        "it": [
+          "martello"
+        ],
+        "nl": [
+          "hamer"
+        ],
+        "pt": [
+          "martelo"
+        ],
+        "sv": [
+          "hammare"
+        ]
+      }
+    },
+    {
       "id": "hamster",
       "categories": [
         "animals/common"
@@ -23554,6 +24848,7 @@
     {
       "id": "hand",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -23850,6 +25145,7 @@
     {
       "id": "head",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -24152,6 +25448,70 @@
         ],
         "tr": [
           "öbek"
+        ]
+      }
+    },
+    {
+      "id": "hear",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "hören"
+        ],
+        "en": [
+          "hear"
+        ],
+        "es": [
+          "oír"
+        ],
+        "fr": [
+          "entendre"
+        ],
+        "it": [
+          "sentire"
+        ],
+        "nl": [
+          "horen"
+        ],
+        "pt": [
+          "ouvir"
+        ],
+        "sv": [
+          "höra"
+        ]
+      }
+    },
+    {
+      "id": "heart",
+      "categories": [
+        "core/body-and-senses"
+      ],
+      "languages": {
+        "de": [
+          "Herz"
+        ],
+        "en": [
+          "heart"
+        ],
+        "es": [
+          "corazón"
+        ],
+        "fr": [
+          "cœur"
+        ],
+        "it": [
+          "cuore"
+        ],
+        "nl": [
+          "hart"
+        ],
+        "pt": [
+          "coração"
+        ],
+        "sv": [
+          "hjärta"
         ]
       }
     },
@@ -24921,6 +26281,38 @@
       }
     },
     {
+      "id": "home",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Zuhause"
+        ],
+        "en": [
+          "home"
+        ],
+        "es": [
+          "hogar"
+        ],
+        "fr": [
+          "foyer"
+        ],
+        "it": [
+          "casa"
+        ],
+        "nl": [
+          "thuis"
+        ],
+        "pt": [
+          "lar"
+        ],
+        "sv": [
+          "hem"
+        ]
+      }
+    },
+    {
       "id": "honeydew",
       "categories": [
         "colors/web",
@@ -25186,6 +26578,38 @@
       }
     },
     {
+      "id": "host",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Gastgeber"
+        ],
+        "en": [
+          "host"
+        ],
+        "es": [
+          "anfitrión"
+        ],
+        "fr": [
+          "hôte"
+        ],
+        "it": [
+          "ospite"
+        ],
+        "nl": [
+          "gastheer"
+        ],
+        "pt": [
+          "anfitrião"
+        ],
+        "sv": [
+          "värd"
+        ]
+      }
+    },
+    {
       "id": "hotpink",
       "categories": [
         "colors/web"
@@ -25275,6 +26699,38 @@
       }
     },
     {
+      "id": "house",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Haus"
+        ],
+        "en": [
+          "house"
+        ],
+        "es": [
+          "casa"
+        ],
+        "fr": [
+          "maison"
+        ],
+        "it": [
+          "casa"
+        ],
+        "nl": [
+          "huis"
+        ],
+        "pt": [
+          "casa"
+        ],
+        "sv": [
+          "hus"
+        ]
+      }
+    },
+    {
       "id": "houseleek",
       "categories": [
         "plants/common-names"
@@ -25320,6 +26776,38 @@
       "languages": {
         "en": [
           "humite"
+        ]
+      }
+    },
+    {
+      "id": "husband",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Ehemann"
+        ],
+        "en": [
+          "husband"
+        ],
+        "es": [
+          "esposo"
+        ],
+        "fr": [
+          "époux"
+        ],
+        "it": [
+          "marito"
+        ],
+        "nl": [
+          "man"
+        ],
+        "pt": [
+          "marido"
+        ],
+        "sv": [
+          "make"
         ]
       }
     },
@@ -27490,6 +28978,38 @@
       }
     },
     {
+      "id": "king",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "König"
+        ],
+        "en": [
+          "king"
+        ],
+        "es": [
+          "rey"
+        ],
+        "fr": [
+          "roi"
+        ],
+        "it": [
+          "re"
+        ],
+        "nl": [
+          "koning"
+        ],
+        "pt": [
+          "rei"
+        ],
+        "sv": [
+          "kung"
+        ]
+      }
+    },
+    {
       "id": "kingklip",
       "categories": [
         "foods/fish"
@@ -27514,6 +29034,7 @@
     {
       "id": "knee",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -27597,6 +29118,70 @@
         ],
         "sv": [
           "underbyxor"
+        ]
+      }
+    },
+    {
+      "id": "knife",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Messer"
+        ],
+        "en": [
+          "knife"
+        ],
+        "es": [
+          "cuchillo"
+        ],
+        "fr": [
+          "couteau"
+        ],
+        "it": [
+          "coltello"
+        ],
+        "nl": [
+          "mes"
+        ],
+        "pt": [
+          "faca"
+        ],
+        "sv": [
+          "kniv"
+        ]
+      }
+    },
+    {
+      "id": "know",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "wissen"
+        ],
+        "en": [
+          "know"
+        ],
+        "es": [
+          "saber"
+        ],
+        "fr": [
+          "savoir"
+        ],
+        "it": [
+          "sapere"
+        ],
+        "nl": [
+          "weten"
+        ],
+        "pt": [
+          "saber"
+        ],
+        "sv": [
+          "veta"
         ]
       }
     },
@@ -28060,6 +29645,38 @@
       }
     },
     {
+      "id": "lake",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "See"
+        ],
+        "en": [
+          "lake"
+        ],
+        "es": [
+          "lago"
+        ],
+        "fr": [
+          "lac"
+        ],
+        "it": [
+          "lago"
+        ],
+        "nl": [
+          "meer"
+        ],
+        "pt": [
+          "lago"
+        ],
+        "sv": [
+          "sjö"
+        ]
+      }
+    },
+    {
       "id": "lamb",
       "categories": [
         "animals/common"
@@ -28324,6 +29941,38 @@
       }
     },
     {
+      "id": "law",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Gesetz"
+        ],
+        "en": [
+          "law"
+        ],
+        "es": [
+          "ley"
+        ],
+        "fr": [
+          "loi"
+        ],
+        "it": [
+          "legge"
+        ],
+        "nl": [
+          "wet"
+        ],
+        "pt": [
+          "lei"
+        ],
+        "sv": [
+          "lag"
+        ]
+      }
+    },
+    {
       "id": "lawn",
       "categories": [
         "materials/fabrics"
@@ -28544,6 +30193,38 @@
       }
     },
     {
+      "id": "leaf",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Blatt"
+        ],
+        "en": [
+          "leaf"
+        ],
+        "es": [
+          "hoja"
+        ],
+        "fr": [
+          "feuille"
+        ],
+        "it": [
+          "foglia"
+        ],
+        "nl": [
+          "blad"
+        ],
+        "pt": [
+          "folha"
+        ],
+        "sv": [
+          "blad"
+        ]
+      }
+    },
+    {
       "id": "leatheroid",
       "categories": [
         "materials/fibers"
@@ -28640,6 +30321,7 @@
     {
       "id": "leg",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -29188,6 +30870,70 @@
       }
     },
     {
+      "id": "lie",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Lüge"
+        ],
+        "en": [
+          "lie"
+        ],
+        "es": [
+          "mentira"
+        ],
+        "fr": [
+          "mensonge"
+        ],
+        "it": [
+          "bugia"
+        ],
+        "nl": [
+          "leugen"
+        ],
+        "pt": [
+          "mentira"
+        ],
+        "sv": [
+          "lögn"
+        ]
+      }
+    },
+    {
+      "id": "life",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Leben"
+        ],
+        "en": [
+          "life"
+        ],
+        "es": [
+          "vida"
+        ],
+        "fr": [
+          "vie"
+        ],
+        "it": [
+          "vita"
+        ],
+        "nl": [
+          "leven"
+        ],
+        "pt": [
+          "vida"
+        ],
+        "sv": [
+          "liv"
+        ]
+      }
+    },
+    {
       "id": "lightblue",
       "categories": [
         "colors/web"
@@ -29250,6 +30996,38 @@
       "languages": {
         "en": [
           "lightgreen"
+        ]
+      }
+    },
+    {
+      "id": "lightning",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Blitz"
+        ],
+        "en": [
+          "lightning"
+        ],
+        "es": [
+          "relámpago"
+        ],
+        "fr": [
+          "éclair"
+        ],
+        "it": [
+          "fulmine"
+        ],
+        "nl": [
+          "bliksem"
+        ],
+        "pt": [
+          "relâmpago"
+        ],
+        "sv": [
+          "blixt"
         ]
       }
     },
@@ -30015,6 +31793,38 @@
       }
     },
     {
+      "id": "live",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "leben"
+        ],
+        "en": [
+          "live"
+        ],
+        "es": [
+          "vivir"
+        ],
+        "fr": [
+          "vivre"
+        ],
+        "it": [
+          "vivere"
+        ],
+        "nl": [
+          "leven"
+        ],
+        "pt": [
+          "viver"
+        ],
+        "sv": [
+          "leva"
+        ]
+      }
+    },
+    {
       "id": "livermorium",
       "categories": [
         "science/elements"
@@ -30208,6 +32018,38 @@
       "languages": {
         "en": [
           "lovage"
+        ]
+      }
+    },
+    {
+      "id": "love",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "lieben"
+        ],
+        "en": [
+          "love"
+        ],
+        "es": [
+          "amar"
+        ],
+        "fr": [
+          "aimer"
+        ],
+        "it": [
+          "amare"
+        ],
+        "nl": [
+          "liefhebben"
+        ],
+        "pt": [
+          "amar"
+        ],
+        "sv": [
+          "älska"
         ]
       }
     },
@@ -30719,6 +32561,38 @@
       }
     },
     {
+      "id": "make",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "machen"
+        ],
+        "en": [
+          "make"
+        ],
+        "es": [
+          "hacer"
+        ],
+        "fr": [
+          "faire"
+        ],
+        "it": [
+          "fare"
+        ],
+        "nl": [
+          "maken"
+        ],
+        "pt": [
+          "fazer"
+        ],
+        "sv": [
+          "göra"
+        ]
+      }
+    },
+    {
       "id": "malachite",
       "categories": [
         "materials/gemstones"
@@ -30784,6 +32658,38 @@
       "languages": {
         "en": [
           "mamey"
+        ]
+      }
+    },
+    {
+      "id": "man",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Mann"
+        ],
+        "en": [
+          "man"
+        ],
+        "es": [
+          "hombre"
+        ],
+        "fr": [
+          "homme"
+        ],
+        "it": [
+          "uomo"
+        ],
+        "nl": [
+          "man"
+        ],
+        "pt": [
+          "homem"
+        ],
+        "sv": [
+          "man"
         ]
       }
     },
@@ -32356,6 +34262,38 @@
       }
     },
     {
+      "id": "moon",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Mond"
+        ],
+        "en": [
+          "moon"
+        ],
+        "es": [
+          "luna"
+        ],
+        "fr": [
+          "lune"
+        ],
+        "it": [
+          "luna"
+        ],
+        "nl": [
+          "maan"
+        ],
+        "pt": [
+          "lua"
+        ],
+        "sv": [
+          "måne"
+        ]
+      }
+    },
+    {
       "id": "moonstone",
       "categories": [
         "materials/gemstones"
@@ -32483,6 +34421,70 @@
       }
     },
     {
+      "id": "mother",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Mutter"
+        ],
+        "en": [
+          "mother"
+        ],
+        "es": [
+          "madre"
+        ],
+        "fr": [
+          "mère"
+        ],
+        "it": [
+          "madre"
+        ],
+        "nl": [
+          "moeder"
+        ],
+        "pt": [
+          "mãe"
+        ],
+        "sv": [
+          "mor"
+        ]
+      }
+    },
+    {
+      "id": "mountain",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Berg"
+        ],
+        "en": [
+          "mountain"
+        ],
+        "es": [
+          "montaña"
+        ],
+        "fr": [
+          "montagne"
+        ],
+        "it": [
+          "montagna"
+        ],
+        "nl": [
+          "berg"
+        ],
+        "pt": [
+          "montanha"
+        ],
+        "sv": [
+          "berg"
+        ]
+      }
+    },
+    {
       "id": "mouse",
       "categories": [
         "animals/common"
@@ -32589,6 +34591,7 @@
     {
       "id": "mouth",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -32708,6 +34711,7 @@
     {
       "id": "mud",
       "categories": [
+        "core/natural-world",
         "materials/building"
       ],
       "languages": {
@@ -33594,6 +35598,38 @@
       }
     },
     {
+      "id": "name",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Name"
+        ],
+        "en": [
+          "name"
+        ],
+        "es": [
+          "nombre"
+        ],
+        "fr": [
+          "nom"
+        ],
+        "it": [
+          "nome"
+        ],
+        "nl": [
+          "naam"
+        ],
+        "pt": [
+          "nome"
+        ],
+        "sv": [
+          "namn"
+        ]
+      }
+    },
+    {
       "id": "nankeen",
       "categories": [
         "materials/fabrics"
@@ -33793,6 +35829,7 @@
     {
       "id": "neck",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -33951,6 +35988,38 @@
       }
     },
     {
+      "id": "needle",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Nadel"
+        ],
+        "en": [
+          "needle"
+        ],
+        "es": [
+          "aguja"
+        ],
+        "fr": [
+          "aiguille"
+        ],
+        "it": [
+          "ago"
+        ],
+        "nl": [
+          "naald"
+        ],
+        "pt": [
+          "agulha"
+        ],
+        "sv": [
+          "nål"
+        ]
+      }
+    },
+    {
       "id": "neem",
       "categories": [
         "plants/common-names"
@@ -33958,6 +36027,38 @@
       "languages": {
         "en": [
           "neem"
+        ]
+      }
+    },
+    {
+      "id": "neighbor",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Nachbar"
+        ],
+        "en": [
+          "neighbor"
+        ],
+        "es": [
+          "vecino"
+        ],
+        "fr": [
+          "voisin"
+        ],
+        "it": [
+          "vicino"
+        ],
+        "nl": [
+          "buur"
+        ],
+        "pt": [
+          "vizinho"
+        ],
+        "sv": [
+          "granne"
         ]
       }
     },
@@ -34248,6 +36349,38 @@
       }
     },
     {
+      "id": "night",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Nacht"
+        ],
+        "en": [
+          "night"
+        ],
+        "es": [
+          "noche"
+        ],
+        "fr": [
+          "nuit"
+        ],
+        "it": [
+          "notte"
+        ],
+        "nl": [
+          "nacht"
+        ],
+        "pt": [
+          "noite"
+        ],
+        "sv": [
+          "natt"
+        ]
+      }
+    },
+    {
       "id": "nightgown",
       "categories": [
         "objects/clothing"
@@ -34476,6 +36609,7 @@
     {
       "id": "nose",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -37144,6 +39278,7 @@
     {
       "id": "parent",
       "categories": [
+        "core/kinship-and-people",
         "humans/family-relations"
       ],
       "languages": {
@@ -37468,6 +39603,38 @@
       }
     },
     {
+      "id": "path",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Weg"
+        ],
+        "en": [
+          "path"
+        ],
+        "es": [
+          "camino"
+        ],
+        "fr": [
+          "chemin"
+        ],
+        "it": [
+          "sentiero"
+        ],
+        "nl": [
+          "pad"
+        ],
+        "pt": [
+          "caminho"
+        ],
+        "sv": [
+          "stig"
+        ]
+      }
+    },
+    {
       "id": "paua",
       "categories": [
         "foods/shellfish"
@@ -37546,6 +39713,38 @@
         ],
         "tr": [
           "bezelye"
+        ]
+      }
+    },
+    {
+      "id": "peace",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Frieden"
+        ],
+        "en": [
+          "peace"
+        ],
+        "es": [
+          "paz"
+        ],
+        "fr": [
+          "paix"
+        ],
+        "it": [
+          "pace"
+        ],
+        "nl": [
+          "vrede"
+        ],
+        "pt": [
+          "paz"
+        ],
+        "sv": [
+          "fred"
         ]
       }
     },
@@ -38138,6 +40337,38 @@
           "hurma",
           "Japon hurması",
           "Trabzon hurması"
+        ]
+      }
+    },
+    {
+      "id": "person",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Person"
+        ],
+        "en": [
+          "person"
+        ],
+        "es": [
+          "persona"
+        ],
+        "fr": [
+          "personne"
+        ],
+        "it": [
+          "persona"
+        ],
+        "nl": [
+          "persoon"
+        ],
+        "pt": [
+          "pessoa"
+        ],
+        "sv": [
+          "person"
         ]
       }
     },
@@ -39178,6 +41409,38 @@
       }
     },
     {
+      "id": "place",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Ort"
+        ],
+        "en": [
+          "place"
+        ],
+        "es": [
+          "lugar"
+        ],
+        "fr": [
+          "lieu"
+        ],
+        "it": [
+          "luogo"
+        ],
+        "nl": [
+          "plaats"
+        ],
+        "pt": [
+          "lugar"
+        ],
+        "sv": [
+          "plats"
+        ]
+      }
+    },
+    {
       "id": "plancheite",
       "categories": [
         "materials/gemstones"
@@ -39456,6 +41719,70 @@
         "tr": [
           "gagalı memeli",
           "ornitorenk"
+        ]
+      }
+    },
+    {
+      "id": "play",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Spiel"
+        ],
+        "en": [
+          "play"
+        ],
+        "es": [
+          "juego"
+        ],
+        "fr": [
+          "jeu"
+        ],
+        "it": [
+          "gioco"
+        ],
+        "nl": [
+          "spel"
+        ],
+        "pt": [
+          "jogo"
+        ],
+        "sv": [
+          "spel"
+        ]
+      }
+    },
+    {
+      "id": "plow",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Pflug"
+        ],
+        "en": [
+          "plow"
+        ],
+        "es": [
+          "arado"
+        ],
+        "fr": [
+          "charrue"
+        ],
+        "it": [
+          "aratro"
+        ],
+        "nl": [
+          "ploeg"
+        ],
+        "pt": [
+          "arado"
+        ],
+        "sv": [
+          "plog"
         ]
       }
     },
@@ -40406,6 +42733,38 @@
       "languages": {
         "en": [
           "possumhaw"
+        ]
+      }
+    },
+    {
+      "id": "pot",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Topf"
+        ],
+        "en": [
+          "pot"
+        ],
+        "es": [
+          "olla"
+        ],
+        "fr": [
+          "pot"
+        ],
+        "it": [
+          "pentola"
+        ],
+        "nl": [
+          "pot"
+        ],
+        "pt": [
+          "panela"
+        ],
+        "sv": [
+          "gryta"
         ]
       }
     },
@@ -41419,6 +43778,38 @@
       }
     },
     {
+      "id": "queen",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Königin"
+        ],
+        "en": [
+          "queen"
+        ],
+        "es": [
+          "reina"
+        ],
+        "fr": [
+          "reine"
+        ],
+        "it": [
+          "regina"
+        ],
+        "nl": [
+          "koningin"
+        ],
+        "pt": [
+          "rainha"
+        ],
+        "sv": [
+          "drottning"
+        ]
+      }
+    },
+    {
       "id": "quercitron",
       "categories": [
         "plants/common-names"
@@ -41770,6 +44161,38 @@
       "languages": {
         "en": [
           "ragwort"
+        ]
+      }
+    },
+    {
+      "id": "rain",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Regen"
+        ],
+        "en": [
+          "rain"
+        ],
+        "es": [
+          "lluvia"
+        ],
+        "fr": [
+          "pluie"
+        ],
+        "it": [
+          "pioggia"
+        ],
+        "nl": [
+          "regen"
+        ],
+        "pt": [
+          "chuva"
+        ],
+        "sv": [
+          "regn"
         ]
       }
     },
@@ -42967,6 +45390,102 @@
       }
     },
     {
+      "id": "rise",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "steigen"
+        ],
+        "en": [
+          "rise"
+        ],
+        "es": [
+          "subir"
+        ],
+        "fr": [
+          "monter"
+        ],
+        "it": [
+          "salire"
+        ],
+        "nl": [
+          "stijgen"
+        ],
+        "pt": [
+          "subir"
+        ],
+        "sv": [
+          "stiga"
+        ]
+      }
+    },
+    {
+      "id": "river",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Fluss"
+        ],
+        "en": [
+          "river"
+        ],
+        "es": [
+          "río"
+        ],
+        "fr": [
+          "rivière"
+        ],
+        "it": [
+          "fiume"
+        ],
+        "nl": [
+          "rivier"
+        ],
+        "pt": [
+          "rio"
+        ],
+        "sv": [
+          "flod"
+        ]
+      }
+    },
+    {
+      "id": "road",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Straße"
+        ],
+        "en": [
+          "road"
+        ],
+        "es": [
+          "carretera"
+        ],
+        "fr": [
+          "route"
+        ],
+        "it": [
+          "strada"
+        ],
+        "nl": [
+          "weg"
+        ],
+        "pt": [
+          "estrada"
+        ],
+        "sv": [
+          "väg"
+        ]
+      }
+    },
+    {
       "id": "roadweed",
       "categories": [
         "plants/common-names"
@@ -43420,6 +45939,134 @@
       }
     },
     {
+      "id": "roof",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Dach"
+        ],
+        "en": [
+          "roof"
+        ],
+        "es": [
+          "techo"
+        ],
+        "fr": [
+          "toit"
+        ],
+        "it": [
+          "tetto"
+        ],
+        "nl": [
+          "dak"
+        ],
+        "pt": [
+          "telhado"
+        ],
+        "sv": [
+          "tak"
+        ]
+      }
+    },
+    {
+      "id": "room",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Zimmer"
+        ],
+        "en": [
+          "room"
+        ],
+        "es": [
+          "habitación"
+        ],
+        "fr": [
+          "pièce"
+        ],
+        "it": [
+          "stanza"
+        ],
+        "nl": [
+          "kamer"
+        ],
+        "pt": [
+          "quarto"
+        ],
+        "sv": [
+          "rum"
+        ]
+      }
+    },
+    {
+      "id": "root",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Wurzel"
+        ],
+        "en": [
+          "root"
+        ],
+        "es": [
+          "raíz"
+        ],
+        "fr": [
+          "racine"
+        ],
+        "it": [
+          "radice"
+        ],
+        "nl": [
+          "wortel"
+        ],
+        "pt": [
+          "raiz"
+        ],
+        "sv": [
+          "rot"
+        ]
+      }
+    },
+    {
+      "id": "rope",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Seil"
+        ],
+        "en": [
+          "rope"
+        ],
+        "es": [
+          "cuerda"
+        ],
+        "fr": [
+          "corde"
+        ],
+        "it": [
+          "corda"
+        ],
+        "nl": [
+          "touw"
+        ],
+        "pt": [
+          "corda"
+        ],
+        "sv": [
+          "rep"
+        ]
+      }
+    },
+    {
       "id": "rosasite",
       "categories": [
         "materials/gemstones"
@@ -43830,6 +46477,38 @@
       "languages": {
         "en": [
           "rugelach"
+        ]
+      }
+    },
+    {
+      "id": "run",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "laufen"
+        ],
+        "en": [
+          "run"
+        ],
+        "es": [
+          "correr"
+        ],
+        "fr": [
+          "courir"
+        ],
+        "it": [
+          "correre"
+        ],
+        "nl": [
+          "rennen"
+        ],
+        "pt": [
+          "correr"
+        ],
+        "sv": [
+          "springa"
         ]
       }
     },
@@ -44410,6 +47089,7 @@
     {
       "id": "sand",
       "categories": [
+        "core/natural-world",
         "materials/building"
       ],
       "languages": {
@@ -44949,6 +47629,38 @@
       }
     },
     {
+      "id": "saw",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Säge"
+        ],
+        "en": [
+          "saw"
+        ],
+        "es": [
+          "sierra"
+        ],
+        "fr": [
+          "scie"
+        ],
+        "it": [
+          "sega"
+        ],
+        "nl": [
+          "zaag"
+        ],
+        "pt": [
+          "serra"
+        ],
+        "sv": [
+          "såg"
+        ]
+      }
+    },
+    {
       "id": "sawdust",
       "categories": [
         "materials/natural"
@@ -45322,6 +48034,38 @@
       }
     },
     {
+      "id": "sea",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Meer"
+        ],
+        "en": [
+          "sea"
+        ],
+        "es": [
+          "mar"
+        ],
+        "fr": [
+          "mer"
+        ],
+        "it": [
+          "mare"
+        ],
+        "nl": [
+          "zee"
+        ],
+        "pt": [
+          "mar"
+        ],
+        "sv": [
+          "hav"
+        ]
+      }
+    },
+    {
       "id": "seaborgium",
       "categories": [
         "materials/metals",
@@ -45543,6 +48287,70 @@
         ],
         "zh": [
           "第二"
+        ]
+      }
+    },
+    {
+      "id": "see",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "sehen"
+        ],
+        "en": [
+          "see"
+        ],
+        "es": [
+          "ver"
+        ],
+        "fr": [
+          "voir"
+        ],
+        "it": [
+          "vedere"
+        ],
+        "nl": [
+          "zien"
+        ],
+        "pt": [
+          "ver"
+        ],
+        "sv": [
+          "se"
+        ]
+      }
+    },
+    {
+      "id": "seed",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Samen"
+        ],
+        "en": [
+          "seed"
+        ],
+        "es": [
+          "semilla"
+        ],
+        "fr": [
+          "graine"
+        ],
+        "it": [
+          "seme"
+        ],
+        "nl": [
+          "zaad"
+        ],
+        "pt": [
+          "semente"
+        ],
+        "sv": [
+          "frö"
         ]
       }
     },
@@ -46664,6 +49472,70 @@
       }
     },
     {
+      "id": "sister",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Schwester"
+        ],
+        "en": [
+          "sister"
+        ],
+        "es": [
+          "hermana"
+        ],
+        "fr": [
+          "sœur"
+        ],
+        "it": [
+          "sorella"
+        ],
+        "nl": [
+          "zus"
+        ],
+        "pt": [
+          "irmã"
+        ],
+        "sv": [
+          "syster"
+        ]
+      }
+    },
+    {
+      "id": "sit",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "sitzen"
+        ],
+        "en": [
+          "sit"
+        ],
+        "es": [
+          "sentarse"
+        ],
+        "fr": [
+          "s'asseoir"
+        ],
+        "it": [
+          "sedersi"
+        ],
+        "nl": [
+          "zitten"
+        ],
+        "pt": [
+          "sentar"
+        ],
+        "sv": [
+          "sitta"
+        ]
+      }
+    },
+    {
       "id": "skate",
       "categories": [
         "foods/fish"
@@ -46682,6 +49554,38 @@
       "languages": {
         "en": [
           "skhug"
+        ]
+      }
+    },
+    {
+      "id": "skin",
+      "categories": [
+        "core/body-and-senses"
+      ],
+      "languages": {
+        "de": [
+          "Haut"
+        ],
+        "en": [
+          "skin"
+        ],
+        "es": [
+          "piel"
+        ],
+        "fr": [
+          "peau"
+        ],
+        "it": [
+          "pelle"
+        ],
+        "nl": [
+          "huid"
+        ],
+        "pt": [
+          "pele"
+        ],
+        "sv": [
+          "hud"
         ]
       }
     },
@@ -46862,6 +49766,38 @@
       }
     },
     {
+      "id": "sky",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Himmel"
+        ],
+        "en": [
+          "sky"
+        ],
+        "es": [
+          "cielo"
+        ],
+        "fr": [
+          "ciel"
+        ],
+        "it": [
+          "cielo"
+        ],
+        "nl": [
+          "hemel"
+        ],
+        "pt": [
+          "céu"
+        ],
+        "sv": [
+          "himmel"
+        ]
+      }
+    },
+    {
       "id": "skyblue",
       "categories": [
         "colors/web"
@@ -46929,6 +49865,38 @@
       "languages": {
         "en": [
           "slategray"
+        ]
+      }
+    },
+    {
+      "id": "sleep",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "schlafen"
+        ],
+        "en": [
+          "sleep"
+        ],
+        "es": [
+          "dormir"
+        ],
+        "fr": [
+          "dormir"
+        ],
+        "it": [
+          "dormire"
+        ],
+        "nl": [
+          "slapen"
+        ],
+        "pt": [
+          "dormir"
+        ],
+        "sv": [
+          "sova"
         ]
       }
     },
@@ -47271,7 +50239,8 @@
     {
       "id": "snow",
       "categories": [
-        "colors/web"
+        "colors/web",
+        "core/natural-world"
       ],
       "languages": {
         "ar": [
@@ -47464,6 +50433,70 @@
       }
     },
     {
+      "id": "son",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Sohn"
+        ],
+        "en": [
+          "son"
+        ],
+        "es": [
+          "hijo"
+        ],
+        "fr": [
+          "fils"
+        ],
+        "it": [
+          "figlio"
+        ],
+        "nl": [
+          "zoon"
+        ],
+        "pt": [
+          "filho"
+        ],
+        "sv": [
+          "son"
+        ]
+      }
+    },
+    {
+      "id": "song",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Lied"
+        ],
+        "en": [
+          "song"
+        ],
+        "es": [
+          "canción"
+        ],
+        "fr": [
+          "chanson"
+        ],
+        "it": [
+          "canzone"
+        ],
+        "nl": [
+          "lied"
+        ],
+        "pt": [
+          "canção"
+        ],
+        "sv": [
+          "sång"
+        ]
+      }
+    },
+    {
       "id": "songket",
       "categories": [
         "materials/fabrics"
@@ -47483,6 +50516,38 @@
       "languages": {
         "en": [
           "sorrel"
+        ]
+      }
+    },
+    {
+      "id": "soul",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Seele"
+        ],
+        "en": [
+          "soul"
+        ],
+        "es": [
+          "alma"
+        ],
+        "fr": [
+          "âme"
+        ],
+        "it": [
+          "anima"
+        ],
+        "nl": [
+          "ziel"
+        ],
+        "pt": [
+          "alma"
+        ],
+        "sv": [
+          "själ"
         ]
       }
     },
@@ -47568,6 +50633,38 @@
         ],
         "pt": [
           "lycra"
+        ]
+      }
+    },
+    {
+      "id": "speak",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "sprechen"
+        ],
+        "en": [
+          "speak"
+        ],
+        "es": [
+          "hablar"
+        ],
+        "fr": [
+          "parler"
+        ],
+        "it": [
+          "parlare"
+        ],
+        "nl": [
+          "spreken"
+        ],
+        "pt": [
+          "falar"
+        ],
+        "sv": [
+          "tala"
         ]
       }
     },
@@ -47685,6 +50782,38 @@
       }
     },
     {
+      "id": "spirit",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Geist"
+        ],
+        "en": [
+          "spirit"
+        ],
+        "es": [
+          "espíritu"
+        ],
+        "fr": [
+          "esprit"
+        ],
+        "it": [
+          "spirito"
+        ],
+        "nl": [
+          "geest"
+        ],
+        "pt": [
+          "espírito"
+        ],
+        "sv": [
+          "ande"
+        ]
+      }
+    },
+    {
       "id": "spodumene",
       "categories": [
         "materials/gemstones"
@@ -47703,6 +50832,38 @@
       "languages": {
         "en": [
           "spoolwood"
+        ]
+      }
+    },
+    {
+      "id": "spoon",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Löffel"
+        ],
+        "en": [
+          "spoon"
+        ],
+        "es": [
+          "cuchara"
+        ],
+        "fr": [
+          "cuillère"
+        ],
+        "it": [
+          "cucchiaio"
+        ],
+        "nl": [
+          "lepel"
+        ],
+        "pt": [
+          "colher"
+        ],
+        "sv": [
+          "sked"
         ]
       }
     },
@@ -47942,6 +51103,70 @@
       }
     },
     {
+      "id": "stand",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "stehen"
+        ],
+        "en": [
+          "stand"
+        ],
+        "es": [
+          "estar de pie"
+        ],
+        "fr": [
+          "se tenir"
+        ],
+        "it": [
+          "stare"
+        ],
+        "nl": [
+          "staan"
+        ],
+        "pt": [
+          "ficar em pé"
+        ],
+        "sv": [
+          "stå"
+        ]
+      }
+    },
+    {
+      "id": "star",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Stern"
+        ],
+        "en": [
+          "star"
+        ],
+        "es": [
+          "estrella"
+        ],
+        "fr": [
+          "étoile"
+        ],
+        "it": [
+          "stella"
+        ],
+        "nl": [
+          "ster"
+        ],
+        "pt": [
+          "estrela"
+        ],
+        "sv": [
+          "stjärna"
+        ]
+      }
+    },
+    {
       "id": "steatite",
       "categories": [
         "materials/gemstones"
@@ -48062,6 +51287,7 @@
     {
       "id": "stone",
       "categories": [
+        "core/natural-world",
         "materials/building"
       ],
       "languages": {
@@ -48191,6 +51417,102 @@
           "石",
           "石頭 /石头",
           "шыту"
+        ]
+      }
+    },
+    {
+      "id": "storm",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Sturm"
+        ],
+        "en": [
+          "storm"
+        ],
+        "es": [
+          "tormenta"
+        ],
+        "fr": [
+          "tempête"
+        ],
+        "it": [
+          "tempesta"
+        ],
+        "nl": [
+          "storm"
+        ],
+        "pt": [
+          "tempestade"
+        ],
+        "sv": [
+          "storm"
+        ]
+      }
+    },
+    {
+      "id": "story",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Geschichte"
+        ],
+        "en": [
+          "story"
+        ],
+        "es": [
+          "historia"
+        ],
+        "fr": [
+          "histoire"
+        ],
+        "it": [
+          "storia"
+        ],
+        "nl": [
+          "verhaal"
+        ],
+        "pt": [
+          "história"
+        ],
+        "sv": [
+          "berättelse"
+        ]
+      }
+    },
+    {
+      "id": "stranger",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Fremder"
+        ],
+        "en": [
+          "stranger"
+        ],
+        "es": [
+          "desconocido"
+        ],
+        "fr": [
+          "étranger"
+        ],
+        "it": [
+          "sconosciuto"
+        ],
+        "nl": [
+          "vreemdeling"
+        ],
+        "pt": [
+          "estranho"
+        ],
+        "sv": [
+          "främling"
         ]
       }
     },
@@ -48775,6 +52097,38 @@
       }
     },
     {
+      "id": "sun",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Sonne"
+        ],
+        "en": [
+          "sun"
+        ],
+        "es": [
+          "sol"
+        ],
+        "fr": [
+          "soleil"
+        ],
+        "it": [
+          "sole"
+        ],
+        "nl": [
+          "zon"
+        ],
+        "pt": [
+          "sol"
+        ],
+        "sv": [
+          "sol"
+        ]
+      }
+    },
+    {
       "id": "sunflower",
       "categories": [
         "plants/common-names",
@@ -49276,6 +52630,38 @@
       }
     },
     {
+      "id": "table",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Tisch"
+        ],
+        "en": [
+          "table"
+        ],
+        "es": [
+          "mesa"
+        ],
+        "fr": [
+          "table"
+        ],
+        "it": [
+          "tavolo"
+        ],
+        "nl": [
+          "tafel"
+        ],
+        "pt": [
+          "mesa"
+        ],
+        "sv": [
+          "bord"
+        ]
+      }
+    },
+    {
       "id": "tactite",
       "categories": [
         "materials/gemstones"
@@ -49394,6 +52780,38 @@
       "languages": {
         "en": [
           "tais"
+        ]
+      }
+    },
+    {
+      "id": "take",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "nehmen"
+        ],
+        "en": [
+          "take"
+        ],
+        "es": [
+          "tomar"
+        ],
+        "fr": [
+          "prendre"
+        ],
+        "it": [
+          "prendere"
+        ],
+        "nl": [
+          "nemen"
+        ],
+        "pt": [
+          "tomar"
+        ],
+        "sv": [
+          "ta"
         ]
       }
     },
@@ -50255,6 +53673,38 @@
       }
     },
     {
+      "id": "think",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "denken"
+        ],
+        "en": [
+          "think"
+        ],
+        "es": [
+          "pensar"
+        ],
+        "fr": [
+          "penser"
+        ],
+        "it": [
+          "pensare"
+        ],
+        "nl": [
+          "denken"
+        ],
+        "pt": [
+          "pensar"
+        ],
+        "sv": [
+          "tänka"
+        ]
+      }
+    },
+    {
       "id": "thistle",
       "categories": [
         "colors/web",
@@ -50510,6 +53960,38 @@
         ],
         "tr": [
           "başparmak"
+        ]
+      }
+    },
+    {
+      "id": "thunder",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Donner"
+        ],
+        "en": [
+          "thunder"
+        ],
+        "es": [
+          "trueno"
+        ],
+        "fr": [
+          "tonnerre"
+        ],
+        "it": [
+          "tuono"
+        ],
+        "nl": [
+          "donder"
+        ],
+        "pt": [
+          "trovão"
+        ],
+        "sv": [
+          "åska"
         ]
       }
     },
@@ -50892,6 +54374,38 @@
           "ahşap",
           "kereste",
           "kerestelik orman"
+        ]
+      }
+    },
+    {
+      "id": "time",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Zeit"
+        ],
+        "en": [
+          "time"
+        ],
+        "es": [
+          "tiempo"
+        ],
+        "fr": [
+          "temps"
+        ],
+        "it": [
+          "tempo"
+        ],
+        "nl": [
+          "tijd"
+        ],
+        "pt": [
+          "tempo"
+        ],
+        "sv": [
+          "tid"
         ]
       }
     },
@@ -51327,6 +54841,7 @@
     {
       "id": "tongue",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -51410,6 +54925,7 @@
     {
       "id": "tooth",
       "categories": [
+        "core/body-and-senses",
         "humans/body-parts"
       ],
       "languages": {
@@ -51923,6 +55439,38 @@
       }
     },
     {
+      "id": "tree",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Baum"
+        ],
+        "en": [
+          "tree"
+        ],
+        "es": [
+          "árbol"
+        ],
+        "fr": [
+          "arbre"
+        ],
+        "it": [
+          "albero"
+        ],
+        "nl": [
+          "boom"
+        ],
+        "pt": [
+          "árvore"
+        ],
+        "sv": [
+          "träd"
+        ]
+      }
+    },
+    {
       "id": "tremolite",
       "categories": [
         "materials/gemstones"
@@ -52169,6 +55717,38 @@
           "hortum",
           "sandık",
           "trank"
+        ]
+      }
+    },
+    {
+      "id": "truth",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Wahrheit"
+        ],
+        "en": [
+          "truth"
+        ],
+        "es": [
+          "verdad"
+        ],
+        "fr": [
+          "vérité"
+        ],
+        "it": [
+          "verità"
+        ],
+        "nl": [
+          "waarheid"
+        ],
+        "pt": [
+          "verdade"
+        ],
+        "sv": [
+          "sanning"
         ]
       }
     },
@@ -53498,6 +57078,38 @@
       }
     },
     {
+      "id": "valley",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Tal"
+        ],
+        "en": [
+          "valley"
+        ],
+        "es": [
+          "valle"
+        ],
+        "fr": [
+          "vallée"
+        ],
+        "it": [
+          "valle"
+        ],
+        "nl": [
+          "vallei"
+        ],
+        "pt": [
+          "vale"
+        ],
+        "sv": [
+          "dal"
+        ]
+      }
+    },
+    {
       "id": "vanadinite",
       "categories": [
         "materials/gemstones"
@@ -54254,6 +57866,38 @@
       }
     },
     {
+      "id": "wake",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "aufwachen"
+        ],
+        "en": [
+          "wake"
+        ],
+        "es": [
+          "despertar"
+        ],
+        "fr": [
+          "se réveiller"
+        ],
+        "it": [
+          "svegliarsi"
+        ],
+        "nl": [
+          "ontwaken"
+        ],
+        "pt": [
+          "acordar"
+        ],
+        "sv": [
+          "vakna"
+        ]
+      }
+    },
+    {
       "id": "wakefieldite",
       "categories": [
         "materials/gemstones"
@@ -54261,6 +57905,70 @@
       "languages": {
         "en": [
           "wakefieldite"
+        ]
+      }
+    },
+    {
+      "id": "walk",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "de": [
+          "gehen"
+        ],
+        "en": [
+          "walk"
+        ],
+        "es": [
+          "caminar"
+        ],
+        "fr": [
+          "marcher"
+        ],
+        "it": [
+          "camminare"
+        ],
+        "nl": [
+          "lopen"
+        ],
+        "pt": [
+          "caminhar"
+        ],
+        "sv": [
+          "gå"
+        ]
+      }
+    },
+    {
+      "id": "wall",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Wand"
+        ],
+        "en": [
+          "wall"
+        ],
+        "es": [
+          "muro"
+        ],
+        "fr": [
+          "mur"
+        ],
+        "it": [
+          "muro"
+        ],
+        "nl": [
+          "muur"
+        ],
+        "pt": [
+          "parede"
+        ],
+        "sv": [
+          "vägg"
         ]
       }
     },
@@ -54498,6 +58206,38 @@
       }
     },
     {
+      "id": "war",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Krieg"
+        ],
+        "en": [
+          "war"
+        ],
+        "es": [
+          "guerra"
+        ],
+        "fr": [
+          "guerre"
+        ],
+        "it": [
+          "guerra"
+        ],
+        "nl": [
+          "oorlog"
+        ],
+        "pt": [
+          "guerra"
+        ],
+        "sv": [
+          "krig"
+        ]
+      }
+    },
+    {
       "id": "warthog",
       "categories": [
         "animals/common"
@@ -54612,6 +58352,38 @@
       "languages": {
         "en": [
           "watap"
+        ]
+      }
+    },
+    {
+      "id": "water",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Wasser"
+        ],
+        "en": [
+          "water"
+        ],
+        "es": [
+          "agua"
+        ],
+        "fr": [
+          "eau"
+        ],
+        "it": [
+          "acqua"
+        ],
+        "nl": [
+          "water"
+        ],
+        "pt": [
+          "água"
+        ],
+        "sv": [
+          "vatten"
         ]
       }
     },
@@ -55063,6 +58835,38 @@
       }
     },
     {
+      "id": "wheel",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Rad"
+        ],
+        "en": [
+          "wheel"
+        ],
+        "es": [
+          "rueda"
+        ],
+        "fr": [
+          "roue"
+        ],
+        "it": [
+          "ruota"
+        ],
+        "nl": [
+          "wiel"
+        ],
+        "pt": [
+          "roda"
+        ],
+        "sv": [
+          "hjul"
+        ]
+      }
+    },
+    {
       "id": "whelk",
       "categories": [
         "foods/shellfish"
@@ -55225,6 +59029,38 @@
       }
     },
     {
+      "id": "wife",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Ehefrau"
+        ],
+        "en": [
+          "wife"
+        ],
+        "es": [
+          "esposa"
+        ],
+        "fr": [
+          "épouse"
+        ],
+        "it": [
+          "moglie"
+        ],
+        "nl": [
+          "vrouw"
+        ],
+        "pt": [
+          "esposa"
+        ],
+        "sv": [
+          "fru"
+        ]
+      }
+    },
+    {
       "id": "wigan",
       "categories": [
         "materials/fabrics"
@@ -55293,6 +59129,70 @@
       "languages": {
         "en": [
           "willow"
+        ]
+      }
+    },
+    {
+      "id": "wind",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "de": [
+          "Wind"
+        ],
+        "en": [
+          "wind"
+        ],
+        "es": [
+          "viento"
+        ],
+        "fr": [
+          "vent"
+        ],
+        "it": [
+          "vento"
+        ],
+        "nl": [
+          "wind"
+        ],
+        "pt": [
+          "vento"
+        ],
+        "sv": [
+          "vind"
+        ]
+      }
+    },
+    {
+      "id": "window",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "de": [
+          "Fenster"
+        ],
+        "en": [
+          "window"
+        ],
+        "es": [
+          "ventana"
+        ],
+        "fr": [
+          "fenêtre"
+        ],
+        "it": [
+          "finestra"
+        ],
+        "nl": [
+          "raam"
+        ],
+        "pt": [
+          "janela"
+        ],
+        "sv": [
+          "fönster"
         ]
       }
     },
@@ -55520,6 +59420,38 @@
         "tr": [
           "ayı sansarı",
           "kutup porsuğu"
+        ]
+      }
+    },
+    {
+      "id": "woman",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "de": [
+          "Frau"
+        ],
+        "en": [
+          "woman"
+        ],
+        "es": [
+          "mujer"
+        ],
+        "fr": [
+          "femme"
+        ],
+        "it": [
+          "donna"
+        ],
+        "nl": [
+          "vrouw"
+        ],
+        "pt": [
+          "mulher"
+        ],
+        "sv": [
+          "kvinna"
         ]
       }
     },
@@ -55813,6 +59745,70 @@
         ],
         "tr": [
           "yün"
+        ]
+      }
+    },
+    {
+      "id": "word",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Wort"
+        ],
+        "en": [
+          "word"
+        ],
+        "es": [
+          "palabra"
+        ],
+        "fr": [
+          "mot"
+        ],
+        "it": [
+          "parola"
+        ],
+        "nl": [
+          "woord"
+        ],
+        "pt": [
+          "palavra"
+        ],
+        "sv": [
+          "ord"
+        ]
+      }
+    },
+    {
+      "id": "work",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "de": [
+          "Arbeit"
+        ],
+        "en": [
+          "work"
+        ],
+        "es": [
+          "trabajo"
+        ],
+        "fr": [
+          "travail"
+        ],
+        "it": [
+          "lavoro"
+        ],
+        "nl": [
+          "werk"
+        ],
+        "pt": [
+          "trabalho"
+        ],
+        "sv": [
+          "arbete"
         ]
       }
     },
@@ -56255,6 +60251,7 @@
     {
       "id": "year",
       "categories": [
+        "core/culture-common",
         "words/units-of-time"
       ],
       "languages": {
