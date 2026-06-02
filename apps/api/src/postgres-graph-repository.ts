@@ -19,12 +19,15 @@ import {
   type DoubletsResult,
   type EdgeType,
   type EtymologyGraph,
-  type GraphEdge,
   type GraphNode,
   type GraphTraversalNode,
   type Language,
+  type LanguageDetail,
+  type LanguageDetailResult,
+  languageDetailAncestorSchema,
   type LexicalSummary,
   type LanguagesResult,
+  type PublicGraphEdge,
   type SearchTermsQuery,
   type SearchTermsResult,
   type TermEntriesQuery,
@@ -100,6 +103,25 @@ type ComparisonSetResolvedGroup = {
 type LanguageRow = {
   code: string;
   canonical_name: string;
+};
+
+type LanguageDetailRow = {
+  code: string;
+  canonical_name: string;
+  source: string;
+  wiktionary_url: string | null;
+  wikidata_id: string | null;
+  family_code: string | null;
+  family_name: string | null;
+  family_parent_code: string | null;
+  ancestor_languages: unknown;
+  script_codes: string[];
+  short_description: string | null;
+  description_source_urls: string[];
+  description_status: string;
+  description_model: string | null;
+  description_updated_at: Date | null;
+  graph_node_count: number;
 };
 
 type TermEntryRow = {
@@ -324,16 +346,81 @@ export class PostgresGraphRepository implements GraphRepository {
     const result = await this.pool.query<LanguageRow>(
       `
         SELECT
-          code,
-          canonical_name
+          languages.code,
+          languages.canonical_name
         FROM languages
-        ORDER BY canonical_name, code
+        WHERE EXISTS (
+          SELECT 1
+          FROM graph_nodes
+          WHERE graph_nodes.lang_code = languages.code
+        )
+        ORDER BY languages.canonical_name, languages.code
       `
     );
 
     return {
       languages: result.rows.map(mapLanguageRow)
     };
+  }
+
+  /** Finds one enriched language record for detail pages and graph language explanations. */
+  public async findLanguage(langCode: string): Promise<LanguageDetailResult | undefined> {
+    const result = await this.pool.query<LanguageDetailRow>(
+      `
+        SELECT
+          languages.code,
+          languages.canonical_name,
+          languages.source,
+          languages.wiktionary_url,
+          languages.wikidata_id,
+          languages.family_code,
+          languages.family_name,
+          languages.family_parent_code,
+          COALESCE(ancestor_languages.ancestors, '[]'::jsonb) AS ancestor_languages,
+          languages.script_codes,
+          languages.short_description,
+          languages.description_source_urls,
+          languages.description_status,
+          languages.description_model,
+          languages.description_updated_at,
+          COUNT(graph_nodes.id)::int AS graph_node_count
+        FROM languages
+        LEFT JOIN graph_nodes ON graph_nodes.lang_code = languages.code
+        LEFT JOIN LATERAL (
+          SELECT jsonb_agg(
+            jsonb_strip_nulls(jsonb_build_object(
+              'code', ancestors.code,
+              'canonicalName', ancestors.canonical_name,
+              'shortDescription', NULLIF(ancestors.short_description, '')
+            ))
+            ORDER BY ancestor_codes.ordinality
+          ) AS ancestors
+          FROM unnest(languages.ancestor_codes) WITH ORDINALITY AS ancestor_codes(code, ordinality)
+          JOIN languages AS ancestors ON ancestors.code = ancestor_codes.code
+        ) AS ancestor_languages ON true
+        WHERE languages.code = $1
+        GROUP BY
+          languages.code,
+          languages.canonical_name,
+          languages.source,
+          languages.wiktionary_url,
+          languages.wikidata_id,
+          languages.family_code,
+          languages.family_name,
+          languages.family_parent_code,
+          ancestor_languages.ancestors,
+          languages.script_codes,
+          languages.short_description,
+          languages.description_source_urls,
+          languages.description_status,
+          languages.description_model,
+          languages.description_updated_at
+      `,
+      [langCode]
+    );
+    const row = result.rows[0];
+
+    return row ? { language: mapLanguageDetailRow(row) } : undefined;
   }
 
   /** Finds candidate term nodes by normalized word while keeping search SQL out of handlers. */
@@ -690,7 +777,7 @@ export class PostgresGraphRepository implements GraphRepository {
       graph: {
         rootNodeId: rootNode.id,
         nodes: nodeResult.rows.map(mapNodeRow),
-        edges: edgeResult.rows.map(mapEdgeRow),
+        edges: mapPublicEdgeRows(edgeResult.rows),
         maxDepth: query.maxDepth
       }
     };
@@ -801,7 +888,7 @@ export class PostgresGraphRepository implements GraphRepository {
       graph: {
         rootNodeId: rootNode.id,
         nodes: nodeResult.rows.map(mapNodeRow),
-        edges: edgeResult.rows.map(mapEdgeRow),
+        edges: mapPublicEdgeRows(edgeResult.rows),
         maxDepth: query.maxDepth
       }
     };
@@ -845,7 +932,7 @@ export class PostgresGraphRepository implements GraphRepository {
       groups: groupsWithGraphs.map((group) => ({
         id: group.id,
         label: group.label,
-        items: group.items.map(({ graph: _graph, ...item }) => item)
+        items: group.items.map(comparisonSetItemWithoutGraph)
       }))
     };
   }
@@ -959,7 +1046,7 @@ export class PostgresGraphRepository implements GraphRepository {
       graph: {
         rootNodeId: rootNode.id,
         nodes: nodeResult.rows.map(mapNodeRow),
-        edges: edgeResult.rows.map(mapEdgeRow),
+        edges: mapPublicEdgeRows(edgeResult.rows),
         maxDepth: 1
       }
     };
@@ -1312,7 +1399,7 @@ export class PostgresGraphRepository implements GraphRepository {
       graph: {
         rootNodeId: rootNode.id,
         nodes: nodeResult.rows.map(mapNodeRow),
-        edges: edgeResult.rows.map(mapEdgeRow),
+        edges: mapPublicEdgeRows(edgeResult.rows),
         maxDepth: query.maxDepth
       }
     };
@@ -1442,6 +1529,32 @@ function mapLanguageRow(row: LanguageRow): Language {
   };
 }
 
+/** Maps one enriched language row into the detail DTO used by language pages. */
+function mapLanguageDetailRow(row: LanguageDetailRow): LanguageDetail {
+  return {
+    code: row.code,
+    canonicalName: row.canonical_name,
+    source: row.source,
+    wiktionaryUrl: row.wiktionary_url ?? undefined,
+    wikidataId: row.wikidata_id ?? undefined,
+    family: row.family_code
+      ? {
+          code: row.family_code,
+          name: row.family_name ?? undefined,
+          parentCode: row.family_parent_code ?? undefined
+        }
+      : undefined,
+    ancestors: languageDetailAncestorSchema.array().parse(row.ancestor_languages),
+    scriptCodes: row.script_codes,
+    shortDescription: row.short_description ?? undefined,
+    descriptionSourceUrls: row.description_source_urls,
+    descriptionStatus: row.description_status,
+    descriptionModel: row.description_model ?? undefined,
+    descriptionUpdatedAt: row.description_updated_at?.toISOString(),
+    graphNodeCount: row.graph_node_count
+  };
+}
+
 /** Maps database naming into the graph DTO used by API handlers and clients. */
 function mapNodeRow(row: NodeRow): GraphTraversalNode {
   return {
@@ -1484,6 +1597,13 @@ function findComparisonSetRoot(
   return null;
 }
 
+/** Removes per-item path graphs after they have been merged into the comparison-set graph payload. */
+function comparisonSetItemWithoutGraph({ graph: _graph, ...item }: ComparisonSetResolvedItem): ComparisonSetQuery["groups"][number]["items"][number] {
+  void _graph;
+
+  return item;
+}
+
 /** Combines every successful cognate path into one branch graph rooted at the shared source form. */
 function mergeComparisonSetGraphs(
   query: ComparisonSetQuery,
@@ -1495,7 +1615,7 @@ function mergeComparisonSetGraphs(
   }
 
   const nodesById = new Map<string, GraphTraversalNode>();
-  const edgesById = new Map<string, GraphEdge>();
+  const edgesById = new Map<string, PublicGraphEdge>();
 
   for (const group of groups) {
     for (const item of group.items) {
@@ -1530,7 +1650,7 @@ function mergeComparisonSetGraphs(
 function comparisonSetNodesBySourceDepth(
   rootNodeId: string,
   nodesById: Map<string, GraphTraversalNode>,
-  edges: GraphEdge[]
+  edges: PublicGraphEdge[]
 ): GraphTraversalNode[] {
   const childrenByParentId = new Map<string, string[]>();
 
@@ -1573,19 +1693,58 @@ function mapLexicalSummary(row: BaseNodeRow): LexicalSummary | undefined {
   return mapLexicalSummaryFields(row);
 }
 
-/** Maps edge rows while checking that stored edge values still match shared graph types. */
-function mapEdgeRow(row: EdgeRow): GraphEdge {
+/** Removes entry ownership from graph responses and collapses duplicate display relationships. */
+function mapPublicEdgeRows(rows: EdgeRow[]): PublicGraphEdge[] {
+  const edgesByDisplayId = new Map<string, PublicGraphEdge>();
+
+  for (const row of rows) {
+    const edge = mapPublicEdgeRow(row);
+    const existing = edgesByDisplayId.get(edge.id);
+
+    edgesByDisplayId.set(edge.id, existing ? preferredPublicEdge(existing, edge) : edge);
+  }
+
+  return [...edgesByDisplayId.values()].sort((left, right) => left.id.localeCompare(right.id));
+}
+
+/** Maps edge rows while checking that stored edge values still match shared public graph types. */
+function mapPublicEdgeRow(row: EdgeRow): PublicGraphEdge {
   return {
-    id: row.id,
+    id: publicEdgeId(row),
     fromNodeId: row.from_node_id,
     toNodeId: row.to_node_id,
     type: parseEdgeType(row.edge_type),
     source: parseEdgeSource(row.source),
     etymologyNumber: row.etymology_number ?? undefined,
     templateName: row.template_name ?? undefined,
-    uncertain: row.uncertain,
-    originatingEntryId: row.originating_entry_id
+    uncertain: row.uncertain
   };
+}
+
+/** Gives clients one edge per visible relationship instead of one per owning lexical entry. */
+function publicEdgeId(row: EdgeRow): string {
+  return `${row.from_node_id}:${row.edge_type}:${row.to_node_id}`;
+}
+
+/** Preserves the clearest presentation metadata when duplicate entry-owned rows collapse together. */
+function preferredPublicEdge(left: PublicGraphEdge, right: PublicGraphEdge): PublicGraphEdge {
+  if (left.uncertain && !right.uncertain) {
+    return right;
+  }
+
+  if (!left.uncertain && right.uncertain) {
+    return left;
+  }
+
+  if (left.etymologyNumber === undefined && right.etymologyNumber !== undefined) {
+    return right;
+  }
+
+  if (left.templateName === undefined && right.templateName !== undefined) {
+    return right;
+  }
+
+  return left;
 }
 
 /** Maps lexical entry rows into the compact summary the chooser UI renders for each homograph. */

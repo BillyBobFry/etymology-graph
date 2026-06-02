@@ -9,7 +9,10 @@
     "import:sample": "tsx src/sample.ts",
     "seed:extract:popular": "tsx src/extract-popular-seed.ts",
     "seed:expand:prod": "tsx src/expand-popular-seed.ts",
-    "seed:languages": "tsx src/import-languages.ts",
+    "seed:languages": "pnpm seed:languages:generate",
+    "seed:languages:generate": "tsx src/generate-language-seed.ts",
+    "seed:languages:validate": "tsx src/validate-language-seed.ts",
+    "seed:languages:import": "tsx src/import-languages.ts",
     "import:batch-preview": "tsx src/batch-preview.ts",
     "import:db": "tsx src/import-db.ts"
   },

@@ -73,6 +73,8 @@ const isGraphExpanded = ref(false);
 const isBodyScrollLocked = useScrollLock(() => document.body);
 const nodeContextMenu = ref<ContextMenuInstance | null>(null);
 const usesDesktopGraphLayout = useMediaQuery("(min-width: 768px)");
+const canDragGraphNodes = computed(() => usesDesktopGraphLayout.value || isGraphExpanded.value);
+const isInlineScrollHandoffEnabled = computed(() => !isGraphExpanded.value);
 const graphNodeBounds = ref<GraphViewportContentBounds | null>(null);
 const {
   svgRef,
@@ -97,7 +99,8 @@ const {
   width: graphCanvasWidth,
   height: graphCanvasHeight,
   minZoom: 0.12,
-  contentBounds: graphNodeBounds
+  contentBounds: graphNodeBounds,
+  isInlineScrollHandoffEnabled
 });
 
 const {
@@ -140,6 +143,7 @@ const {
   panY,
   zoom,
   graphLayoutOrientation,
+  isNodeDragEnabled: canDragGraphNodes,
   nodeX,
   nodeY,
   requestRenderTick,
@@ -149,6 +153,19 @@ const {
 });
 const selectedNode = computed(() => nodes.value.find((node) => node.id === selectedNodeId.value));
 const nodesById = computed(() => new Map(nodes.value.map((node) => [node.id, node])));
+const graphInteractionAriaLabel = computed(() => {
+  const graphSummary = `Force-directed etymology graph with ${props.graph.nodes.length} words and ${props.graph.edges.length} relationships.`;
+
+  if (isInlineScrollHandoffEnabled.value) {
+    return `${graphSummary} Scroll or swipe to pan the graph. When the graph reaches an edge, the page scrolls. Pinch to zoom. Use plus, minus, arrow keys, or zero when focused.`;
+  }
+
+  if (canDragGraphNodes.value) {
+    return `${graphSummary} Drag or use two fingers to pan. Pinch, double-click, or press control and wheel to zoom. Use plus, minus, arrow keys, or zero when focused.`;
+  }
+
+  return `${graphSummary} Drag or use keyboard shortcuts to pan. Pinch, double-click, or press control and wheel to zoom. Use plus, minus, arrow keys, or zero when focused.`;
+});
 const languagesQuery = useLanguagesQuery();
 const languageNamesByCode = computed(
   () => new Map(languagesQuery.data.value?.languages.map((language) => [language.code, language.canonicalName]) ?? [])
@@ -434,6 +451,7 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
       v-model:guide-open="isGraphGuideOpen"
       :zoom-percentage="zoomPercentage"
       :expanded="isGraphExpanded"
+      :uses-desktop-layout="usesDesktopGraphLayout"
       @zoom-out="zoomOut"
       @zoom-in="zoomIn"
       @reset="resetGraphLayout"
@@ -451,16 +469,17 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
       <template #trigger="{ getContextTriggerProps }">
         <svg
           ref="svgRef"
-          class="relative z-1 block w-full cursor-grab touch-none select-none focus-visible:outline-[3px] focus-visible:outline-offset-[-6px] focus-visible:outline-accent/40 focus:outline-none"
+          class="relative z-1 block w-full touch-none select-none focus-visible:outline-[3px] focus-visible:outline-offset-[-6px] focus-visible:outline-accent/40 focus:outline-none h-full"
           :class="[
-            isGraphExpanded ? 'h-full min-h-dvh' : 'min-h-[min(72dvh,560px)] md:min-h-[360px]',
+            isGraphExpanded ? 'min-h-dvh' : 'min-h-[min(72dvh,560px)] md:min-h-[360px]',
+            canDragGraphNodes ? 'cursor-grab' : 'cursor-default',
             isPanning && 'cursor-grabbing'
           ]"
           :viewBox="viewBox"
           role="img"
           tabindex="0"
           aria-keyshortcuts="+ - ArrowUp ArrowDown ArrowLeft ArrowRight 0 Home"
-          :aria-label="`Force-directed etymology graph with ${graph.nodes.length} nodes and ${graph.edges.length} edges. Drag or use two fingers to pan. Pinch, double-click, or press control and wheel to zoom. Use plus, minus, arrow keys, or zero when focused.`"
+          :aria-label="graphInteractionAriaLabel"
           @pointerdown="handlePointerDown"
           @pointermove="handlePointerMove"
           @pointerup="handlePointerUp"
@@ -492,6 +511,7 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
               :context-menu-open="isNodeContextMenuOpen"
               :zoom="zoom"
               :uses-desktop-graph-layout="usesDesktopGraphLayout"
+              :can-drag-nodes="canDragGraphNodes"
               :get-context-trigger-props="getContextTriggerProps"
               :node-x="nodeX"
               :node-y="nodeY"

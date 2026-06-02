@@ -56,7 +56,7 @@ function matchPartOfSpeechLabel(match: TermsWithAncestorLanguageMatch): string |
 /** Keeps the traversal length badge grammatically compact. */
 function edgeCountLabel(match: TermsWithAncestorLanguageMatch): string {
   return `${match.pathEdgeIds.length} ${
-    match.pathEdgeIds.length === 1 ? "edge" : "edges"
+    match.pathEdgeIds.length === 1 ? "step" : "steps"
   }`;
 }
 </script>

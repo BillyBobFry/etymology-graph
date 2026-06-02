@@ -125,7 +125,7 @@ const resultHeading = computed(() => {
     return "Choose two languages";
   }
 
-  return `${descendantLanguage.value.canonicalName} words with ${ancestorLanguage.value.canonicalName} ancestors`;
+  return `${descendantLanguage.value.canonicalName} words from ${ancestorLanguage.value.canonicalName}`;
 });
 
 watch([routeDescendantLangCode, routeAncestorLangCode], syncLanguagePairFromRoute, { immediate: true });
@@ -272,10 +272,10 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
   <PageMain>
     <section class="border-b border-border-strong pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-        Source language lookup
+        Source languages
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
-        Find links between languages.
+        Map words from one language to an older source.
       </h1>
       <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
         Search one language for entries whose ancestry reaches a selected source language.
@@ -288,7 +288,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
           Language pair
         </p>
         <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
-          Set the result language and the source language.
+          Set the word language and the source language.
         </h2>
       </div>
       <div class="grid gap-3 rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper sm:grid-cols-2">
@@ -302,7 +302,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
         <LanguageSelector
           id="ancestor-language-source"
           v-model="ancestorLangCode"
-          label="Ancestor in"
+          label="Source language"
           placeholder="Choose a source language"
         />
       </div>
@@ -344,7 +344,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
       </div>
 
       <div v-else-if="resultsStatus === 'error'" class="rounded-[3px] border border-danger/50 bg-surface/60 p-5 text-danger shadow-paper">
-        Ancestor language search failed.
+        Could not load matches for this pair.
       </div>
 
       <AncestorLanguageSearchEmptyState

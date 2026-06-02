@@ -1,13 +1,17 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import { RouterLink, type RouteLocationRaw } from "vue-router";
+
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 type ButtonType = "button" | "submit" | "reset";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     variant?: ButtonVariant;
     size?: ButtonSize;
     type?: ButtonType;
+    to?: RouteLocationRaw;
     disabled?: boolean;
     loading?: boolean;
     fullWidth?: boolean;
@@ -26,8 +30,11 @@ withDefaults(
   }
 );
 
+const isLink = computed(() => props.to !== undefined);
+const buttonComponent = computed(() => (isLink.value ? RouterLink : "button"));
+const disabledClass = computed(() => (props.disabled || props.loading ? "cursor-not-allowed opacity-65" : "cursor-pointer"));
 const baseClass =
-  "inline-flex items-center justify-center gap-2 rounded-lg border font-label font-bold leading-none transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-65";
+  "inline-flex items-center justify-center gap-2 rounded-md border font-label font-bold leading-none transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
@@ -47,20 +54,36 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const activeClass = "bg-surface-muted text-text";
+
+/** Keeps link-shaped buttons from navigating while they are inactive. */
+const preventInactiveLinkClick = (event: MouseEvent): void => {
+  if (!isLink.value || (!props.disabled && !props.loading)) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+};
 </script>
 
 <template>
-  <button
-    :type="type"
-    :disabled="disabled || loading"
+  <component
+    :is="buttonComponent"
+    :to="to"
+    :type="isLink ? undefined : type"
+    :disabled="isLink ? undefined : disabled || loading"
     :aria-busy="loading"
+    :aria-disabled="isLink && (disabled || loading) ? 'true' : undefined"
+    :tabindex="isLink && (disabled || loading) ? -1 : undefined"
     :class="[
       baseClass,
       variantClasses[variant],
       sizeClasses[size],
+      disabledClass,
       active ? activeClass : '',
       fullWidth ? 'w-full' : 'w-fit'
     ]"
+    @click="preventInactiveLinkClick"
   >
     <span
       v-if="loading"
@@ -70,5 +93,5 @@ const activeClass = "bg-surface-muted text-text";
     <span>
       <slot>{{ loading ? loadingLabel : "" }}</slot>
     </span>
-  </button>
+  </component>
 </template>

@@ -258,7 +258,7 @@ function pathFromNodeToRoot(graph: EtymologyGraph, startNodeId: string, rootNode
       :annotations="resolvedAnnotations"
       :loading-label="`Loading ${example.title} comparison graph...`"
       :error-text="`Could not load the ${example.title} comparison graph.`"
-      empty-text="No imported comparison paths are available yet for this sound change."
+      empty-text="No comparison examples are in the index for this pattern yet."
     />
   </article>
 </template>

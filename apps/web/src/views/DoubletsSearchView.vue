@@ -121,7 +121,7 @@ const resultHeading = computed(() =>
 const resultHelpText = computed(() =>
   selectedLanguage.value
     ? `Browse ${selectedLanguage.value.canonicalName} entries grouped by shared ancestors.`
-    : "Choose an imported language to find same-language entries that reconnect through shared ancestry."
+    : "Choose a language to find same-language entries that reconnect through shared ancestry."
 );
 
 watch(routeLangCode, syncLanguageFromRoute, { immediate: true });
@@ -243,10 +243,10 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
   <PageMain>
     <section class="border-b border-border-strong pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-        Doublet lookup
+        Doublets
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
-        Find words with a shared ancestry.
+        Find words that split from one source.
       </h1>
       <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
         Doublets are words in the same language that trace back to one source, like
@@ -291,11 +291,11 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
 
       <div v-if="resultsStatus === 'idle'" class="grid max-w-2xl gap-2 py-2 text-text-page-muted">
         <h3 class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
-          Choose an imported language
+          Choose a language
         </h3>
         <p class="leading-7">
-          Doublet groups are built from imported entries with explicit ancestry. Pick a language above to
-          browse the groups currently available in the local graph.
+          Doublet groups list same-language words that share a source. Pick a language above to browse the
+          groups currently available in the index.
         </p>
       </div>
 
@@ -316,16 +316,16 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
       </div>
 
       <div v-else-if="resultsStatus === 'error'" class="rounded-[3px] border border-danger/50 bg-surface/60 p-5 text-danger shadow-paper">
-        Doublet groups failed to load.
+        Could not load doublet groups.
       </div>
 
       <div v-else-if="resultsStatus === 'empty'" class="grid gap-2 py-2 text-text-page-muted">
         <h3 class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
-          No imported doublet groups
+          No doublet groups for this language yet
         </h3>
         <p class="max-w-2xl leading-7">
-          No entries in this language currently share an imported ancestor within the search depth. Try
-          another language or import a broader seed set.
+          No entries in this language currently share a source within the search depth. Try another language
+          or open a starter term.
         </p>
       </div>
 

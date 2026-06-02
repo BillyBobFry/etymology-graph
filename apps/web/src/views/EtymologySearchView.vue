@@ -35,7 +35,7 @@ function openStarterTerm(term: string): void {
   <PageMain>
     <section class="border-b border-border-strong pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-        Etymology lookup
+        Word lineages
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
         Trace a word to its sources.
@@ -52,7 +52,7 @@ function openStarterTerm(term: string): void {
           Search the index
         </p>
         <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
-          Open a canonical word page
+          Open a word in the atlas
         </h2>
       </div>
       <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">

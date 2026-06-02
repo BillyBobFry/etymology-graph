@@ -213,6 +213,35 @@ describe("previewEntry", () => {
     expect(edgeIds).not.toContain("la:faciō:derived_from:la:agō:from:es:hacer:entry:verb:0");
   });
 
+  it("uses a diacritic-bearing displayed source form when the link target is plain ASCII", () => {
+    const entry: WiktextractEntry = {
+      word: "hombre",
+      lang: "Spanish",
+      lang_code: "es",
+      pos: "noun",
+      etymology_text:
+        "Inherited from Old Spanish omne, from Latin hominem, homō, from Old Latin hemō, from Proto-Indo-European *ǵʰmṓ (“earthling”).",
+      etymology_templates: [
+        template("inh", "es", "osp", "omne", "Old Spanish omne"),
+        template("inh", "es", "la", "homo", "Latin hominem, homō", { "4": "hominem, homō" }),
+        template("inh", "es", "itc-ola", "hemō", "Old Latin hemō"),
+        template("inh", "es", "ine-pro", "*ǵʰmṓ", "Proto-Indo-European *ǵʰmṓ (“earthling”)")
+      ]
+    };
+
+    const edgeIds = previewEdgeIds(entry);
+
+    expect(edgeIds).toMatchInlineSnapshot(`
+      [
+        "es:hombre:inherited_from:osp:omne:from:es:hombre:entry:noun:0",
+        "osp:omne:inherited_from:la:homō:from:es:hombre:entry:noun:0",
+        "la:homō:inherited_from:itc-ola:hemō:from:es:hombre:entry:noun:0",
+        "itc-ola:hemō:inherited_from:ine-pro:*ǵʰmṓ:from:es:hombre:entry:noun:0",
+      ]
+    `);
+    expect(edgeIds).not.toContain("osp:omne:inherited_from:la:homo:from:es:hombre:entry:noun:0");
+  });
+
   it("does not split an ancestry chain for or inside a parenthetical gloss", () => {
     const entry: WiktextractEntry = {
       word: "wait",
@@ -236,6 +265,36 @@ describe("previewEntry", () => {
       ]
     `);
     expect(edgeIds).not.toContain("en:wait:derived_from:non:veita:from:en:wait:entry:verb:0");
+  });
+
+  it("keeps either-from source notes attached to the previous ancestor", () => {
+    const entry: WiktextractEntry = {
+      word: "balk",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_number: 1,
+      etymology_text:
+        "From Middle English balke, from Old English balca, either from or influenced by Old Norse bálkr (“partition, ridge of land”), from Proto-Germanic *balkô.",
+      etymology_templates: [
+        template("inh", "en", "enm", "balke", "Middle English balke"),
+        template("inh", "en", "ang", "balca", "Old English balca"),
+        template("der", "en", "non", "bálkr", "Old Norse bálkr (“partition, ridge of land”)"),
+        template("inh", "en", "gem-pro", "*balkô", "Proto-Germanic *balkô")
+      ]
+    };
+
+    const edgeIds = previewEdgeIds(entry);
+
+    expect(edgeIds).toMatchInlineSnapshot(`
+      [
+        "en:balk:inherited_from:enm:balke:from:en:balk:entry:noun:1",
+        "enm:balke:inherited_from:ang:balca:from:en:balk:entry:noun:1",
+        "ang:balca:derived_from:non:bálkr:from:en:balk:entry:noun:1",
+        "non:bálkr:inherited_from:gem-pro:*balkô:from:en:balk:entry:noun:1",
+      ]
+    `);
+    expect(edgeIds).not.toContain("en:balk:derived_from:non:bálkr:from:en:balk:entry:noun:1");
   });
 
   it("keeps same-sentence alternative sources attached to the branch base", () => {

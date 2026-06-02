@@ -14,6 +14,7 @@ const props = defineProps<{
   contextMenuOpen: boolean;
   zoom: number;
   usesDesktopGraphLayout: boolean;
+  canDragNodes: boolean;
   getContextTriggerProps: (options: { value: string }) => HTMLAttributes;
   nodeX: (node: PositionedGraphNode) => number;
   nodeY: (node: PositionedGraphNode) => number;
@@ -28,7 +29,8 @@ const emit = defineEmits<{
   keydown: [event: KeyboardEvent, node: PositionedGraphNode];
 }>();
 
-const graphNodeClass = "group cursor-grab outline-none";
+const graphNodeClass = "group outline-none";
+const draggableGraphNodeClass = "cursor-grab";
 const draggingGraphNodeClass = "cursor-grabbing";
 const graphNodeCircleClass =
   "fill-graph-node stroke-descendant stroke-[3] transition-[fill,filter,stroke,stroke-width] duration-150 ease-in [filter:drop-shadow(0_1px_2px_color-mix(in_oklch,var(--theme-text)_16%,transparent))] group-hover:fill-surface-raised group-hover:stroke-accent group-hover:stroke-[5] group-hover:[filter:drop-shadow(0_2px_4px_color-mix(in_oklch,var(--theme-text)_22%,transparent))] group-focus-visible:fill-surface-raised group-focus-visible:stroke-accent group-focus-visible:stroke-[5] group-focus-visible:[filter:drop-shadow(0_2px_4px_color-mix(in_oklch,var(--theme-text)_22%,transparent))]";
@@ -45,6 +47,33 @@ const graphNodeIpaTextClass =
   `${graphNodeTextClass} fill-[color-mix(in_oklch,var(--theme-ancestor)_72%,var(--theme-text-muted))] font-normal tracking-[0.01em]`;
 const graphNodeWordFontSize = computed(() => 18 * dampenedLabelFontScale(props.zoom));
 const graphNodeMetaFontSize = computed(() => 12 * dampenedLabelFontScale(props.zoom));
+
+/** Starts node dragging only when the current surface can safely own drag gestures. */
+function handlePointerDown(event: PointerEvent, node: PositionedGraphNode): void {
+  if (!props.canDragNodes) {
+    return;
+  }
+
+  emit("pointer-down", event, node);
+}
+
+/** Keeps disabled mobile node drags from swallowing canvas pan and scroll gestures. */
+function handlePointerMove(event: PointerEvent, node: PositionedGraphNode): void {
+  if (!props.canDragNodes) {
+    return;
+  }
+
+  emit("pointer-move", event, node);
+}
+
+/** Completes node dragging only for surfaces that started a node drag. */
+function handlePointerUp(event: PointerEvent, node: PositionedGraphNode): void {
+  if (!props.canDragNodes) {
+    return;
+  }
+
+  emit("pointer-up", event, node);
+}
 
 /** Keeps graph labels readable while preventing zoomed-in text from crowding nearby nodes. */
 function dampenedLabelFontScale(zoom: number): number {
@@ -64,17 +93,17 @@ function clamp(value: number, min: number, max: number): number {
       v-for="node in nodes"
       :key="node.id"
       v-bind="usesDesktopGraphLayout ? getContextTriggerProps({ value: node.id }) : {}"
-      :class="[graphNodeClass, isNodeDragging(node) && draggingGraphNodeClass]"
+      :class="[graphNodeClass, canDragNodes && draggableGraphNodeClass, isNodeDragging(node) && draggingGraphNodeClass]"
       :transform="`translate(${nodeX(node)}, ${nodeY(node)})`"
       role="button"
       tabindex="0"
       :aria-label="nodeAriaLabel(node)"
       @click.stop="emit('click', node)"
-      @pointerdown.stop="emit('pointer-down', $event, node)"
-      @pointermove.stop="emit('pointer-move', $event, node)"
-      @pointerup.stop="emit('pointer-up', $event, node)"
-      @pointercancel.stop="emit('pointer-up', $event, node)"
-      @lostpointercapture.stop="emit('pointer-up', $event, node)"
+      @pointerdown="handlePointerDown($event, node)"
+      @pointermove="handlePointerMove($event, node)"
+      @pointerup="handlePointerUp($event, node)"
+      @pointercancel="handlePointerUp($event, node)"
+      @lostpointercapture="handlePointerUp($event, node)"
       @dblclick.stop
       @keydown="emit('keydown', $event, node)"
     >

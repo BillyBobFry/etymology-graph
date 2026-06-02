@@ -40,6 +40,7 @@ type GraphViewportOptions = {
   keyboardPanStep?: number;
   contentVisibleBuffer?: number;
   contentBounds?: Readonly<Ref<GraphViewportContentBounds | null>>;
+  isInlineScrollHandoffEnabled?: Readonly<Ref<boolean>>;
 };
 
 type GraphViewportControls = {
@@ -72,6 +73,7 @@ const wheelZoomSensitivity = 0.002;
 const lineWheelPixels = 16;
 const defaultContentVisibleBuffer = 24;
 const viewportChangeEpsilon = 0.01;
+const verticalTouchIntentRatio = 1.15;
 
 /** Coordinates graph pan and zoom interactions around one SVG viewport transform. */
 export function useGraphViewport(options: GraphViewportOptions): GraphViewportControls {
@@ -83,6 +85,7 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
   const isPanning = ref(false);
   const homeViewport = ref<ViewportState>({ panX: 0, panY: 0, zoom: 1 });
   const pointers = new Map<number, ViewportPoint>();
+  const clientPointers = new Map<number, ViewportPoint>();
 
   const minZoom = options.minZoom ?? defaultMinZoom;
   const maxZoom = options.maxZoom ?? defaultMaxZoom;
@@ -91,6 +94,11 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
   const contentVisibleBuffer = options.contentVisibleBuffer ?? defaultContentVisibleBuffer;
   let lastSinglePointer: ViewportPoint | null = null;
   let lastPinch: PinchSnapshot | null = null;
+
+  /** Enables inline graphs to pass scroll gestures to the page at graph edges. */
+  function isInlineScrollHandoffEnabled(): boolean {
+    return options.isInlineScrollHandoffEnabled?.value ?? false;
+  }
 
   const viewportFrame = computed(() =>
     viewportFrameForRenderedSize(options.width, options.height, renderedWidth.value, renderedHeight.value)
@@ -187,6 +195,7 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
 
     const point = clientPointToViewportPoint(event.clientX, event.clientY);
     pointers.set(event.pointerId, point);
+    clientPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     capturePointer(event.currentTarget, event.pointerId);
 
     if (pointers.size >= 2) {
@@ -205,16 +214,28 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
       return;
     }
 
+    const previousClientPoint = clientPointers.get(event.pointerId) ?? { x: event.clientX, y: event.clientY };
+    const clientDelta = {
+      x: event.clientX - previousClientPoint.x,
+      y: event.clientY - previousClientPoint.y
+    };
     const point = clientPointToViewportPoint(event.clientX, event.clientY);
     pointers.set(event.pointerId, point);
+    clientPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
     if (pointers.size >= 2) {
       updatePinchGesture();
-    } else {
-      updatePanGesture(point);
+      event.preventDefault();
+      return;
     }
 
-    event.preventDefault();
+    if (event.pointerType === "touch" && isInlineScrollHandoffEnabled()) {
+      updateTouchPanOrScrollGesture(point, clientDelta);
+      event.preventDefault();
+    } else {
+      updatePanGesture(point);
+      event.preventDefault();
+    }
   }
 
   /** Ends pointer tracking and keeps any remaining touch ready to continue panning. */
@@ -224,6 +245,7 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     }
 
     pointers.delete(event.pointerId);
+    clientPointers.delete(event.pointerId);
     releasePointer(event.currentTarget, event.pointerId);
 
     if (pointers.size === 1) {
@@ -252,13 +274,17 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
       event.preventDefault();
       return;
     } else if (event.shiftKey && deltaX === 0) {
-      if (panBy(-deltaY, 0)) {
+      const didPan = isInlineScrollHandoffEnabled() ? panInlineScrollBy(-deltaY, 0) : panBy(-deltaY, 0);
+
+      if (didPan) {
         event.preventDefault();
       }
       return;
     }
 
-    if (panBy(-deltaX, -deltaY)) {
+    const didPan = isInlineScrollHandoffEnabled() ? panInlineScrollBy(-deltaX, -deltaY) : panBy(-deltaX, -deltaY);
+
+    if (didPan) {
       event.preventDefault();
     }
   }
@@ -358,6 +384,67 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     }
 
     lastSinglePointer = point;
+  }
+
+  /** Pans inline mobile graphs until the vertical gesture reaches an edge, then scrolls the page. */
+  function updateTouchPanOrScrollGesture(point: ViewportPoint, clientDelta: ViewportPoint): void {
+    if (!lastSinglePointer) {
+      lastSinglePointer = point;
+      return;
+    }
+
+    const deltaX = point.x - lastSinglePointer.x;
+    const deltaY = point.y - lastSinglePointer.y;
+    const isVerticalScrollIntent = Math.abs(clientDelta.y) > Math.abs(clientDelta.x) * verticalTouchIntentRatio;
+    const didPan = isVerticalScrollIntent ? panInlineScrollBy(0, deltaY) : panBy(deltaX, deltaY);
+
+    if (didPan) {
+      isPanning.value = true;
+      lastSinglePointer = point;
+    } else if (isVerticalScrollIntent) {
+      window.scrollBy(0, -clientDelta.y);
+      isPanning.value = false;
+      lastSinglePointer = null;
+    } else {
+      lastSinglePointer = point;
+    }
+  }
+
+  /** Keeps scroll gestures from pushing currently visible graph content past the canvas edge. */
+  function panInlineScrollBy(deltaX: number, deltaY: number): boolean {
+    const bounds = options.contentBounds?.value;
+
+    if (!hasUsableContentBounds(bounds)) {
+      return panBy(deltaX, deltaY);
+    }
+
+    const frame = viewportFrame.value;
+    const frameRight = frame.x + frame.width;
+    const frameBottom = frame.y + frame.height;
+    const currentLeft = bounds.minX * zoom.value + panX.value;
+    const currentRight = bounds.maxX * zoom.value + panX.value;
+    const currentTop = bounds.minY * zoom.value + panY.value;
+    const currentBottom = bounds.maxY * zoom.value + panY.value;
+    let nextPanX = panX.value;
+    let nextPanY = panY.value;
+
+    if (deltaX < 0 && currentRight > frameRight + viewportChangeEpsilon) {
+      nextPanX = Math.max(nextPanX + deltaX, frameRight - bounds.maxX * zoom.value);
+    } else if (deltaX > 0 && currentLeft < frame.x - viewportChangeEpsilon) {
+      nextPanX = Math.min(nextPanX + deltaX, frame.x - bounds.minX * zoom.value);
+    }
+
+    if (deltaY < 0 && currentBottom > frameBottom + viewportChangeEpsilon) {
+      nextPanY = Math.max(nextPanY + deltaY, frameBottom - bounds.maxY * zoom.value);
+    } else if (deltaY > 0 && currentTop < frame.y - viewportChangeEpsilon) {
+      nextPanY = Math.min(nextPanY + deltaY, frame.y - bounds.minY * zoom.value);
+    }
+
+    return applyViewport({
+      panX: nextPanX,
+      panY: nextPanY,
+      zoom: zoom.value
+    });
   }
 
   /** Captures the active two-pointer pinch geometry if enough pointers are present. */

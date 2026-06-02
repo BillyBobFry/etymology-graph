@@ -14,11 +14,15 @@ alwaysApply: false
 - Ensure layouts work across screen sizes. Design mobile, tablet, and desktop behavior intentionally, especially for graph visualizations, side panels, forms, and long text.
 - Preserve keyboard and screen-reader usability. Interactive states should have visible `focus-visible` styles for keyboard focus only, meaningful labels, semantic elements, and ARIA only where native semantics are insufficient.
 - Make clickable elements visibly interactive. Use `cursor: pointer` and provide clear hover and focus states for buttons, links, selectable graph nodes, and custom controls so users can discover what can be clicked.
+- Use `Link.vue` for text that navigates to another route or external URL, so users learn one consistent treatment for clickable navigational text.
+- Do not use `Link.vue` for every navigational surface. Header nav items, brand marks, CTA buttons, and route-card surfaces may keep contextual `RouterLink` or `<a>` styling when their shape, label, hover state, and focus state already make the navigation affordance clear.
+- Avoid one-off hover, underline, focus, or color classes on ordinary text links. If the link is just text, use the shared `Link.vue` treatment.
 - When a popover or menu is open, its trigger should use the shared `active` button state so the open control remains visibly connected to the floating surface.
 - Follow established interaction conventions. Buttons, links, forms, menus, comboboxes, focus behavior, keyboard shortcuts, scrolling, and browser affordances should behave the way users expect unless there is a clear product reason to diverge.
 - Do not make custom UI clever at the expense of predictability. Prefer native platform behavior and familiar patterns over surprising gestures, hidden interactions, or non-standard control semantics.
 - Keep motion purposeful and modest. Use animation to clarify transitions or graph changes, and respect reduced-motion preferences for non-essential movement.
 - Prefer progressive disclosure for dense etymology data. Show the most important relationship first, then reveal metadata, source details, and raw text on demand.
+- Show languages by canonical name in user-facing UI. Do not display language codes such as `en`, `pgd`, or `ine-pro` unless the canonical name is unavailable and the code is the only fallback.
 
 ## Loading Skeletons
 
@@ -43,6 +47,7 @@ alwaysApply: false
 - `Badge.vue`: use for compact, passive metadata labels such as statuses, relationship types, required markers, and non-interactive categories. Use `variant="custom"` with a caller-provided `--badge-color` when a badge should inherit a local semantic color.
 - `Button.vue`: use for text-labeled actions, form submits, destructive actions, loading states, full-width actions, and active popover/menu triggers.
 - `IconButton.vue`: use for compact icon-only actions. Always pass a clear `label`; use `active` when it controls an open or selected state.
+- `Link.vue`: use for prose, metadata, breadcrumb, and other text links that navigate to routes or external URLs. Use `variant="plain"` only when wrapping a child that already has clear link affordance, such as a linked badge.
 - `TextField.vue`: use for labeled text-like inputs with help text, required copy, validation copy, and `v-model`.
 - `TextFieldBase.vue`: use only inside higher-level input components when the label, help text, and validation wrapper are supplied elsewhere.
 - `Combobox.vue`: use when users type to filter or choose from a known option list, including search/select flows with empty states and optional custom values.
@@ -51,5 +56,5 @@ alwaysApply: false
 - `StatusNote.vue`: use for compact contextual status messages, especially non-displacing overlays inside graph/data result frames. Make persistent explanatory notes dismissible when they may obscure content.
 - `ContextMenu.vue`: use for action menus tied to a trigger or contextual graph/item target; keep options short, predictable, and keyboard accessible.
 - `MenuItem.vue`: use inside menu-like listbox surfaces to keep option, selected, highlighted, and disabled styling consistent.
-- `Divider.vue`: use for semantic horizontal separation inside grouped controls, menus, or compact panels.
+- `Divider.vue`: use for semantic horizontal separation between page sections, grouped controls, menus, and compact panels. Do not use ad hoc `border-b`, `border-t`, or one-off `<hr>` styling when a standalone section divider is the thing being rendered.
 - This directory is intentionally not a complete design system. If an agent thinks a new low-level reusable component is needed, it should confirm with Will before building so he can weigh in on whether it is needed and how it should work.

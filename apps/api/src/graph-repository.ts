@@ -11,6 +11,7 @@ import type {
   DoubletGroupsResult,
   DoubletsQuery,
   DoubletsResult,
+  LanguageDetailResult,
   LanguagesResult,
   SearchTermsQuery,
   SearchTermsResult,
@@ -22,6 +23,7 @@ import type {
 
 export type GraphRepository = {
   listLanguages(): Promise<LanguagesResult>;
+  findLanguage(langCode: string): Promise<LanguageDetailResult | undefined>;
   searchTerms(query: SearchTermsQuery): Promise<SearchTermsResult>;
   listTermEntries(query: TermEntriesQuery): Promise<TermEntriesResult>;
   findAncestors(query: AncestorsQuery): Promise<AncestorsResult>;

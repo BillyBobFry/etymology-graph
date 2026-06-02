@@ -7,6 +7,8 @@ import EtymologySearchView from "./views/EtymologySearchView.vue";
 import { findSoundChangeArticle } from "./features/soundChanges/soundChanges";
 import EtymologyView from "./views/EtymologyView.vue";
 import HomeView from "./views/HomeView.vue";
+import LanguageDetailView from "./views/LanguageDetailView.vue";
+import LogoStudyView from "./views/LogoStudyView.vue";
 import NotFoundView from "./views/NotFoundView.vue";
 import SoundChangeArticleView from "./views/SoundChangeArticleView.vue";
 import SoundChangesView from "./views/SoundChangesView.vue";
@@ -34,11 +36,19 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: "/logo",
+    name: "logo-study",
+    component: LogoStudyView,
+    meta: {
+      title: "Logo Study"
+    }
+  },
+  {
     path: "/etymology",
     name: "etymology-search",
     component: EtymologySearchView,
     meta: {
-      title: "Etymology Lookup"
+      title: "Word Lineages"
     }
   },
   {
@@ -78,7 +88,7 @@ const routes: RouteRecordRaw[] = [
     name: "ancestor-language-search",
     component: AncestorLanguageSearchView,
     meta: {
-      title: "Source Language Lookup"
+      title: "Source Languages"
     }
   },
   {
@@ -87,6 +97,14 @@ const routes: RouteRecordRaw[] = [
     component: AncestorLanguageSearchView,
     meta: {
       title: ancestorLanguageResultsRouteTitle
+    }
+  },
+  {
+    path: "/languages/:langCode",
+    name: "language-detail",
+    component: LanguageDetailView,
+    meta: {
+      title: languageDetailRouteTitle
     }
   },
   {
@@ -149,8 +167,15 @@ function ancestorLanguageResultsRouteTitle(
   const ancestorLangCode = firstRouteParam(route.params.ancestorLangCode);
 
   return langCode && ancestorLangCode
-    ? `${context.languageNameForCode(langCode)} Words From ${context.languageNameForCode(ancestorLangCode)}`
-    : "Source Language Lookup";
+    ? `${context.languageNameForCode(langCode)} from ${context.languageNameForCode(ancestorLangCode)}`
+    : "Source Languages";
+}
+
+/** Names language detail tabs after the selected language code. */
+function languageDetailRouteTitle(route: RouteLocationNormalizedLoaded, context: RouteDocumentTitleContext): string {
+  const langCode = firstRouteParam(route.params.langCode);
+
+  return langCode ? `${context.languageNameForCode(langCode)} Language` : "Language";
 }
 
 /** Uses the curated article title instead of exposing the slug in the browser tab. */

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePreferredReducedMotion } from "@vueuse/core";
 import { computed, nextTick, ref, watch } from "vue";
-import { RouterLink, useRoute, useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import {
   DEFAULT_ANCESTOR_MAX_DEPTH,
@@ -23,6 +23,7 @@ import { starterQueriesForLanguage } from "../features/terms/starterQueries";
 import { useSearchLanguageStore } from "../features/terms/searchLanguageStore";
 import Button from "../uiComponents/Button.vue";
 import Divider from "../uiComponents/Divider.vue";
+import Link from "../uiComponents/Link.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 
 type GraphStatus = "idle" | "loading" | "success" | "empty" | "error";
@@ -95,7 +96,7 @@ const graphStatus = computed<GraphStatus>(() => {
   return selectedGraph.value ? "success" : "empty";
 });
 
-const graphError = computed(() => ancestorGraphQuery.error.value?.message ?? "Graph failed");
+const graphError = computed(() => ancestorGraphQuery.error.value?.message ?? "This word's graph could not load.");
 const childTermsStatus = computed<ChildTermsStatus>(() => {
   if (!childTermsGraphInput.value) {
     return "idle";
@@ -111,7 +112,7 @@ const childTermsStatus = computed<ChildTermsStatus>(() => {
 
   return childTermsGraphQuery.data.value?.graph ? "success" : "empty";
 });
-const childTermsError = computed(() => childTermsGraphQuery.error.value?.message ?? "Child terms graph failed");
+const childTermsError = computed(() => childTermsGraphQuery.error.value?.message ?? "Related terms could not load.");
 const etymologyStarterSet = computed(() =>
   starterQueriesForLanguage(langCode.value ?? searchLanguageStore.selectedSearchLanguage, "etymology")
 );
@@ -233,7 +234,13 @@ watch(
         <template v-if="selectedLanguageLabel">
           <dt class="sr-only">Language</dt>
           <dd class="after:mx-3 after:text-text-page-muted after:content-['·'] last:after:hidden">
-            {{ selectedLanguageLabel }}
+            <Link
+              v-if="langCode"
+              :to="{ name: 'language-detail', params: { langCode } }"
+            >
+              {{ selectedLanguageLabel }}
+            </Link>
+            <template v-else>{{ selectedLanguageLabel }}</template>
           </dd>
         </template>
         <template v-if="selectedEntryPronunciation">
@@ -294,7 +301,7 @@ watch(
           This etymology route is missing a term or language code.
         </p>
         <p v-else class="mb-4 text-text-muted">
-          No ancestor graph found for {{ routeLabel }}.
+          No source trail in the index for {{ routeLabel }}.
         </p>
         <div class="mb-5">
           <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">

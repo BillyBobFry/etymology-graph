@@ -1,0 +1,14 @@
+ALTER TABLE languages
+  ADD COLUMN IF NOT EXISTS wiktionary_url TEXT,
+  ADD COLUMN IF NOT EXISTS wikidata_id TEXT,
+  ADD COLUMN IF NOT EXISTS family_code TEXT,
+  ADD COLUMN IF NOT EXISTS family_name TEXT,
+  ADD COLUMN IF NOT EXISTS family_parent_code TEXT,
+  ADD COLUMN IF NOT EXISTS ancestor_codes TEXT[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS script_codes TEXT[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS short_description TEXT,
+  ADD COLUMN IF NOT EXISTS description_source_urls TEXT[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS description_status TEXT NOT NULL DEFAULT 'missing',
+  ADD COLUMN IF NOT EXISTS description_model TEXT,
+  ADD COLUMN IF NOT EXISTS description_updated_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::jsonb;

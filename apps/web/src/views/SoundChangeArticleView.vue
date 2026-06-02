@@ -7,6 +7,7 @@ import type { GlossaryTextSegment } from "../features/glossary/linguisticGlossar
 import SoundChangeExampleGraph from "../features/soundChanges/SoundChangeExampleGraph.vue";
 import { findSoundChangeArticle } from "../features/soundChanges/soundChanges";
 import Divider from "../uiComponents/Divider.vue";
+import Link from "../uiComponents/Link.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 
 const route = useRoute();
@@ -32,12 +33,9 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
 <template>
   <PageMain v-if="article">
     <section class="grid gap-5 border-b border-border-strong pb-8">
-      <RouterLink
-        class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-background"
-        :to="{ name: 'sound-changes' }"
-      >
+      <Link :to="{ name: 'sound-changes' }">
         Sound changes
-      </RouterLink>
+      </Link>
 
       <div class="grid gap-5 lg:grid-cols-[minmax(0,0.68fr)_minmax(240px,0.32fr)] lg:items-end">
         <div>
@@ -127,13 +125,13 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
       Article not found.
     </h1>
     <p class="text-text-page-muted">
-      This sound-change note is not available yet.
+      This article is not in the atlas yet.
     </p>
     <RouterLink
       class="inline-flex w-fit items-center justify-center rounded-md border border-accent bg-accent px-5 py-3 font-label text-sm font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       :to="{ name: 'sound-changes' }"
     >
-      Back to sound changes
+      Browse sound changes
     </RouterLink>
   </PageMain>
 </template>

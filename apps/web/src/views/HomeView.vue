@@ -14,6 +14,7 @@ import { useAncestorGraphQuery } from "../features/graph/composables/useAncestor
 import { useDoubletGraphQuery } from "../features/graph/composables/useDoubletGraphQuery";
 import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLayout";
 import { soundChangeArticles } from "../features/soundChanges/soundChanges";
+import Button from "../uiComponents/Button.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 
 type GraphEvidenceStatus = "idle" | "loading" | "success" | "empty" | "error";
@@ -54,15 +55,6 @@ type FeaturedAncestorLanguageExample = {
 const dayInMs = 86_400_000;
 const featuredGraphLimit = 18;
 const currentUtcDayIndex = Math.floor(Date.now() / dayInMs);
-const primaryLinkClass =
-  "inline-flex w-fit items-center justify-center rounded-md border border-accent bg-accent px-5 py-3 font-label text-base font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-const secondaryLinkClass =
-  "inline-flex w-fit items-center justify-center rounded-md border border-border-strong bg-surface/65 px-4 py-2.5 font-label text-sm font-bold leading-none text-text transition duration-200 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-const doubletPrimaryLinkClass =
-  "inline-flex h-12 w-full items-center justify-center rounded-md border border-accent bg-accent px-5 py-3 text-center font-label text-base font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-const doubletSecondaryLinkClass =
-  "inline-flex h-12 w-full items-center justify-center rounded-md border border-border-strong bg-surface/65 px-5 py-3 text-center font-label text-base font-bold leading-none text-text transition duration-200 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-
 const featuredEtymologyExamples: Array<FeaturedGraphExample<AncestorsQuery>> = [
   {
     heading: "Etymology follows one word back through time.",
@@ -337,14 +329,13 @@ function graphEvidenceStatus(query: {
   <PageMain>
     <section class="border-b border-border-strong pb-10">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-        Wiktionary-powered graph exploration
+        Map the history of language
       </p>
       <h1 class="mb-5 max-w-4xl text-5xl font-black leading-none tracking-[-0.06em] sm:text-7xl">
-        Explore how words inherit, borrow, split, and reconnect.
+        Follow words across time, place, and meaning.
       </h1>
       <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
-        Trace a word's lineage, compare related forms, and see how languages borrow,
-        inherit, and reshape words over time.
+        Trace lineages, compare doublets, and explore the sound changes that connect languages.
       </p>
     </section>
 
@@ -373,15 +364,14 @@ function graphEvidenceStatus(query: {
             <p class="mt-3 leading-7 text-text-muted">
               {{ featuredEtymologyExample.exampleText }}
             </p>
-            <RouterLink
+            <Button
               :to="{
                 name: 'etymology-search'
               }"
-              :class="primaryLinkClass"
               class="mt-5"
             >
               {{ featuredEtymologyExample.ctaLabel }}
-            </RouterLink>
+            </Button>
           </div>
         </div>
 
@@ -391,25 +381,15 @@ function graphEvidenceStatus(query: {
           :root-node-id="featuredEtymologyGraphQuery.data.value?.graph?.rootNodeId"
           :layout-preset="featuredEtymologyExample.layoutPreset"
           loading-label="Loading featured etymology..."
-          empty-text="This featured etymology is not in the current local dataset."
-          error-text="Featured etymology failed to load."
+          empty-text="This example is not in the index yet."
+          error-text="This featured etymology could not load."
         />
       </div>
     </section>
 
     <section class="grid gap-5 border-b border-border pb-10" aria-labelledby="home-doublets-heading">
       <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.45fr)] lg:items-stretch">
-        <GraphEvidencePanel
-          :status="featuredDoubletGraphStatus"
-          :graph="featuredDoubletGraphQuery.data.value?.graph ?? null"
-          :root-node-id="featuredDoubletGraphQuery.data.value?.graph?.rootNodeId"
-          :layout-preset="featuredDoubletExample.layoutPreset"
-          loading-label="Loading featured doublet graph..."
-          empty-text="This featured doublet graph is not in the current local dataset."
-          error-text="Featured doublet graph failed to load."
-        />
-
-        <div class="grid content-between gap-6">
+        <div class="grid content-between gap-6 lg:order-2">
           <div>
             <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
               Doublets
@@ -433,7 +413,7 @@ function graphEvidenceStatus(query: {
               {{ featuredDoubletExample.exampleText }}
             </p>
             <div class="mt-5 flex flex-col gap-3">
-              <RouterLink
+              <Button
                 :to="{
                   name: 'doublets',
                   params: {
@@ -441,19 +421,33 @@ function graphEvidenceStatus(query: {
                     term: featuredDoubletExample.query.word
                   }
                 }"
-                :class="doubletPrimaryLinkClass"
+                full-width
+                class="h-12 text-center"
               >
                 {{ featuredDoubletExample.ctaLabel }}
-              </RouterLink>
-              <RouterLink
+              </Button>
+              <Button
                 :to="{ name: 'doublet-groups', params: { langCode: featuredDoubletExample.query.langCode } }"
-                :class="doubletSecondaryLinkClass"
+                variant="secondary"
+                full-width
+                class="h-12 text-center"
               >
                 {{ featuredDoubletExample.browseCtaLabel }}
-              </RouterLink>
+              </Button>
             </div>
           </div>
         </div>
+
+        <GraphEvidencePanel
+          :status="featuredDoubletGraphStatus"
+          :graph="featuredDoubletGraphQuery.data.value?.graph ?? null"
+          :root-node-id="featuredDoubletGraphQuery.data.value?.graph?.rootNodeId"
+          :layout-preset="featuredDoubletExample.layoutPreset"
+          class="lg:order-1"
+          loading-label="Loading featured doublet graph..."
+          empty-text="This doublet example is not in the index yet."
+          error-text="This featured doublet graph could not load."
+        />
       </div>
     </section>
 
@@ -468,14 +462,14 @@ function graphEvidenceStatus(query: {
               Learn why related words stop looking alike.
             </h2>
             <p class="mt-4 leading-7 text-text-page-muted">
-              Regular pronunciation shifts can hide a shared source. These notes pair short explanations with graph
+              Regular pronunciation shifts can hide a shared source. These articles pair short explanations with graph
               examples, so each pattern stays tied to real word lineages.
             </p>
           </div>
 
-          <RouterLink :to="{ name: 'sound-changes' }" :class="primaryLinkClass">
-            Browse sound-change notes
-          </RouterLink>
+          <Button :to="{ name: 'sound-changes' }">
+            Browse sound changes
+          </Button>
         </div>
 
         <div class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper">
@@ -526,7 +520,7 @@ function graphEvidenceStatus(query: {
             </p>
           </div>
 
-          <RouterLink
+          <Button
             :to="{
               name: 'ancestor-language-results',
               params: {
@@ -534,10 +528,9 @@ function graphEvidenceStatus(query: {
                 ancestorLangCode: featuredAncestorLanguageExample.ancestorLangCode
               }
             }"
-            :class="primaryLinkClass"
           >
             {{ featuredAncestorLanguageExample.ctaLabel }}
-          </RouterLink>
+          </Button>
         </div>
 
         <div class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper lg:order-1">
@@ -575,13 +568,14 @@ function graphEvidenceStatus(query: {
             </RouterLink>
           </div>
 
-          <RouterLink
+          <Button
             :to="{ name: 'ancestor-language-search' }"
-            :class="secondaryLinkClass"
+            variant="secondary"
+            size="sm"
             class="mt-5"
           >
             Choose another language pair
-          </RouterLink>
+          </Button>
         </div>
       </div>
     </section>

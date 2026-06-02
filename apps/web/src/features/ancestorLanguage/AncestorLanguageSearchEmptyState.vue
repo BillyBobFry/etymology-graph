@@ -20,10 +20,10 @@ const emit = defineEmits<{
   <div class="grid gap-4 py-2 text-text-page-muted">
     <div class="grid gap-2">
       <h3 class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
-        No imported matches for this pair
+        No matches for this language pair
       </h3>
       <p class="leading-7">
-        No entries in the current import connect these two languages yet. Try another source language below.
+        Nothing in the index connects these languages at this depth. Try another source language below.
       </p>
     </div>
     <AncestorLanguageSuggestions

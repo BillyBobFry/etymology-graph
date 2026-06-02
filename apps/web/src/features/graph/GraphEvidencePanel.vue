@@ -25,9 +25,9 @@ withDefaults(
     rootNodeId: undefined,
     showControls: true,
     annotations: () => [],
-    loadingLabel: "Loading graph evidence...",
-    errorText: "Graph evidence failed to load.",
-    emptyText: "No graph evidence is available for this entry."
+    loadingLabel: "Loading graph...",
+    errorText: "This graph could not be loaded.",
+    emptyText: "No graph path is available for this entry."
   }
 );
 

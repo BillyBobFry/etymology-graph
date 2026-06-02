@@ -94,7 +94,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
           { text: "cognates", termId: "cognate" },
           " from other Indo-European branches. The graphs show the ",
           { text: "lineage", termId: "lineage" },
-          " data currently imported for each word."
+          " paths covered in the atlas for each word."
         ]
       }
     ],

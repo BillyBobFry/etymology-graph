@@ -84,11 +84,48 @@ export const languageSchema = z.object({
 
 export type Language = z.infer<typeof languageSchema>;
 
+export const languageDetailAncestorSchema = languageSchema.extend({
+  shortDescription: z.string().optional()
+});
+
+export type LanguageDetailAncestor = z.infer<typeof languageDetailAncestorSchema>;
+
 export const languagesResultSchema = z.object({
   languages: z.array(languageSchema)
 });
 
 export type LanguagesResult = z.infer<typeof languagesResultSchema>;
+
+export const languageFamilySchema = z.object({
+  code: z.string(),
+  name: z.string().optional(),
+  parentCode: z.string().optional()
+});
+
+export type LanguageFamily = z.infer<typeof languageFamilySchema>;
+
+export const languageDetailSchema = languageSchema.extend({
+  source: z.string(),
+  wiktionaryUrl: z.string().optional(),
+  wikidataId: z.string().optional(),
+  family: languageFamilySchema.optional(),
+  ancestors: z.array(languageDetailAncestorSchema),
+  scriptCodes: z.array(z.string()),
+  shortDescription: z.string().optional(),
+  descriptionSourceUrls: z.array(z.string()),
+  descriptionStatus: z.string(),
+  descriptionModel: z.string().optional(),
+  descriptionUpdatedAt: z.string().optional(),
+  graphNodeCount: z.number().int().min(0)
+});
+
+export type LanguageDetail = z.infer<typeof languageDetailSchema>;
+
+export const languageDetailResultSchema = z.object({
+  language: languageDetailSchema
+});
+
+export type LanguageDetailResult = z.infer<typeof languageDetailResultSchema>;
 
 export const graphEdgeSchema = z.object({
   id: z.string(),
@@ -104,6 +141,12 @@ export const graphEdgeSchema = z.object({
 
 export type GraphEdge = z.infer<typeof graphEdgeSchema>;
 
+export const publicGraphEdgeSchema = graphEdgeSchema.omit({
+  originatingEntryId: true
+});
+
+export type PublicGraphEdge = z.infer<typeof publicGraphEdgeSchema>;
+
 export const graphTraversalNodeSchema = graphNodeSchema.extend({
   depth: z.number().int().min(0)
 });
@@ -113,7 +156,7 @@ export type GraphTraversalNode = z.infer<typeof graphTraversalNodeSchema>;
 export const etymologyGraphSchema = z.object({
   rootNodeId: z.string(),
   nodes: z.array(graphTraversalNodeSchema),
-  edges: z.array(graphEdgeSchema),
+  edges: z.array(publicGraphEdgeSchema),
   maxDepth: z.number().int().min(1)
 });
 

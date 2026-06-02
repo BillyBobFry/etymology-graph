@@ -33,10 +33,10 @@ function entryLabel(entry: TermEntrySummary): string {
 <template>
   <section v-if="hasMultipleEntries" aria-label="Etymological entries" class="grid gap-2">
     <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
-      Multiple entries at this term
+      Choose an entry
     </p>
     <p class="text-sm leading-5 text-text-muted">
-      Pick the lexical entry whose etymology you want to follow.
+      This word has more than one recorded history. Pick the one to follow.
     </p>
     <div role="radiogroup" aria-label="Lexical entry" class="flex flex-wrap gap-2">
       <button

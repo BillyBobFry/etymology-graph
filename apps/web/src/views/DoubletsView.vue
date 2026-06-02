@@ -118,8 +118,8 @@ const graphStatus = computed<GraphStatus>(() => {
   return selectedGraph.value ? "success" : "empty";
 });
 
-const graphError = computed(() => doubletGraphQuery.error.value?.message ?? "Doublet graph failed");
-const fallbackAncestorError = computed(() => fallbackAncestorGraphQuery.error.value?.message ?? "Ancestry graph failed");
+const graphError = computed(() => doubletGraphQuery.error.value?.message ?? "This doublet graph could not load.");
+const fallbackAncestorError = computed(() => fallbackAncestorGraphQuery.error.value?.message ?? "This source trail could not load.");
 const isFallbackGraph = computed(() => !doubletGraphQuery.data.value?.graph && Boolean(fallbackAncestorGraphQuery.data.value?.graph));
 const showFallbackNote = computed(() => isFallbackGraph.value && !fallbackNoteDismissed.value);
 const childTermsStatus = computed<ChildTermsStatus>(() => {
@@ -137,8 +137,8 @@ const childTermsStatus = computed<ChildTermsStatus>(() => {
 
   return childTermsGraphQuery.data.value?.graph ? "success" : "empty";
 });
-const childTermsError = computed(() => childTermsGraphQuery.error.value?.message ?? "Child terms graph failed");
-const graphTitle = computed(() => (term.value ? `${term.value} doublet candidates` : "Doublets"));
+const childTermsError = computed(() => childTermsGraphQuery.error.value?.message ?? "Related terms could not load.");
+const graphTitle = computed(() => (term.value ? `${term.value} doublet partners` : "Doublets"));
 const doubletStarterSet = computed(() => starterQueriesForLanguage(langCode.value ?? undefined, "doublets"));
 const doubletStarterHelpText = computed(() =>
   doubletStarterSet.value.isFallback
@@ -260,7 +260,7 @@ watch(
         {{ term ?? "Unknown term" }}
       </h1>
       <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
-        Exploring same-language candidates that reconnect with
+        Exploring same-language words that reconnect with
         <span class="font-bold text-text">{{ routeLabel }}</span> through shared ancestors.
       </p>
       <RouterLink
@@ -293,7 +293,7 @@ watch(
           This doublet route is missing a term or language code.
         </p>
         <p v-else class="mb-4 text-text-muted">
-          No same-language doublet candidates or ancestry graph found for {{ routeLabel }}.
+          No same-language doublet partners or source trail found for {{ routeLabel }}.
         </p>
         <div class="mb-5">
           <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
@@ -322,10 +322,10 @@ watch(
         </div>
       </section>
       <p v-else-if="graphStatus === 'loadingDoublets'" class="text-text-page-muted">
-        Loading doublet candidates...
+        Loading doublet partners...
       </p>
       <p v-else-if="graphStatus === 'loadingFallback'" class="text-text-page-muted">
-        No same-language doublets found yet. Loading the known ancestry for {{ routeLabel }}...
+        No same-language doublets found yet. Loading the known source trail for {{ routeLabel }}...
       </p>
       <p v-else-if="graphStatus === 'error'" class="text-danger">
         {{ graphError }}
@@ -350,8 +350,7 @@ watch(
               {{ childTermsError }}
             </span>
             <span v-else>
-              No same-language doublet candidates were found for {{ routeLabel }} in the current graph. Showing its known
-              ancestry instead.
+              No doublet partners were found for {{ routeLabel }} in the index. Showing this word's source trail instead.
             </span>
           </StatusNote>
           <GraphCanvas

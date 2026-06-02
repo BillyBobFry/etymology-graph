@@ -84,13 +84,13 @@ const sectionNavItems = computed<SectionNavItem[]>(() => [
   },
   {
     value: "source-languages",
-    label: "Source Languages",
+    label: "Source languages",
     to: { name: "ancestor-language-search" },
     active: isAncestorLanguageRoute.value
   },
   {
     value: "sound-changes",
-    label: "Sound Changes",
+    label: "Sound changes",
     to: { name: "sound-changes" },
     active: isSoundChangesRoute.value
   }

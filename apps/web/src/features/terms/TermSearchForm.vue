@@ -99,7 +99,7 @@ const searchEmptyText = computed(() => {
     return "Searching the selected language...";
   }
 
-  return "No matching terms";
+  return "No matches in the index";
 });
 
 watch(languages, chooseInitialLanguage, { immediate: true });

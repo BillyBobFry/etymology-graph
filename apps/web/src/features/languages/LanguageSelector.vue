@@ -49,7 +49,7 @@ const selectedLanguageCode = computed({
 const isUnavailable = computed(() => props.disabled || languagesQuery.isPending.value || languagesQuery.isError.value);
 const resolvedHelpText = computed(() => {
   if (languagesQuery.isPending.value) {
-    return "Loading imported languages...";
+    return "Loading languages...";
   }
 
   if (languagesQuery.isError.value) {

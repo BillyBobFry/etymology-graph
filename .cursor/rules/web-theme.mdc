@@ -1,6 +1,6 @@
 ---
 description: Web theme and Tailwind styling conventions
-globs: apps/web/src/**/*.vue, apps/web/src/**/*.css, apps/web/vite.config.ts
+globs: apps/web/index.html, apps/web/src/**/*.vue, apps/web/src/**/*.ts, apps/web/src/**/*.css, apps/web/vite.config.ts
 alwaysApply: false
 ---
 
@@ -18,7 +18,7 @@ alwaysApply: false
 - The palette should feel researched, local-first, and exploratory rather than SaaS-generic. Favor parchment, moss, mineral blue, ochre, and dark ink relationships over bright default Tailwind hues.
 - In light mode, preserve the paper-and-ink feeling with warm surfaces and soft borders. In dark mode, keep the same archive mood with deep umber backgrounds, readable warm text, and accents that feel illuminated rather than neon.
 - Use stronger color only to communicate state, selection, graph meaning, or action. Most surfaces should stay quiet so graph structure and word relationships carry the visual weight.
-- Prefer atlas-page composition over stacked app cards: paint hero copy, graph headings, and primary page structure directly onto the background with divider rules and generous spacing.
+- Prefer atlas-page composition over stacked app cards: paint hero copy, graph headings, and primary page structure directly onto the background with generous spacing. Use `Divider.vue` for standalone section dividers instead of putting separator borders directly on sections.
 - Use `PageMain.vue` for top-level route content in `apps/web/src/views/` so desktop page width, horizontal padding, vertical rhythm, and page text color stay consistent. Do not put `mx-auto`, `max-w-*`, or page padding directly on view-level `<main>` elements unless a route deliberately needs a different layout shell.
 - Use bordered surfaces only where containment helps interaction or scanning, such as search forms, popovers, node details, and small index/reference groups.
 - Keep corners sharp and paper-like. Prefer `rounded-md` for contained page surfaces and about `6px` in component CSS. Reserve full pills for badges and compact controls only.
@@ -73,7 +73,10 @@ alwaysApply: false
 - Do not use em dashes in UI copy or documentation. Prefer a period, comma, colon, or a simpler sentence split.
 - Use proper Unicode symbols in user-facing copy. Prefer `→` over ASCII `->` for relationships, transformations, paths, and sound-change notation.
 - Keep implementation details out of user-facing copy. Do not mention imports, imported data, seed data, APIs, databases, edge types, metadata, backend/frontend code, or the data model unless the user is in an explicitly technical/admin context.
-- Describe the user-visible result instead: a word page, source trail, lineage, entry, relationship, graph, search, path, or match.
+- Describe the user-visible result instead: a word page, source trail, lineage, entry, relationship, graph, search, path, match, index, or atlas.
+- Frame the product as an archival language atlas. Prefer labels such as `Map the history of language`, `Word lineages`, `Doublets`, `Source languages`, and `Sound changes` over narrow tool labels such as `lookup`.
+- In public empty states, describe coverage without exposing local development mechanics. Prefer `No paths in the index yet` or `This example is not in the index yet` over `No imported matches`, `not in the local dataset`, or `import a broader seed set`.
+- Use `step`, `link`, `relationship`, or `path` for user-facing traversal counts. Reserve `edge` and `node` for code, developer docs, and explicitly technical graph diagnostics.
 - Do not make headings and labels repeat the same noun. If an eyebrow says `Graph examples`, the heading should add meaning, such as `Compare related words`, not repeat `Examples`.
 - Preserve the archival atlas mood through precise language, not ornament. Favor words like `source`, `lineage`, `entry`, `relationship`, `search`, and `graph` when they match the feature.
 - Button labels and errors should be direct: `Search`, `Reset`, `Close`, `No matches found`, `Import failed`, `Try another term`.
@@ -82,10 +85,11 @@ Example:
 
 ```vue
 <PageMain>
-  <section class="border-b border-border-strong pb-8">
+  <section class="pb-8">
     <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">Atlas section</p>
     <h1 class="text-5xl font-black tracking-[-0.06em]">Paint primary content on the page.</h1>
   </section>
+  <Divider />
   <section class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
     <p class="text-text-muted">Use contained surfaces for forms and reference slips.</p>
   </section>

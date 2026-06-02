@@ -30,6 +30,10 @@ const ancestorPathQuerySchema = z.object({
   ...entryAnchorShape
 });
 
+const languageParamsSchema = z.object({
+  langCode: z.string().trim().min(1)
+});
+
 const childTermsQuerySchema = z.object({
   langCode: z.string().trim().min(1),
   word: z.string().trim().min(1),
@@ -150,6 +154,39 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
 
   server.get("/api/languages", async (request, reply) => {
     const payload = JSON.stringify(await graphRepository.listLanguages());
+    const etag = etagForPayload(payload);
+
+    reply.header("Cache-Control", REFERENCE_DATA_CACHE_CONTROL).header("ETag", etag).type("application/json");
+
+    if (ifNoneMatchIncludes(request.headers["if-none-match"], etag)) {
+      return reply.code(304).send();
+    }
+
+    return reply.send(payload);
+  });
+
+  server.get("/api/languages/:langCode", async (request, reply) => {
+    const parsedParams = languageParamsSchema.safeParse(request.params);
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({
+        error: "Invalid language params",
+        issues: parsedParams.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      });
+    }
+
+    const language = await graphRepository.findLanguage(parsedParams.data.langCode);
+
+    if (!language) {
+      return reply.code(404).send({
+        error: "Language not found"
+      });
+    }
+
+    const payload = JSON.stringify(language);
     const etag = etagForPayload(payload);
 
     reply.header("Cache-Control", REFERENCE_DATA_CACHE_CONTROL).header("ETag", etag).type("application/json");

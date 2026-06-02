@@ -47,7 +47,7 @@ export async function fetchTermEntries(
   const response = await fetch(buildApiUrl(`/api/term-entries?${params.toString()}`), { signal });
 
   if (!response.ok) {
-    throw new Error(`Term entries lookup failed with status ${response.status}`);
+    throw new Error(`Term entries could not load with status ${response.status}`);
   }
 
   const payload: unknown = await response.json();

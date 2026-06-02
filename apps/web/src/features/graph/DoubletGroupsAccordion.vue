@@ -95,7 +95,7 @@ function entryLabel(entry: TermEntrySummary): string {
           </span>
           <span class="flex shrink-0 items-center gap-2 tabular-nums">
             <Badge>{{ entryCountLabel(groupForId(itemId)!) }}</Badge>
-            <Badge>{{ groupForId(itemId)!.minDepth }} {{ groupForId(itemId)!.minDepth === 1 ? "edge" : "edges" }}</Badge>
+            <Badge>{{ groupForId(itemId)!.minDepth }} {{ groupForId(itemId)!.minDepth === 1 ? "step" : "steps" }}</Badge>
           </span>
         </span>
         <span class="text-sm leading-6 text-text-muted">

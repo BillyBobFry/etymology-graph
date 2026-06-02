@@ -1,3 +1,3 @@
 <template>
-  <div class="text-text font-bold text-2xl">Lingraphic</div>
+  <div class="text-2xl font-bold text-text">Lingraphic</div>
 </template>

@@ -24,6 +24,7 @@ type GraphNodeDragOptions = {
   panY: Ref<number>;
   zoom: Ref<number>;
   graphLayoutOrientation: ComputedRef<GraphLayoutOrientation>;
+  isNodeDragEnabled?: Readonly<Ref<boolean>>;
   nodeX: (node: PositionedGraphNode) => number;
   nodeY: (node: PositionedGraphNode) => number;
   requestRenderTick: () => void;
@@ -35,9 +36,18 @@ export function useGraphNodeDrag(options: GraphNodeDragOptions) {
   const nodeDragState = ref<NodeDragState>();
   const suppressNextNodeClick = ref(false);
 
+  /** Lets mobile preview graphs keep tap selection without trapping page scroll. */
+  function isNodeDragEnabled(): boolean {
+    return options.isNodeDragEnabled?.value ?? true;
+  }
+
   /** Starts direct node movement while keeping the background viewport from panning. */
   function startNodeDrag(event: PointerEvent, node: PositionedGraphNode): void {
     if (event.pointerType === "mouse" && event.button !== 0) {
+      return;
+    }
+
+    if (!isNodeDragEnabled()) {
       return;
     }
 

@@ -987,7 +987,12 @@ function sentencePrefixBeforeLocation(text: string, locationStartIndex: number):
 
 /** Detects prose that presents candidate sources as alternatives instead of ancestry steps. */
 function hasAlternativeBoundary(textBetweenTemplates: string): boolean {
-  return /\b(?:or|alternatively)\b/i.test(removeParentheticalText(textBetweenTemplates));
+  return /\b(?:or|alternatively)\b/i.test(removeRelationAlternativeText(removeParentheticalText(textBetweenTemplates)));
+}
+
+/** Removes alternate relationship wording that still introduces a source for the previous ancestor. */
+function removeRelationAlternativeText(text: string): string {
+  return text.replace(/\beither\s+from\s+or\s+influenced\s+by\b/gi, "");
 }
 
 /** Detects "from X and Y" source pairs that should share the current branch base. */
@@ -1297,13 +1302,37 @@ function parseTreeMetadataRelations(value: unknown): EtymologyTreeMetadataRelati
 /** Reads the source term arguments shared by inheritance, borrowing, and derivation templates. */
 function templateTerm(template: WiktextractTemplate): { langCode: string; term: string } | undefined {
   const langCode = trimOptional(template.args?.["2"]);
-  const term = trimOptional(template.args?.["3"]);
+  const linkedTerm = trimOptional(template.args?.["3"]);
+  const term = preferredDisplayedTemplateTerm(linkedTerm, template.args?.["4"]) ?? linkedTerm;
 
   if (!langCode || !term || term === "-") {
     return undefined;
   }
 
   return { langCode, term };
+}
+
+/** Keeps Wiktionary display variants such as Latin macrons when they match the linked source term. */
+function preferredDisplayedTemplateTerm(
+  linkedTerm: string | undefined,
+  displayedTerm: string | undefined
+): string | undefined {
+  if (!linkedTerm) {
+    return undefined;
+  }
+
+  const linkedTermKey = stripDiacritics(linkedTerm);
+  const displayedTerms = trimOptional(displayedTerm)
+    ?.split(",")
+    .map((term) => trimOptional(term))
+    .filter((term): term is string => term !== undefined);
+
+  return displayedTerms?.find((term) => term !== linkedTerm && stripDiacritics(term) === linkedTermKey);
+}
+
+/** Compares displayed variants to their plain Wiktionary link targets without losing graph spelling. */
+function stripDiacritics(value: string): string {
+  return value.normalize("NFD").replace(/\p{M}/gu, "").normalize("NFC");
 }
 
 /** Preserves uncertainty when Wiktionary template parameters mark a relationship as qualified. */
