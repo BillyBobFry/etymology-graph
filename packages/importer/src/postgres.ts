@@ -1,4 +1,4 @@
-import type { PoolClient } from "pg";
+import type { Pool, PoolClient } from "pg";
 
 import type { GraphEdge, GraphNode, LexicalEntry } from "@etymology-graph/graph";
 
@@ -13,6 +13,25 @@ export type GraphImportResult = {
   edgeCount: number;
   lexicalEntryCount: number;
 };
+
+export type GraphEdgeWalkRefreshPolicyInput = {
+  limitRecords: number | undefined;
+  refreshOverride: string | undefined;
+};
+
+/** Decides whether an import should rebuild the API read model; limited smoke runs should not pay this cost. */
+export function shouldRefreshGraphEdgeWalkMaterializedView(input: GraphEdgeWalkRefreshPolicyInput): boolean {
+  if (input.refreshOverride !== undefined) {
+    return input.refreshOverride.trim().toLowerCase() === "true";
+  }
+
+  return input.limitRecords === undefined;
+}
+
+/** Refreshes the API edge read model after imports because graph endpoints read from the materialized view. */
+export async function refreshGraphEdgeWalkMaterializedView(client: Pool | PoolClient): Promise<void> {
+  await client.query("REFRESH MATERIALIZED VIEW graph_edge_walk_mv");
+}
 
 /** Upserts one previewed Wiktextract batch with bulk SQL so remote imports do not pay per-row latency. */
 export async function upsertGraphBatch(client: PoolClient, batch: GraphImportBatch): Promise<GraphImportResult> {
@@ -193,7 +212,7 @@ async function upsertEdges(client: PoolClient, edges: GraphEdge[]): Promise<void
         etymology_number,
         template_name,
         uncertain,
-        originating_entry_id
+        declaring_entry_id
       )
       SELECT
         id,
@@ -204,7 +223,7 @@ async function upsertEdges(client: PoolClient, edges: GraphEdge[]): Promise<void
         etymology_number,
         template_name,
         uncertain,
-        originating_entry_id
+        declaring_entry_id
       FROM jsonb_to_recordset($1::jsonb) AS edges(
         id TEXT,
         from_node_id TEXT,
@@ -213,7 +232,7 @@ async function upsertEdges(client: PoolClient, edges: GraphEdge[]): Promise<void
         etymology_number INTEGER,
         template_name TEXT,
         uncertain BOOLEAN,
-        originating_entry_id TEXT
+        declaring_entry_id TEXT
       )
       ON CONFLICT (id) DO UPDATE SET
         from_node_id = EXCLUDED.from_node_id,
@@ -222,7 +241,7 @@ async function upsertEdges(client: PoolClient, edges: GraphEdge[]): Promise<void
         etymology_number = EXCLUDED.etymology_number,
         template_name = EXCLUDED.template_name,
         uncertain = EXCLUDED.uncertain,
-        originating_entry_id = EXCLUDED.originating_entry_id
+        declaring_entry_id = EXCLUDED.declaring_entry_id
     `,
     [
       JSON.stringify(
@@ -234,7 +253,7 @@ async function upsertEdges(client: PoolClient, edges: GraphEdge[]): Promise<void
           etymology_number: edge.etymologyNumber ?? null,
           template_name: edge.templateName ?? null,
           uncertain: edge.uncertain ?? false,
-          originating_entry_id: edge.originatingEntryId
+          declaring_entry_id: edge.declaringEntryId
         }))
       )
     ]
@@ -253,7 +272,7 @@ async function deleteStaleRootAncestryEdges(client: PoolClient, lexicalEntries: 
     `
       DELETE FROM graph_edges
       WHERE source = 'wiktextract'
-        AND originating_entry_id = ANY($1::TEXT[])
+        AND declaring_entry_id = ANY($1::TEXT[])
     `,
     [reimportedEntryIds]
   );

@@ -8,6 +8,7 @@ import { findSoundChangeArticle } from "./features/soundChanges/soundChanges";
 import EtymologyView from "./views/EtymologyView.vue";
 import HomeView from "./views/HomeView.vue";
 import LanguageDetailView from "./views/LanguageDetailView.vue";
+import LanguageTermsView from "./views/LanguageTermsView.vue";
 import LogoStudyView from "./views/LogoStudyView.vue";
 import NotFoundView from "./views/NotFoundView.vue";
 import SoundChangeArticleView from "./views/SoundChangeArticleView.vue";
@@ -108,6 +109,14 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: "/languages/:langCode/terms",
+    name: "language-terms",
+    component: LanguageTermsView,
+    meta: {
+      title: languageTermsRouteTitle
+    }
+  },
+  {
     path: "/sound-changes",
     name: "sound-changes",
     component: SoundChangesView,
@@ -176,6 +185,13 @@ function languageDetailRouteTitle(route: RouteLocationNormalizedLoaded, context:
   const langCode = firstRouteParam(route.params.langCode);
 
   return langCode ? `${context.languageNameForCode(langCode)} Language` : "Language";
+}
+
+/** Names language term index tabs after the selected language. */
+function languageTermsRouteTitle(route: RouteLocationNormalizedLoaded, context: RouteDocumentTitleContext): string {
+  const langCode = firstRouteParam(route.params.langCode);
+
+  return langCode ? `${context.languageNameForCode(langCode)} Terms` : "Language Terms";
 }
 
 /** Uses the curated article title instead of exposing the slug in the browser tab. */

@@ -96,6 +96,9 @@ importers:
       '@zag-js/popover':
         specifier: ^1.41.0
         version: 1.41.0
+      '@zag-js/select':
+        specifier: ^1.41.0
+        version: 1.41.0
       '@zag-js/tooltip':
         specifier: ^1.41.0
         version: 1.41.0
@@ -148,6 +151,9 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
+      openai:
+        specifier: ^6.41.0
+        version: 6.41.0(zod@4.4.3)
       pg:
         specifier: ^8.21.0
         version: 8.21.0
@@ -972,6 +978,9 @@ packages:
   '@zag-js/remove-scroll@1.41.0':
     resolution: {integrity: sha512-xC5xdmtJ9zObhfeWyZoI1nBmGtmb9Vb4njEQae3g7b2rolQK8QQieGMR35T/aTv+ZgIeoTFyk2o1cZOb2p+rPw==}
 
+  '@zag-js/select@1.41.0':
+    resolution: {integrity: sha512-pjHDR4ueGwpdidI2RFIK/KF9mcdr0hrjlPqY/RbGxaCBDbgIuVCc+it3PACIqLI9AFkct5IVxfp57RdeeZZPpQ==}
+
   '@zag-js/store@1.41.0':
     resolution: {integrity: sha512-hnXqp1HrpP4pfn86NlI1i9yFo236sjhyMErIA2gxm/6L0FpcP3V/ooVSoQgKE9rTSurpDAmVqg6jBb+DxXzaIQ==}
 
@@ -1569,6 +1578,17 @@ packages:
 
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
+
+  openai@6.41.0:
+    resolution: {integrity: sha512-IGWPopZq6Rjoynjfb3NSLf/z2MTw7UiOsm9TAjPGAjUESH7Uq41Trg4QWehBEn58p74i+m7uoRPV2vXcpPXhyA==}
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -2952,6 +2972,18 @@ snapshots:
     dependencies:
       '@zag-js/dom-query': 1.41.0
 
+  '@zag-js/select@1.41.0':
+    dependencies:
+      '@zag-js/anatomy': 1.41.0
+      '@zag-js/collection': 1.41.0
+      '@zag-js/core': 1.41.0
+      '@zag-js/dismissable': 1.41.0
+      '@zag-js/dom-query': 1.41.0
+      '@zag-js/focus-visible': 1.41.0
+      '@zag-js/popper': 1.41.0
+      '@zag-js/types': 1.41.0
+      '@zag-js/utils': 1.41.0
+
   '@zag-js/store@1.41.0':
     dependencies:
       proxy-compare: 3.0.1
@@ -3527,6 +3559,10 @@ snapshots:
   once@1.4.0:
     dependencies:
       wrappy: 1.0.2
+
+  openai@6.41.0(zod@4.4.3):
+    optionalDependencies:
+      zod: 4.4.3
 
   optionator@0.9.4:
     dependencies:

@@ -8,7 +8,8 @@ import {
   type AncestorsQuery,
   type ChildTermsQuery,
   type EtymologyGraph,
-  type GraphTraversalNode
+  type GraphTraversalNode,
+  type SimilarTermsQuery
 } from "@etymology-graph/graph";
 
 import EntryChooser from "../features/terms/EntryChooser.vue";
@@ -17,6 +18,7 @@ import TermSearchForm from "../features/terms/TermSearchForm.vue";
 import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
 import { useChildTermsGraphQuery } from "../features/graph/composables/useChildTermsGraphQuery";
 import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
+import { useSimilarTermsQuery } from "../features/terms/composables/useSimilarTermsQuery";
 import { useTermEntrySelection } from "../features/terms/composables/useTermEntrySelection";
 import { mergeEtymologyGraphs } from "../features/graph/mergeEtymologyGraphs";
 import { starterQueriesForLanguage } from "../features/terms/starterQueries";
@@ -25,11 +27,13 @@ import Button from "../uiComponents/Button.vue";
 import Divider from "../uiComponents/Divider.vue";
 import Link from "../uiComponents/Link.vue";
 import PageMain from "../uiComponents/PageMain.vue";
+import Skeleton from "../uiComponents/Skeleton.vue";
 
 type GraphStatus = "idle" | "loading" | "success" | "empty" | "error";
 type ChildTermsStatus = "idle" | "loading" | "success" | "empty" | "error";
 
 const defaultChildTermsLimit = 50;
+const similarTermsSkeletonItems = [0, 1, 2, 3] as const;
 
 const route = useRoute();
 const router = useRouter();
@@ -62,10 +66,24 @@ const ancestorGraphInput = computed<AncestorsQuery | null>(() => {
   };
 });
 
+const similarTermsInput = computed<SimilarTermsQuery | null>(() => {
+  if (!langCode.value || !term.value) {
+    return null;
+  }
+
+  return {
+    langCode: langCode.value,
+    word: term.value,
+    limit: 4
+  };
+});
+
 const ancestorGraphQuery = useAncestorGraphQuery(ancestorGraphInput);
 const childTermsGraphQuery = useChildTermsGraphQuery(childTermsGraphInput);
+const similarTermsQuery = useSimilarTermsQuery(similarTermsInput);
 const languagesQuery = useLanguagesQuery();
 const languages = computed(() => languagesQuery.data.value?.languages ?? []);
+const similarTerms = computed(() => similarTermsQuery.data.value?.terms ?? []);
 const selectedGraph = computed(() => expandedGraph.value ?? ancestorGraphQuery.data.value?.graph ?? null);
 const selectedLanguageLabel = computed(() => {
   if (!langCode.value) {
@@ -267,7 +285,55 @@ watch(
           Choose a language, then search its words
         </h2>
       </div>
-      <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
+      <div class="grid gap-5 rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
+        <section
+          v-if="similarTerms.length > 0 || similarTermsQuery.isPending.value || similarTermsQuery.isError.value"
+          aria-labelledby="similar-terms-heading"
+        >
+          <div class="mb-3">
+            <div>
+              <h3 class="mb-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-text-muted">
+                Similar terms
+              </h3>
+            </div>
+          </div>
+          <div
+            v-if="similarTermsQuery.isPending.value"
+            class="flex flex-nowrap gap-2 overflow-hidden"
+            role="status"
+            aria-live="polite"
+          >
+            <span class="sr-only">Finding nearby entries</span>
+            <span
+              v-for="item in similarTermsSkeletonItems"
+              :key="item"
+              class="min-w-0 h-[34px] w-[72px] shrink-0 rounded-md"
+              aria-hidden="true"
+            >
+              <Skeleton class="h-full" tone="raised" />
+            </span>
+          </div>
+          <p v-else-if="similarTermsQuery.isError.value" class="text-sm leading-6 text-text-muted">
+            Similar terms are unavailable right now.
+          </p>
+          <div v-else class="flex flex-wrap gap-2">
+            <Button
+              v-for="similarTerm in similarTerms"
+              :key="similarTerm.node.id"
+              variant="secondary"
+              size="sm"
+              :to="{
+                name: 'etymology',
+                params: {
+                  langCode: similarTerm.node.langCode,
+                  term: similarTerm.node.word
+                }
+              }"
+            >
+              {{ similarTerm.node.word }}
+            </Button>
+          </div>
+        </section>
         <TermSearchForm
           id-prefix="etymology-term-search"
           compact

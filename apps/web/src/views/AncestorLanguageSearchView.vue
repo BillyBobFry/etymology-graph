@@ -8,6 +8,7 @@ import {
   DEFAULT_ANCESTOR_MAX_DEPTH,
   type AncestorPathQuery,
   type Language,
+  type SourceLanguageLayer,
   type TermsWithAncestorLanguageMatch
 } from "@etymology-graph/graph";
 
@@ -15,17 +16,23 @@ import AncestorLanguageResultsAccordion from "../features/ancestorLanguage/Ances
 import AncestorLanguageSearchEmptyState from "../features/ancestorLanguage/AncestorLanguageSearchEmptyState.vue";
 import AncestorLanguageSuggestions from "../features/ancestorLanguage/AncestorLanguageSuggestions.vue";
 import GraphEvidencePanel from "../features/graph/GraphEvidencePanel.vue";
-import LanguageSelector from "../features/languages/LanguageSelector.vue";
 import {
   ancestorPathQueryKey,
   fetchAncestorPath,
   useAncestorPathQuery
 } from "../features/ancestorLanguage/composables/useAncestorPathQuery";
-import { resolveAncestorLanguageSuggestions } from "../features/ancestorLanguage/ancestorLanguageSuggestions";
+import {
+  isCuratedAncestorLanguage,
+  isCuratedDescendantLanguage,
+  resolveAncestorLanguageSuggestions,
+  resolveDescendantLanguageOptions
+} from "../features/ancestorLanguage/ancestorLanguageSuggestions";
 import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
+import { useSourceLanguageLayersQuery } from "../features/ancestorLanguage/composables/useSourceLanguageLayersQuery";
 import { useTermsWithAncestorLanguageQuery } from "../features/ancestorLanguage/composables/useTermsWithAncestorLanguageQuery";
 import { fallbackSearchLanguage, useSearchLanguageStore } from "../features/terms/searchLanguageStore";
 import PageMain from "../uiComponents/PageMain.vue";
+import Select from "../uiComponents/Select.vue";
 import Skeleton from "../uiComponents/Skeleton.vue";
 
 const defaultResultLimit = 24;
@@ -45,6 +52,7 @@ const queryClient = useQueryClient();
 const searchLanguageStore = useSearchLanguageStore();
 const languagesQuery = useLanguagesQuery();
 const languages = computed(() => languagesQuery.data.value?.languages ?? []);
+const descendantLanguageOptions = computed(() => resolveDescendantLanguageOptions(languages.value));
 const descendantLangCode = computed({
   get: () => searchLanguageStore.selectedSearchLanguage,
   set: setDescendantLanguage
@@ -55,18 +63,51 @@ const ancestorLangCode = computed({
 });
 const descendantLanguage = computed(() => findLanguage(descendantLangCode.value));
 const ancestorLanguage = computed(() => findLanguage(ancestorLangCode.value));
-const suggestedAncestors = computed(() =>
+const sourceLayerQueryInput = computed(() =>
+  descendantLangCode.value
+    ? {
+        langCode: descendantLangCode.value,
+        maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH
+      }
+    : null
+);
+const sourceLayerQuery = useSourceLanguageLayersQuery(sourceLayerQueryInput);
+const curatedAncestorSuggestions = computed(() =>
   resolveAncestorLanguageSuggestions(descendantLangCode.value, languages.value)
 );
-const suggestionsHelpText = computed(() => {
+const sourceLayersByAncestorCode = computed(() => {
+  const sourceLayers = sourceLayerQuery.data.value?.layers ?? [];
+
+  return new Map(sourceLayers.map((sourceLayer) => [sourceLayer.ancestorLangCode, sourceLayer]));
+});
+const suggestedAncestors = computed(() =>
+  curatedAncestorSuggestions.value.map((suggestion) => ({
+    ...suggestion,
+    ...sourceLayersByAncestorCode.value.get(suggestion.ancestorLangCode)
+  }))
+);
+const selectedSourceLayerIsAvailable = computed(() =>
+  suggestedAncestors.value.some((suggestion) => suggestion.ancestorLangCode === ancestorLangCode.value)
+);
+const selectedSourceLayerHasMatches = computed(() => {
+  const selectedLayer = findSelectedSourceLayer();
+
+  return selectedLayer?.status === "available";
+});
+const sourceLayerHelpText = computed(() => {
   const descendantName = descendantLanguage.value?.canonicalName;
 
   return descendantName
-    ? `Pick a source language to find ${descendantName} words that trace back to it.`
-    : "Pick a source language to find words that trace back to it.";
+    ? `Choose a curated source layer to find ${descendantName} words that trace back to it.`
+    : "Choose a language first, then pick one of its curated source layers.";
 });
 const resultQueryInput = computed(() => {
-  if (!descendantLangCode.value || !ancestorLangCode.value) {
+  if (
+    !descendantLangCode.value ||
+    !ancestorLangCode.value ||
+    !selectedSourceLayerIsAvailable.value ||
+    !selectedSourceLayerHasMatches.value
+  ) {
     return null;
   }
 
@@ -122,7 +163,7 @@ const graphStatus = computed<GraphStatus>(() => {
 });
 const resultHeading = computed(() => {
   if (!descendantLanguage.value || !ancestorLanguage.value) {
-    return "Choose two languages";
+    return "Choose a source layer";
   }
 
   return `${descendantLanguage.value.canonicalName} words from ${ancestorLanguage.value.canonicalName}`;
@@ -152,32 +193,53 @@ useIntersectionObserver(
 
 /** Defaults the result language to the shared search language so suggestions match the current choice. */
 function ensureValidLanguageSelection(availableLanguages: Language[]): void {
-  if (availableLanguages.length === 0) {
+  const availableDescendantOptions = resolveDescendantLanguageOptions(availableLanguages);
+
+  if (availableDescendantOptions.length === 0) {
     return;
   }
 
-  if (!descendantLangCode.value || !hasLanguage(availableLanguages, descendantLangCode.value)) {
-    descendantLangCode.value = findPreferredLanguageCode(availableLanguages, [fallbackSearchLanguage, availableLanguages[0]?.code]);
+  if (
+    !descendantLangCode.value ||
+    !isCuratedDescendantLanguage(descendantLangCode.value) ||
+    !hasLanguage(availableLanguages, descendantLangCode.value)
+  ) {
+    descendantLangCode.value = findPreferredLanguageCode(
+      availableLanguages,
+      [fallbackSearchLanguage, availableDescendantOptions[0]?.value]
+    );
+  }
+
+  if (
+    selectedAncestorLangCode.value &&
+    !isCuratedAncestorLanguage(descendantLangCode.value, selectedAncestorLangCode.value)
+  ) {
+    selectedAncestorLangCode.value = undefined;
   }
 }
 
 /** Applies concrete language-pair route params to the shared language preference and local source selection. */
 function syncLanguagePairFromRoute([langCode, ancestorLangCode]: readonly [string | undefined, string | undefined]): void {
-  if (langCode) {
+  if (langCode && isCuratedDescendantLanguage(langCode)) {
     searchLanguageStore.setSelectedSearchLanguage(langCode);
   }
 
-  selectedAncestorLangCode.value = ancestorLangCode;
+  selectedAncestorLangCode.value = isCuratedAncestorLanguage(langCode, ancestorLangCode)
+    ? ancestorLangCode
+    : undefined;
 }
 
-/** Stores the result language and preserves a selected source language in the URL when present. */
+/** Stores the result language and preserves a curated source layer in the URL when present. */
 function setDescendantLanguage(langCode: string | undefined): void {
   searchLanguageStore.setSelectedSearchLanguage(langCode);
 
-  if (!langCode || !selectedAncestorLangCode.value) {
-    if (!langCode) {
-      void router.push({ name: "ancestor-language-search" });
-    }
+  if (
+    !langCode ||
+    !selectedAncestorLangCode.value ||
+    !isCuratedAncestorLanguage(langCode, selectedAncestorLangCode.value)
+  ) {
+    selectedAncestorLangCode.value = undefined;
+    void router.push({ name: "ancestor-language-search" });
 
     return;
   }
@@ -193,12 +255,12 @@ function setDescendantLanguage(langCode: string | undefined): void {
 
 /** Stores the source language and opens the concrete language-pair route when the pair is complete. */
 function setAncestorLanguage(langCode: string | undefined): void {
-  selectedAncestorLangCode.value = langCode;
+  selectedAncestorLangCode.value = isCuratedAncestorLanguage(descendantLangCode.value, langCode)
+    ? langCode
+    : undefined;
 
-  if (!descendantLangCode.value || !langCode) {
-    if (!langCode) {
-      void router.push({ name: "ancestor-language-search" });
-    }
+  if (!descendantLangCode.value || !selectedAncestorLangCode.value) {
+    void router.push({ name: "ancestor-language-search" });
 
     return;
   }
@@ -207,7 +269,7 @@ function setAncestorLanguage(langCode: string | undefined): void {
     name: "ancestor-language-results",
     params: {
       langCode: descendantLangCode.value,
-      ancestorLangCode: langCode
+      ancestorLangCode: selectedAncestorLangCode.value
     }
   });
 }
@@ -236,6 +298,15 @@ function findLanguage(langCode: string | undefined): Language | undefined {
   }
 
   return languages.value.find((language) => language.code === langCode);
+}
+
+/** Resolves the selected source layer's coverage state from the current atlas response. */
+function findSelectedSourceLayer(): SourceLanguageLayer | undefined {
+  if (!ancestorLangCode.value) {
+    return undefined;
+  }
+
+  return sourceLayersByAncestorCode.value.get(ancestorLangCode.value);
 }
 
 /** Maps a result row to the graph query used by both expansion and intent prefetching. */
@@ -275,60 +346,85 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
         Source languages
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
-        Map words from one language to an older source.
+        Explore the source layers behind a language.
       </h1>
       <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
-        Search one language for entries whose ancestry reaches a selected source language.
+        Choose a modern language, then browse curated historical layers that shaped its vocabulary.
       </p>
     </section>
 
     <section class="grid gap-5">
       <div>
         <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-          Language pair
+          Atlas language
         </p>
-        <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
-          Set the word language and the source language.
+        <h2 class="max-w-2xl text-2xl font-bold leading-tight text-text">
+          Pick a language, then choose one of its curated source layers.
         </h2>
       </div>
-      <div class="grid gap-3 rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper sm:grid-cols-2">
-        <LanguageSelector
+      <div class="grid gap-5 rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
+        <Select
           id="ancestor-language-descendant"
           v-model="descendantLangCode"
-          label="Words in"
-          placeholder="Choose a language"
+          label="To language"
+          :options="descendantLanguageOptions"
+          placeholder="Choose a modern language"
+          empty-text="No curated languages found"
+          constant-trigger-width
         />
 
-        <LanguageSelector
-          id="ancestor-language-source"
-          v-model="ancestorLangCode"
-          label="Source language"
-          placeholder="Choose a source language"
-        />
+        <div class="grid gap-3">
+          <div class="grid gap-1">
+            <p class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
+              From source layers
+            </p>
+            <p class="text-sm leading-6 text-text-muted">
+              {{ sourceLayerHelpText }}
+            </p>
+            <p
+              v-if="sourceLayerQuery.isPending.value"
+              class="font-label text-xs font-bold uppercase tracking-[0.12em] text-text-muted"
+            >
+              Loading coverage
+            </p>
+            <p
+              v-else-if="sourceLayerQuery.isError.value"
+              class="text-sm leading-6 text-danger"
+            >
+              Could not load source-layer coverage.
+            </p>
+          </div>
+
+          <AncestorLanguageSuggestions
+            v-if="suggestedAncestors.length > 0"
+            :suggestions="suggestedAncestors"
+            :active-ancestor-lang-code="ancestorLangCode"
+            @select="selectAncestorLanguage"
+          />
+          <p v-else class="text-sm leading-6 text-text-muted">
+            No curated source layers are available for this language yet.
+          </p>
+        </div>
       </div>
     </section>
 
     <section class="grid gap-5" aria-labelledby="ancestor-language-results">
-      <div class="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
+      <div
+        v-if="resultsStatus !== 'idle'"
+        class="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4"
+      >
         <div>
           <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-            {{ resultsStatus === 'idle' ? 'Starting points' : 'Matches' }}
+            Matches
           </p>
           <h2 id="ancestor-language-results" class="text-2xl font-bold leading-tight text-text">
-            {{ resultsStatus === 'idle' ? 'Try an interesting source language' : resultHeading }}
+            {{ resultHeading }}
           </h2>
         </div>
       </div>
 
-      <div v-if="resultsStatus === 'idle'" class="grid gap-4">
-        <p class="text-sm leading-6 text-text-page-muted">
-          {{ suggestionsHelpText }}
-        </p>
-        <AncestorLanguageSuggestions :suggestions="suggestedAncestors" @select="selectAncestorLanguage" />
-      </div>
-
       <div
-        v-else-if="resultsStatus === 'loading'"
+        v-if="resultsStatus === 'loading'"
         class="grid gap-3"
         role="status"
         aria-busy="true"
@@ -350,6 +446,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
       <AncestorLanguageSearchEmptyState
         v-else-if="resultsStatus === 'empty'"
         :suggestions="suggestedAncestors"
+        :active-ancestor-lang-code="ancestorLangCode"
         @select="selectAncestorLanguage"
       />
 

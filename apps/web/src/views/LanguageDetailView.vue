@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { RouterLink, useRoute } from "vue-router";
+import { useRoute } from "vue-router";
 
+import Button from "../uiComponents/Button.vue";
 import Link from "../uiComponents/Link.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 import Skeleton from "../uiComponents/Skeleton.vue";
@@ -109,12 +110,9 @@ function sourceLabelForUrl(url: string): string {
       <p class="mb-6 max-w-3xl text-lg leading-8 text-text-page-muted">
         Check the path or return to a word page to follow a language label from the graph.
       </p>
-      <RouterLink
-        class="inline-flex w-fit items-center justify-center rounded-md border border-accent bg-accent px-5 py-3 font-label font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
-        :to="{ name: 'etymology-search' }"
-      >
+      <Button :to="{ name: 'etymology-search' }">
         Search word lineages
-      </RouterLink>
+      </Button>
     </section>
 
     <template v-else-if="language">
@@ -207,6 +205,14 @@ function sourceLabelForUrl(url: string): string {
               Coverage
             </p>
             <p class="text-lg font-bold text-text">{{ coverageLabel }}</p>
+            <Button
+              v-if="language.graphNodeCount > 0"
+              class="mt-4"
+              size="sm"
+              :to="{ name: 'language-terms', params: { langCode: language.code } }"
+            >
+              Browse terms
+            </Button>
           </section>
         </aside>
       </section>

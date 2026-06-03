@@ -127,6 +127,25 @@ export const languageDetailResultSchema = z.object({
 
 export type LanguageDetailResult = z.infer<typeof languageDetailResultSchema>;
 
+export const languageTermsQuerySchema = z.object({
+  langCode: z.string().trim().min(1),
+  query: z.string().trim().default(""),
+  limit: z.number().int().min(1).max(100),
+  connectedOnly: z.boolean().default(false),
+  cursor: z.string().trim().regex(/^\d+$/).optional()
+});
+
+export type LanguageTermsQuery = z.infer<typeof languageTermsQuerySchema>;
+
+export const languageTermsResultSchema = z.object({
+  language: languageSchema,
+  query: z.string(),
+  terms: z.array(graphNodeSchema),
+  nextCursor: z.string().optional()
+});
+
+export type LanguageTermsResult = z.infer<typeof languageTermsResultSchema>;
+
 export const graphEdgeSchema = z.object({
   id: z.string(),
   fromNodeId: z.string(),
@@ -136,13 +155,13 @@ export const graphEdgeSchema = z.object({
   etymologyNumber: z.number().int().optional(),
   templateName: z.string().optional(),
   uncertain: z.boolean().optional(),
-  originatingEntryId: z.string()
+  declaringEntryId: z.string()
 });
 
 export type GraphEdge = z.infer<typeof graphEdgeSchema>;
 
 export const publicGraphEdgeSchema = graphEdgeSchema.omit({
-  originatingEntryId: true
+  declaringEntryId: true
 });
 
 export type PublicGraphEdge = z.infer<typeof publicGraphEdgeSchema>;
@@ -366,6 +385,466 @@ export const termsWithAncestorLanguageResultSchema = z.object({
 
 export type TermsWithAncestorLanguageResult = z.infer<typeof termsWithAncestorLanguageResultSchema>;
 
+export type CuratedSourceLanguageLayer = {
+  ancestorLangCode: string;
+  description: string;
+};
+
+export type CuratedSourceLanguageAtlasLanguage = {
+  langCode: string;
+  description: string;
+  sourceLayers: CuratedSourceLanguageLayer[];
+};
+
+export const sourceLanguageLayerStatusSchema = z.enum(["available", "empty", "unrefreshed"]);
+
+export type SourceLanguageLayerStatus = z.infer<typeof sourceLanguageLayerStatusSchema>;
+
+export const sourceLanguageLayerSchema = z.object({
+  ancestorLangCode: z.string(),
+  ancestorName: z.string(),
+  description: z.string(),
+  status: sourceLanguageLayerStatusSchema,
+  matchCount: z.number().int().min(0).optional(),
+  sampleMatches: z.array(termsWithAncestorLanguageMatchSchema)
+});
+
+export type SourceLanguageLayer = z.infer<typeof sourceLanguageLayerSchema>;
+
+export const sourceLanguageLayersQuerySchema = z.object({
+  langCode: z.string().trim().min(1),
+  maxDepth: z.number().int().min(1).max(12)
+});
+
+export type SourceLanguageLayersQuery = z.infer<typeof sourceLanguageLayersQuerySchema>;
+
+export const sourceLanguageLayersResultSchema = z.object({
+  langCode: z.string(),
+  maxDepth: z.number().int().min(1),
+  layers: z.array(sourceLanguageLayerSchema)
+});
+
+export type SourceLanguageLayersResult = z.infer<typeof sourceLanguageLayersResultSchema>;
+
+export const CURATED_SOURCE_LANGUAGE_ATLAS: CuratedSourceLanguageAtlasLanguage[] = [
+  {
+    langCode: "en",
+    description: "English source layers from Germanic, Romance, trade, and learned vocabulary.",
+    sourceLayers: [
+      { ancestorLangCode: "ang", description: "The inherited Germanic core behind most everyday words." },
+      { ancestorLangCode: "non", description: "Viking-age contact reshaped basic vocabulary and pronouns." },
+      { ancestorLangCode: "la", description: "Centuries of learned, legal, and church vocabulary entered through Latin." },
+      { ancestorLangCode: "fr", description: "Norman rule layered thousands of French words onto English." },
+      { ancestorLangCode: "grc", description: "Greek supplied scientific, medical, political, and literary vocabulary." },
+      { ancestorLangCode: "fa", description: "Persian words reached English through trade, empire, food, and literary exchange." },
+      { ancestorLangCode: "sa", description: "Sanskrit terms entered through scholarship, religion, yoga, and South Asian contact." },
+      { ancestorLangCode: "ar", description: "Arabic loan paths carry science, trade, astronomy, and Mediterranean vocabulary." },
+      { ancestorLangCode: "gem-pro", description: "The reconstructed root shared with German and Norse." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "es",
+    description: "Spanish lineages shaped by Latin, Arabic, Greek, and older Indo-European roots.",
+    sourceLayers: [
+      { ancestorLangCode: "la", description: "Spanish inherits its core directly from spoken Latin." },
+      { ancestorLangCode: "ar", description: "Centuries of Al-Andalus contact left a large borrowed layer." },
+      { ancestorLangCode: "grc", description: "A source of scientific and learned terms." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "pt",
+    description: "Portuguese source layers across Romance inheritance, Iberian contact, and seafaring exchange.",
+    sourceLayers: [
+      { ancestorLangCode: "la", description: "Portuguese inherits its core from spoken Latin." },
+      { ancestorLangCode: "ar", description: "Iberian contact left an Arabic-derived layer." },
+      { ancestorLangCode: "grc", description: "Greek supplied learned, religious, and scientific vocabulary." },
+      { ancestorLangCode: "he", description: "Biblical and religious vocabulary preserves Hebrew source paths." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "fr",
+    description: "French layers from Latin, medieval French, Frankish contact, and deeper roots.",
+    sourceLayers: [
+      { ancestorLangCode: "la", description: "French is a direct descendant of spoken Latin." },
+      { ancestorLangCode: "fro", description: "Trace medieval forms before modern spelling settled." },
+      { ancestorLangCode: "frk", description: "Germanic rule left an early borrowed layer." },
+      { ancestorLangCode: "grc", description: "Greek shaped learned, medical, and philosophical vocabulary." },
+      { ancestorLangCode: "ar", description: "Arabic reached French through science, trade, Iberia, and the Mediterranean." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "it",
+    description: "Italian entries that stay close to Latin while preserving Greek and older layers.",
+    sourceLayers: [
+      { ancestorLangCode: "la", description: "Italian stays close to Latin in its inherited core." },
+      { ancestorLangCode: "grc", description: "Greek supplied learned and coastal-trade vocabulary." },
+      { ancestorLangCode: "ar", description: "Mediterranean trade and science left Arabic-derived vocabulary." },
+      { ancestorLangCode: "he", description: "Religious and biblical terms preserve Hebrew source paths." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "ro",
+    description: "Romanian source layers from Latin, Slavic contact, Greek, and Balkan exchange.",
+    sourceLayers: [
+      { ancestorLangCode: "la", description: "Romanian inherits its core from spoken Latin." },
+      { ancestorLangCode: "sla-pro", description: "Slavic neighbours contributed a major borrowed layer." },
+      { ancestorLangCode: "grc", description: "Byzantine contact added Greek vocabulary." },
+      { ancestorLangCode: "tr", description: "Ottoman and Balkan contact added Turkish vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "de",
+    description: "German layers from old Germanic stages plus learned Latin and Greek vocabulary.",
+    sourceLayers: [
+      { ancestorLangCode: "goh", description: "The earliest attested stage of German vocabulary." },
+      { ancestorLangCode: "gem-pro", description: "The reconstructed Germanic root." },
+      { ancestorLangCode: "la", description: "Learned and ecclesiastical borrowings entered through Latin." },
+      { ancestorLangCode: "grc", description: "Greek shaped scientific, philosophical, and scholarly vocabulary." },
+      { ancestorLangCode: "fr", description: "French contact influenced courtly, cultural, and modern vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "nl",
+    description: "Dutch lineages through medieval Dutch, Germanic roots, and maritime contact.",
+    sourceLayers: [
+      { ancestorLangCode: "dum", description: "The medieval stage behind modern Dutch words." },
+      { ancestorLangCode: "gem-pro", description: "The reconstructed Germanic root." },
+      { ancestorLangCode: "la", description: "Learned, church, and administrative vocabulary entered through Latin." },
+      { ancestorLangCode: "fr", description: "French shaped cultural, political, and courtly vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "sv",
+    description: "Swedish source layers from Norse, Germanic, Latin, and Hanseatic contact.",
+    sourceLayers: [
+      { ancestorLangCode: "non", description: "Old Norse is the early northern layer behind Swedish vocabulary." },
+      { ancestorLangCode: "gem-pro", description: "The reconstructed Germanic root shared across northern Europe." },
+      { ancestorLangCode: "la", description: "Latin supplied church, scientific, and learned vocabulary." },
+      { ancestorLangCode: "dum", description: "Low Countries trade helped carry mercantile and urban vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "da",
+    description: "Danish layers from Old Norse, Germanic roots, Latin, and Low German contact.",
+    sourceLayers: [
+      { ancestorLangCode: "non", description: "Old Norse is the early source layer behind Danish vocabulary." },
+      { ancestorLangCode: "gem-pro", description: "The reconstructed Germanic root shared with German and English." },
+      { ancestorLangCode: "la", description: "Latin supplied church, science, and learned vocabulary." },
+      { ancestorLangCode: "dum", description: "Low German and Dutch trade layers shaped urban vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "no",
+    description: "Norwegian source layers from Old Norse, Germanic roots, and European loanwords.",
+    sourceLayers: [
+      { ancestorLangCode: "non", description: "Old Norse is the central historical layer for Norwegian words." },
+      { ancestorLangCode: "gem-pro", description: "The reconstructed Germanic root links Norwegian to its sister languages." },
+      { ancestorLangCode: "la", description: "Latin supplied church, learned, and scientific vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "is",
+    description: "Icelandic lineages with unusually visible Old Norse and Germanic continuity.",
+    sourceLayers: [
+      { ancestorLangCode: "non", description: "Old Norse remains unusually visible behind Icelandic vocabulary." },
+      { ancestorLangCode: "gem-pro", description: "The reconstructed Germanic root beneath Norse lineages." },
+      { ancestorLangCode: "la", description: "Latin supplied church and learned vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "ru",
+    description: "Russian layers from Proto-Slavic, Greek, Turkic, and learned European vocabulary.",
+    sourceLayers: [
+      { ancestorLangCode: "sla-pro", description: "The reconstructed Slavic root behind inherited Russian vocabulary." },
+      { ancestorLangCode: "grc", description: "Greek shaped religious, scholarly, and Byzantine vocabulary." },
+      { ancestorLangCode: "tr", description: "Turkic contact left vocabulary from steppe, trade, and empire." },
+      { ancestorLangCode: "la", description: "Latin supplied learned, scientific, and European terms." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "pl",
+    description: "Polish lineages through Slavic inheritance, Latin learning, German contact, and Greek loans.",
+    sourceLayers: [
+      { ancestorLangCode: "sla-pro", description: "The reconstructed Slavic source behind inherited Polish vocabulary." },
+      { ancestorLangCode: "la", description: "Latin shaped church, legal, academic, and scientific vocabulary." },
+      { ancestorLangCode: "de", description: "German contact influenced urban, trade, and technical vocabulary." },
+      { ancestorLangCode: "grc", description: "Greek supplied religious, medical, and scholarly terms." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "uk",
+    description: "Ukrainian source layers across Slavic inheritance, Greek learning, and regional contact.",
+    sourceLayers: [
+      { ancestorLangCode: "sla-pro", description: "The reconstructed Slavic source behind inherited Ukrainian vocabulary." },
+      { ancestorLangCode: "grc", description: "Greek shaped religious and learned vocabulary through Byzantine contact." },
+      { ancestorLangCode: "tr", description: "Turkic contact left steppe, trade, and regional vocabulary." },
+      { ancestorLangCode: "la", description: "Latin supplied church, academic, and European vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "cs",
+    description: "Czech lineages through Slavic roots, German contact, Latin learning, and Greek loans.",
+    sourceLayers: [
+      { ancestorLangCode: "sla-pro", description: "The reconstructed Slavic source behind inherited Czech vocabulary." },
+      { ancestorLangCode: "de", description: "German contact shaped urban, craft, and political vocabulary." },
+      { ancestorLangCode: "la", description: "Latin supplied church, academic, and scientific vocabulary." },
+      { ancestorLangCode: "grc", description: "Greek contributed scholarly, religious, and medical vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "bg",
+    description: "Bulgarian layers from Slavic roots, Greek contact, Turkish loans, and deeper ancestry.",
+    sourceLayers: [
+      { ancestorLangCode: "sla-pro", description: "The reconstructed Slavic layer behind inherited Bulgarian vocabulary." },
+      { ancestorLangCode: "grc", description: "Greek contact shaped church, cultural, and Balkan vocabulary." },
+      { ancestorLangCode: "tr", description: "Ottoman contact added Turkish source layers." },
+      { ancestorLangCode: "la", description: "Latin supplied learned and international vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "el",
+    description: "Modern Greek entries that connect to Ancient Greek, Latin, Turkish, and older roots.",
+    sourceLayers: [
+      { ancestorLangCode: "grc", description: "Ancient Greek is the central historical source for Greek vocabulary." },
+      { ancestorLangCode: "la", description: "Roman and church contact added Latin-derived vocabulary." },
+      { ancestorLangCode: "tr", description: "Ottoman contact left Turkish loan layers." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "hi",
+    description: "Hindi source layers from Sanskrit, Persian, Arabic, Turkic, and English contact.",
+    sourceLayers: [
+      { ancestorLangCode: "sa", description: "Sanskrit is the major learned and inherited source for Hindi vocabulary." },
+      { ancestorLangCode: "fa", description: "Persian shaped courtly, literary, administrative, and everyday vocabulary." },
+      { ancestorLangCode: "ar", description: "Arabic vocabulary arrived through Persian, religion, scholarship, and trade." },
+      { ancestorLangCode: "trk-pro", description: "Turkic contact contributed words through medieval political history." },
+      { ancestorLangCode: "iir-pro", description: "The reconstructed Indo-Iranian layer behind inherited vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "ur",
+    description: "Urdu lineages shaped by Sanskrit, Persian, Arabic, Turkic, and English contact.",
+    sourceLayers: [
+      { ancestorLangCode: "fa", description: "Persian is a central literary, courtly, and administrative source layer." },
+      { ancestorLangCode: "ar", description: "Arabic shaped religious, scholarly, and legal vocabulary." },
+      { ancestorLangCode: "sa", description: "Sanskrit and Indo-Aryan layers underlie inherited and regional vocabulary." },
+      { ancestorLangCode: "trk-pro", description: "Turkic contact contributed political and military vocabulary." },
+      { ancestorLangCode: "iir-pro", description: "The reconstructed Indo-Iranian layer behind older forms." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "fa",
+    description: "Persian layers from Middle Persian, Arabic, Turkic, Sanskrit, and deeper Iranian roots.",
+    sourceLayers: [
+      { ancestorLangCode: "pal", description: "Middle Persian traces the historical layer before modern Persian." },
+      { ancestorLangCode: "ar", description: "Arabic shaped religious, scholarly, administrative, and literary vocabulary." },
+      { ancestorLangCode: "trk-pro", description: "Turkic contact added military, political, and regional vocabulary." },
+      { ancestorLangCode: "sa", description: "Sanskrit contact appears in older cultural and regional exchange." },
+      { ancestorLangCode: "ira-pro", description: "The reconstructed Iranian source behind inherited Persian vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "ar",
+    description: "Arabic entries connected to Semitic, Greek, Persian, Egyptian, and trade layers.",
+    sourceLayers: [
+      { ancestorLangCode: "akk", description: "Akkadian reveals older Semitic and Near Eastern source paths." },
+      { ancestorLangCode: "he", description: "Hebrew and related Semitic paths help explain shared religious vocabulary." },
+      { ancestorLangCode: "grc", description: "Greek supplied philosophical, scientific, and late antique vocabulary." },
+      { ancestorLangCode: "fa", description: "Persian contact shaped administration, culture, and trade vocabulary." },
+      { ancestorLangCode: "egy", description: "Egyptian source paths reflect older regional words and place-based layers." }
+    ]
+  },
+  {
+    langCode: "tr",
+    description: "Turkish source layers from Turkic roots, Arabic, Persian, Greek, and Ottoman vocabulary.",
+    sourceLayers: [
+      { ancestorLangCode: "trk-pro", description: "The reconstructed Turkic root behind inherited Turkish vocabulary." },
+      { ancestorLangCode: "ar", description: "Arabic shaped religious, legal, scholarly, and Ottoman vocabulary." },
+      { ancestorLangCode: "fa", description: "Persian shaped courtly, literary, and administrative vocabulary." },
+      { ancestorLangCode: "grc", description: "Greek contact contributed Anatolian, maritime, and urban vocabulary." },
+      { ancestorLangCode: "ota", description: "Ottoman Turkish traces inherited and borrowed layers before modern reforms." }
+    ]
+  },
+  {
+    langCode: "he",
+    description: "Hebrew layers from Semitic inheritance plus Aramaic, Greek, Latin, and Arabic contact.",
+    sourceLayers: [
+      { ancestorLangCode: "ar", description: "Arabic contact shaped medieval, regional, and modern vocabulary." },
+      { ancestorLangCode: "grc", description: "Greek contact appears in religious, scholarly, and late antique words." },
+      { ancestorLangCode: "la", description: "Latin supplied church, learned, and European vocabulary paths." },
+      { ancestorLangCode: "akk", description: "Akkadian reveals older Semitic and Near Eastern source paths." }
+    ]
+  },
+  {
+    langCode: "zh",
+    description: "Chinese lineages with Sino-Xenic, Sanskrit, Persian, and modern loanword layers.",
+    sourceLayers: [
+      { ancestorLangCode: "sa", description: "Sanskrit entered through Buddhist translation and learned vocabulary." },
+      { ancestorLangCode: "fa", description: "Persian contact arrived through Silk Road trade and cultural exchange." },
+      { ancestorLangCode: "ar", description: "Arabic trade and science added source paths through contact networks." },
+      { ancestorLangCode: "ja", description: "Modern and scholarly loans can move through Japanese before Chinese usage." },
+      { ancestorLangCode: "la", description: "Latin anchors scientific names, Christian vocabulary, and modern learned terms." }
+    ]
+  },
+  {
+    langCode: "ja",
+    description: "Japanese entries shaped by Chinese, Sanskrit Buddhism, Portuguese, Dutch, and English contact.",
+    sourceLayers: [
+      { ancestorLangCode: "zh", description: "Chinese is the major source for Sino-Japanese vocabulary." },
+      { ancestorLangCode: "sa", description: "Sanskrit terms entered through Buddhist transmission." },
+      { ancestorLangCode: "pt", description: "Portuguese contact left early modern trade and Christian vocabulary." },
+      { ancestorLangCode: "nl", description: "Dutch contact shaped medical, technical, and Rangaku vocabulary." },
+      { ancestorLangCode: "en", description: "English supplies many modern technology and global culture terms." }
+    ]
+  },
+  {
+    langCode: "ko",
+    description: "Korean source layers from Chinese, Japanese, Sanskrit, and modern global loans.",
+    sourceLayers: [
+      { ancestorLangCode: "zh", description: "Chinese is the major source for Sino-Korean vocabulary." },
+      { ancestorLangCode: "ja", description: "Japanese contact shaped modern, technical, and colonial-era vocabulary." },
+      { ancestorLangCode: "sa", description: "Sanskrit terms arrived through Buddhist Chinese and scholarly exchange." },
+      { ancestorLangCode: "en", description: "English supplies modern technical, cultural, and global vocabulary." }
+    ]
+  },
+  {
+    langCode: "vi",
+    description: "Vietnamese layers from Chinese, French, Sanskrit, and wider regional contact.",
+    sourceLayers: [
+      { ancestorLangCode: "zh", description: "Chinese is the major source for Sino-Vietnamese vocabulary." },
+      { ancestorLangCode: "fr", description: "French contact shaped administrative, culinary, and modern vocabulary." },
+      { ancestorLangCode: "sa", description: "Sanskrit terms arrived through Buddhism and regional exchange." },
+      { ancestorLangCode: "en", description: "English supplies many modern technical and global terms." }
+    ]
+  },
+  {
+    langCode: "id",
+    description: "Indonesian source layers from Sanskrit, Arabic, Dutch, Portuguese, and Malay roots.",
+    sourceLayers: [
+      { ancestorLangCode: "ms", description: "Malay is the immediate regional source behind much Indonesian vocabulary." },
+      { ancestorLangCode: "sa", description: "Sanskrit shaped religious, literary, and royal vocabulary." },
+      { ancestorLangCode: "ar", description: "Arabic entered through Islam, scholarship, and trade." },
+      { ancestorLangCode: "nl", description: "Dutch colonial contact supplied legal, technical, and administrative terms." },
+      { ancestorLangCode: "pt", description: "Portuguese seafaring contact added early trade vocabulary." }
+    ]
+  },
+  {
+    langCode: "ms",
+    description: "Malay entries shaped by Sanskrit, Arabic, Persian, Portuguese, Dutch, and English contact.",
+    sourceLayers: [
+      { ancestorLangCode: "sa", description: "Sanskrit shaped royal, literary, and religious vocabulary." },
+      { ancestorLangCode: "ar", description: "Arabic entered through Islam, trade, and scholarship." },
+      { ancestorLangCode: "fa", description: "Persian contact contributed trade, courtly, and literary vocabulary." },
+      { ancestorLangCode: "pt", description: "Portuguese contact added maritime, trade, and everyday words." },
+      { ancestorLangCode: "nl", description: "Dutch contact shaped colonial and technical vocabulary." },
+      { ancestorLangCode: "en", description: "English supplies modern global and technical vocabulary." }
+    ]
+  },
+  {
+    langCode: "th",
+    description: "Thai layers from Sanskrit, Pali, Khmer, Chinese, and modern European loans.",
+    sourceLayers: [
+      { ancestorLangCode: "sa", description: "Sanskrit and Pali shaped royal, religious, and learned vocabulary." },
+      { ancestorLangCode: "zh", description: "Chinese contact added trade, food, and community vocabulary." },
+      { ancestorLangCode: "en", description: "English supplies modern technical and global vocabulary." },
+      { ancestorLangCode: "pt", description: "Portuguese contact left early modern trade vocabulary." }
+    ]
+  },
+  {
+    langCode: "ta",
+    description: "Tamil lineages through Dravidian roots, Sanskrit contact, Arabic trade, and English.",
+    sourceLayers: [
+      { ancestorLangCode: "sa", description: "Sanskrit contact shaped religious, learned, and literary vocabulary." },
+      { ancestorLangCode: "ar", description: "Arabic trade added maritime, commercial, and religious vocabulary." },
+      { ancestorLangCode: "pt", description: "Portuguese contact supplied early modern coastal vocabulary." },
+      { ancestorLangCode: "en", description: "English supplies administrative, technical, and global vocabulary." }
+    ]
+  },
+  {
+    langCode: "bn",
+    description: "Bengali source layers from Sanskrit, Persian, Arabic, English, and Indo-Iranian roots.",
+    sourceLayers: [
+      { ancestorLangCode: "sa", description: "Sanskrit is the major learned and inherited source for Bengali vocabulary." },
+      { ancestorLangCode: "fa", description: "Persian shaped courtly, administrative, and literary vocabulary." },
+      { ancestorLangCode: "ar", description: "Arabic arrived through Persian, Islam, scholarship, and trade." },
+      { ancestorLangCode: "en", description: "English supplies colonial, technical, and modern vocabulary." },
+      { ancestorLangCode: "iir-pro", description: "The reconstructed Indo-Iranian layer behind inherited vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "sw",
+    description: "Swahili entries shaped by Bantu roots, Arabic trade, Persian, Portuguese, and English.",
+    sourceLayers: [
+      { ancestorLangCode: "ar", description: "Arabic trade and Islam shaped a major Swahili source layer." },
+      { ancestorLangCode: "fa", description: "Persian Indian Ocean contact contributed cultural and trade vocabulary." },
+      { ancestorLangCode: "pt", description: "Portuguese contact left coastal and maritime vocabulary." },
+      { ancestorLangCode: "en", description: "English supplies modern administrative, technical, and global vocabulary." }
+    ]
+  },
+  {
+    langCode: "la",
+    description: "Latin source layers through Italic ancestry, Greek contact, and deeper Indo-European roots.",
+    sourceLayers: [
+      { ancestorLangCode: "itc-pro", description: "The branch root linking Latin to its Italic siblings." },
+      { ancestorLangCode: "grc", description: "Greek shaped Roman learned and literary vocabulary." },
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  },
+  {
+    langCode: "grc",
+    description: "Ancient Greek source layers anchored in deeper Indo-European roots.",
+    sourceLayers: [
+      { ancestorLangCode: "ine-pro", description: "The deepest shared ancestor the graph reaches." }
+    ]
+  }
+];
+
+/** Finds the curated source-language atlas entry for one result language. */
+export function findCuratedSourceLanguageAtlasLanguage(
+  langCode: string | undefined
+): CuratedSourceLanguageAtlasLanguage | undefined {
+  return CURATED_SOURCE_LANGUAGE_ATLAS.find((language) => language.langCode === langCode);
+}
+
+/** Checks whether a result language is part of the curated source-language atlas. */
+export function isCuratedSourceLanguageAtlasLanguage(langCode: string | undefined): boolean {
+  return findCuratedSourceLanguageAtlasLanguage(langCode) !== undefined;
+}
+
+/** Checks whether a source-layer pair is part of the curated source-language atlas. */
+export function isCuratedSourceLanguageAtlasPair(
+  langCode: string | undefined,
+  ancestorLangCode: string | undefined
+): boolean {
+  return Boolean(
+    findCuratedSourceLanguageAtlasLanguage(langCode)?.sourceLayers.some(
+      (sourceLayer) => sourceLayer.ancestorLangCode === ancestorLangCode
+    )
+  );
+}
+
 export const searchTermsQuerySchema = z.object({
   query: z.string(),
   langCode: z.string().min(1).optional(),
@@ -380,6 +859,28 @@ export const searchTermsResultSchema = z.object({
 });
 
 export type SearchTermsResult = z.infer<typeof searchTermsResultSchema>;
+
+export const similarTermsQuerySchema = z.object({
+  langCode: z.string().trim().min(1),
+  word: z.string().trim().min(1),
+  limit: z.number().int().min(1).max(24)
+});
+
+export type SimilarTermsQuery = z.infer<typeof similarTermsQuerySchema>;
+
+export const similarTermSchema = z.object({
+  node: graphNodeSchema,
+  similarity: z.number().min(0).max(1)
+});
+
+export type SimilarTerm = z.infer<typeof similarTermSchema>;
+
+export const similarTermsResultSchema = z.object({
+  anchor: graphNodeSchema.nullable(),
+  terms: z.array(similarTermSchema)
+});
+
+export type SimilarTermsResult = z.infer<typeof similarTermsResultSchema>;
 
 /** Normalizes terms so graph lookups use the same key shape as imports. */
 export function normalizeWord(word: string): string {
@@ -418,9 +919,9 @@ export function makeGraphEdgeId(
   fromNodeId: string,
   edgeType: EdgeType,
   toNodeId: string,
-  originatingEntryId: string
+  declaringEntryId: string
 ): string {
-  return `${fromNodeId}:${edgeType}:${toNodeId}:from:${originatingEntryId}`;
+  return `${fromNodeId}:${edgeType}:${toNodeId}:from:${declaringEntryId}`;
 }
 
 export const ANCESTOR_EDGE_TYPES = [
@@ -451,7 +952,7 @@ export type AncestorTraversalResult = {
 
 /**
  * Walks ancestor edges away from a seed entry while preventing traversal from crossing into unrelated
- * homograph histories. Edges are followed only when their originating entry is already in the allowed set,
+ * homograph histories. Edges are followed only when their declaring entry is already in the allowed set,
  * and additional entries are admitted at a visited node only when they agree with the seed's own chain
  * (case b) or when they are the only entry homed at that node (case a). This is the reference behavior
  * the Postgres traversal mirrors in SQL.
@@ -490,7 +991,7 @@ export function traverseAncestors(input: AncestorTraversalInput): AncestorTraver
 
     for (const edge of candidateEdges) {
       if (
-        !allowedEntryIds.has(edge.originatingEntryId) &&
+        !allowedEntryIds.has(edge.declaringEntryId) &&
         !canFollowDescendantOwnedEdge(edge, current.nodeId, entriesByNode, candidateEdges, allowedEntryIds)
       ) {
         continue;
@@ -535,7 +1036,7 @@ function canFollowDescendantOwnedEdge(
   const edgeTargetLanguage = nodeIdLanguage(edge.toNodeId);
   const hasOwnAncestryEvidenceInTargetLanguage = candidateEdges.some(
     (candidateEdge) =>
-      allowedEntryIds.has(candidateEdge.originatingEntryId) &&
+      allowedEntryIds.has(candidateEdge.declaringEntryId) &&
       nodeIdLanguage(candidateEdge.toNodeId) === edgeTargetLanguage
   );
 
@@ -560,7 +1061,7 @@ function expandAllowedEntries(args: {
 
   const allowedTargets = new Set<string>();
   for (const edge of args.candidateEdges) {
-    if (args.allowedEntryIds.has(edge.originatingEntryId)) {
+    if (args.allowedEntryIds.has(edge.declaringEntryId)) {
       allowedTargets.add(edge.toNodeId);
     }
   }
@@ -644,11 +1145,11 @@ function indexEdgesByEntryFromNode(
     if (!allowedTypes.has(edge.type)) {
       continue;
     }
-    const fromMap = byEntry.get(edge.originatingEntryId) ?? new Map<string, Set<string>>();
+    const fromMap = byEntry.get(edge.declaringEntryId) ?? new Map<string, Set<string>>();
     const targetSet = fromMap.get(edge.fromNodeId) ?? new Set<string>();
     targetSet.add(edge.toNodeId);
     fromMap.set(edge.fromNodeId, targetSet);
-    byEntry.set(edge.originatingEntryId, fromMap);
+    byEntry.set(edge.declaringEntryId, fromMap);
   }
 
   return byEntry;

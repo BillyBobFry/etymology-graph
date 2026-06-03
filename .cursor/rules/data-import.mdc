@@ -19,7 +19,9 @@ This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Po
 
 ## Trusted Wiktextract Fields
 
-- Prefer structured `etymology_templates`, `descendants`, and `derived` fields over parsing `etymology_text`.
+- Treat `etymology_templates` as seed-expansion hints, not authoritative graph edges. Use flat ancestry templates such as `inh`, `inh+`, `der`, `uder`, `bor`, `lbor`, and `root` to enqueue ancestor records for later processing. A list of flat ancestry templates is target-relative, not an adjacency chain: each template points from the current entry toward a possible ancestor, so do not interpret consecutive templates as parent-child edges.
+- Prefer structured `etymon` trees, `descendants`, and `derived` fields over parsing `etymology_text` for graph edges.
+- `etymon` templates are trusted graph input when they expose embedded term metadata or rendered `Etymology tree` rows. Rendered etymon trees are generated structure, not freeform prose.
 - Keep `etymology_text` for explanation, source display, and fallback investigation, not as the primary graph source.
 - Preserve `word`, `lang`, `lang_code`, `pos`, `etymology_number`, template names, descendant tags, source line number, and useful raw snippets.
 - For entries with multiple etymologies, keep `etymology_number` attached to nodes/edges so distinct histories do not collapse.
@@ -29,27 +31,39 @@ This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Po
 - Model terms as nodes keyed by language code plus normalized word/form.
 - Store both original display form and normalized form. Normalize with NFC, trimming, and locale-aware lowercase.
 - Reconstructed proto-forms such as `*bʰrewh₁-` are valid nodes and should retain their leading `*`.
-- Graph nodes are intentionally coarse and may host multiple homograph lexical entries (different `pos` or `etymology_number`). Homograph isolation lives on edges via `originating_entry_id`, not on the node keys.
+- Graph nodes are intentionally coarse and may host multiple homograph lexical entries (different `pos` or `etymology_number`). Homograph isolation lives on edges via `declaring_entry_id`, not on the node keys.
 - Some imported nodes (typically proto-forms reached only via descendant chains) have no `lexical_entries` row; treat these as graph-only nodes and let traversal fall back to ignoring the entry filter when the anchor term resolves only as a graph node.
+
+## Term Embeddings
+
+- Term embeddings live in `term_embeddings`, not as a child table of `graph_nodes`. Key them by `(lang_code, normalized_word, model)` so embeddings can survive graph node truncation and reimport.
+- The embeddings table uses pgvector and stores `word`, `content_hash`, `embedding`, and `embedded_at`. Keep `content_hash` tied to the exact embedding input text so refresh scripts can skip unchanged terms.
+- The current refresh path is English-only: `pnpm embeddings:refresh:english`. It scans current `graph_nodes`, builds language-aware text with language name, language code, and term, calls OpenAI embeddings, and upserts `term_embeddings`.
+- OpenAI embeddings do not take a separate language parameter. Include language name/code in the input text rather than embedding bare words.
+- Similar-term queries should join live `graph_nodes` to `term_embeddings` by `(lang_code, normalized_word)` and keep pgvector SQL behind the repository boundary.
 
 ## Edges
 
 - Model etymological relationships as typed directed edges with source metadata.
 - Current core edge types are `inherited_from`, `derived_from`, `borrowed_from`, `cognate_with`, `doublet_of`, `descendant_of`, `related_to`, and `see_also`.
-- Template mappings should include `inh -> inherited_from`, `der -> derived_from`, `bor/borrowed -> borrowed_from`, `cog -> cognate_with`, and `doublet -> doublet_of`.
+- Do not turn flat ancestry templates directly into graph edges in the structured import path; they often skip intermediate levels and their lists are not true chains. They belong in seed extraction, not edge construction. The only structured-import fallback is the existing single unambiguous source-template edge case; do not broaden it to multi-template chains without a new source of adjacency evidence.
 - Walk Wiktextract `descendants` recursively; each nested descendant should create a node and an edge from the descendant child to its immediate parent.
-- Infer descendant edge types from `raw_tags` and `tags` when possible, such as `borrowed -> borrowed_from` and `derived -> derived_from`; default to `inherited_from` when no better tag signal exists.
+- At each descendant/derived sibling level, keep only the first item per `lang_code` for graph import and structured seed expansion. Wiktionary descendant lists often encode spelling-variant lattices; importing every same-language variant creates noisy false parent fan-out.
+- Infer descendant edge types from `raw_tags` and `tags` when possible, such as `borrowed -> borrowed_from` and `derived -> derived_from`; default to `inherited_from` when no better tag signal exists. `derived` arrays default to `derived_from`.
 - Preserve uncertainty and alternatives explicitly. Do not flatten "possibly", "perhaps", "alternatively", or competing etymologies into certain edges.
 - For ancestor and descendant-derived edges, direction should be from the current/descendant term to its source term. Descendant queries can traverse those edges in reverse.
 
-## Edge Ownership And Entry-Aware Traversal
+## Edge Provenance, Read Model, And Entry-Aware Traversal
 
-- Every edge is attributed to the lexical entry that declared it via `graph_edges.originating_entry_id` (NOT NULL, FK to `lexical_entries.id` with `ON DELETE CASCADE`).
-- Edge IDs include the originating entry: `${fromNodeId}:${edgeType}:${toNodeId}:from:${originatingEntryId}`. Use `makeGraphEdgeId` and `makeLexicalEntryId` from `@etymology-graph/graph` and never reconstruct these inline.
-- `previewEntry` computes the originating entry id once per Wiktextract entry and threads it through template, tree, and descendants edge construction; do not introduce edge sources that bypass this attribution.
-- The importer's `deleteStaleRootAncestryEdges` is scoped by `(from_node_id, originating_entry_id)` so reimporting one entry never deletes another entry's edges at a shared homograph node.
+- Every edge is attributed to the lexical entry that declared it via `graph_edges.declaring_entry_id` (NOT NULL, FK to `lexical_entries.id` with `ON DELETE CASCADE`). Treat this as provenance, not proof that the edge applies to every homograph at `from_node_id`.
+- Edge IDs include the declaring entry: `${fromNodeId}:${edgeType}:${toNodeId}:from:${declaringEntryId}`. Use `makeGraphEdgeId` and `makeLexicalEntryId` from `@etymology-graph/graph` and never reconstruct these inline.
+- `previewStructuredEntry` is the blessed graph preview path. It computes the declaring entry id once per Wiktextract entry and threads it through etymon-tree, descendants, derived, affix, and compound edge construction; do not introduce edge sources that bypass this attribution.
+- `previewEntry` is the legacy prose/template-chain preview path kept for comparison and old scripts. Do not use it for new production import behavior.
+- The importer's `deleteStaleRootAncestryEdges` is scoped by `(from_node_id, declaring_entry_id)` so reimporting one entry never deletes another entry's edges at a shared homograph node.
+- API graph endpoints read edges from `graph_edge_walk_mv`, not directly from `graph_edges`. Refresh this materialized view after full imports; `import:db:structured` does this automatically after batch processing unless `IMPORT_LIMIT_RECORDS` is set. Use `IMPORT_REFRESH_GRAPH_EDGE_WALK=true` to force refresh after a limited smoke run, or `IMPORT_REFRESH_GRAPH_EDGE_WALK=false` to skip it.
+- `graph_edge_walk_mv.default_ancestor_walk_candidate` encodes the default ambiguity policy: self-declared ancestor edges win, and ancestor-page descendant-list edges are used only when the same `from_node_id` has no self-declared ancestor edge.
 - The pure reference traversal lives in `traverseAncestors` (in `packages/graph/src/index.ts`) along with `expandAllowedEntries`. The Postgres `ancestor_walk` CTE in `apps/api/src/postgres-graph-repository.ts` is a port of that function; keep them in sync.
-- Rule v5 for entry-aware ancestor traversal: start from the chosen anchor entry's id; only follow edges whose `originating_entry_id` is in the current allowed set; on visiting node `N`, additional entries homed at `N` join the allowed set when either (a) that entry is the only one homed at `N` or (b) its first ancestor edge from `N` lands on the same target as an already-allowed entry's edge from `N`.
+- Rule v5 for entry-aware ancestor traversal: start from the chosen anchor entry's id; only follow materialized-view edges whose `declaring_entry_id` is in the current allowed set and whose `default_ancestor_walk_candidate` is true; on visiting node `N`, additional entries homed at `N` join the allowed set when either (a) that entry is the only one homed at `N` or (b) its first candidate ancestor edge from `N` lands on the same target as an already-allowed entry's edge from `N`.
 - API anchor selection: ancestor/child/doublet queries take optional `pos` and `etymologyNumber`. When omitted the anchor is the lowest `etymology_number`, then alphabetic `pos`, then entry id - a stable default usable when the caller has not chosen.
 - Frontend chooser flow: `/api/term-entries` lists every entry for a `(langCode, word)` pair, `useTermEntrySelection` syncs `pos` / `etym` query params, and `EntryChooser.vue` renders the picker. Add new graph views by reusing these composables rather than re-deriving entry selection.
 
@@ -60,15 +74,15 @@ This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Po
 
 ## Import Strategy
 
-1. Validate on small known fixtures first, especially `bread`, `beer`, `father`, `wine`, and `cheese`.
-2. Extract small curated fixture seeds with `pnpm seed:extract`; generated seeds live under `wikidata_downloads/seeds/`.
-3. Preview resumable batch traversal with `pnpm import:batch-preview` before adding new write behavior.
-4. Import seed data with `pnpm import:db`, which reads `.env`, upserts nodes first, then edges, and commits per batch.
+1. Validate on small known fixtures first, especially `bread`, `king`, `three`, `trois`, `père`, `father`, `wine`, and `cheese`.
+2. For production-scale graph data, generate `wikidata_downloads/seeds/structured-ancestry-seed.jsonl` with `pnpm seed:extract:structured-ancestry`. This starts from committed seed words plus public UI coverage terms, uses flat ancestry templates only to enqueue ancestors, uses first-per-language descendants to enqueue child records, and enqueues single-token derived terms (using the entry language when Wiktextract omits `lang_code`).
+3. Preview structured import batches with `pnpm import:batch-preview:structured` using the target seed path/checkpoint before changing write behavior.
+4. Import seed data with `pnpm import:db:structured`, which reads `.env`, upserts nodes first, then lexical entries and edges, commits per batch, and refreshes `graph_edge_walk_mv` once after full processing. Limited runs with `IMPORT_LIMIT_RECORDS` skip the refresh by default.
 5. Store checkpoints under `wikidata_downloads/checkpoints/` with source path, next line number, next byte offset, batch size, processed counts, and update time.
 6. Track malformed records and skipped templates separately instead of silently discarding import problems.
 7. Keep graph extraction logic in `packages/importer` and shared graph constants/types in `packages/graph`.
 8. Add database indexes for node lookup by `(lang_code, normalized_word)` and edge traversal by both endpoints and edge type.
-9. For launch-scale data, prefer committed seed-word sources plus `pnpm seed:extract:popular` or bounded hub-language expansion over attempting a blind full-dump database import.
+9. For launch-scale data, prefer committed seed-word sources plus structured ancestry extraction over attempting a blind full-dump database import.
 
 ## Graph Regression Tests
 
@@ -81,12 +95,13 @@ This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Po
 
 ## Current Import Commands
 
-- For broader committed seed data, run `pnpm seed:extract:popular`, `pnpm import:batch-preview:popular`, and `pnpm import:db:popular`.
-- Popular extraction reads `data/seed-words/thousand-most-common-words/` and `data/seed-words/corpora/` by default, streams the raw Wiktextract dump once, and writes `wikidata_downloads/seeds/popular-seed.jsonl`.
-- Override popular seed directories only for experiments with `POPULAR_WORDS_DIRS` as a comma-separated list. Do not reintroduce local-only defaults such as `wikidata_downloads/popular-words`.
-- To grow a more connected production graph, run `pnpm seed:extract:prod`, `pnpm import:batch-preview:prod`, and `pnpm import:db:prod`.
-- Production expansion starts from committed popular seed targets plus public UI coverage terms from `apps/web/src/features/terms/starterQueries.ts` and `apps/web/src/features/soundChanges/soundChanges.ts`. It follows configured hub-language nodes, enqueues allowed explicit `cog` template targets, then adds bounded outward neighbors once a matched target is itself in a hub language. Hub-language forms get follow-up passes through `EXPANSION_MAX_HUB_DEPTH`, so a term that stops at a proto-form can still enqueue and process that proto-form. It writes `wikidata_downloads/seeds/prod-seed.jsonl` and persists `wikidata_downloads/checkpoints/prod-expansion-frontier.json`.
-- Default expansion hub languages include `la`, `grc`, `sa`, `ae`, `ave`, `ine-pro`, `iir-pro`, `ira-pro`, `gem-pro`, `gmw-pro`, `itc-pro`, `cel-pro`, and `sla-pro`; tune with `UI_SEED_COVERAGE_MODULES`, `EXPANSION_HUB_LANG_CODES`, `EXPANSION_ROOT_OUTWARD_LANG_CODES`, `EXPANSION_COGNATE_LANG_CODES`, `EXPANSION_ENQUEUE_COGNATES`, `EXPANSION_MAX_DEPTH`, `EXPANSION_MAX_HUB_DEPTH`, `EXPANSION_MAX_TARGETS`, and `EXPANSION_MAX_DISCOVERED_TARGETS_PER_MATCH`.
-- Popular database import uses `IMPORT_INPUT_PATH=../../wikidata_downloads/seeds/popular-seed.jsonl` and `IMPORT_CHECKPOINT_PATH=../../wikidata_downloads/checkpoints/popular-import-db.json`.
-- Production database import uses `IMPORT_INPUT_PATH=../../wikidata_downloads/seeds/prod-seed.jsonl` and `IMPORT_CHECKPOINT_PATH=../../wikidata_downloads/checkpoints/prod-import-db.json`.
-- Before importing into a fresh database, apply every numbered migration in `db/migrations/` in order. Current set: `001_initial_graph.sql`, `002_languages.sql`, `003_lexical_entries.sql`, and `004_edge_entry_attribution.sql`. Migration `004` truncates `graph_nodes` cascade and adds the `originating_entry_id` column, so reapplying it against an existing DB forces a full reimport.
+- Blessed production path:
+  - `pnpm seed:extract:structured-ancestry`
+  - `pnpm import:batch-preview:structured`
+  - `pnpm import:db:structured`
+- The structured preview and DB import scripts default to `wikidata_downloads/seeds/structured-ancestry-seed.jsonl`, `wikidata_downloads/checkpoints/structured-ancestry-preview.json`, and `wikidata_downloads/checkpoints/structured-ancestry-import-db.json`. Override `IMPORT_INPUT_PATH` / `IMPORT_CHECKPOINT_PATH` only for experiments or alternate seeds.
+- When reimporting a regenerated structured seed, delete or change `wikidata_downloads/checkpoints/structured-ancestry-import-db.json`; otherwise `import:db:structured` may resume after old records and leave the DB unchanged.
+- The structured ancestry extractor writes `wikidata_downloads/seeds/structured-ancestry-seed.jsonl` and `wikidata_downloads/checkpoints/structured-ancestry-frontier.json`.
+- Seed target matching intentionally allows diacritic-stripped lookup for page titles, such as target `la:trēs` matching raw Wiktextract entry `la:tres`. Do not use diacritic stripping for graph node identity.
+- Committed seed word directories are inputs to the structured ancestry extractor, not standalone import targets. Do not reintroduce popular/prod seed commands or database import aliases.
+- Before importing into a fresh database, apply every numbered migration in `db/migrations/` in order. Migration `004` truncates `graph_nodes` cascade and adds the `declaring_entry_id` column, so reapplying it against an existing DB forces a full reimport. Migration `010` creates `graph_edge_walk_mv`, which the API expects to exist. Migration `011` enables pgvector and creates the durable `term_embeddings` cache.

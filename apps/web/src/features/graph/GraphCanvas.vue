@@ -67,6 +67,7 @@ const searchLanguageStore = useSearchLanguageStore();
 const { getEtymologyRoute, getDoubletsRoute, getAncestorLanguageRoute } = useGraphNodeRoutes();
 const selectedNodeId = ref<string>();
 const contextNodeId = ref<string>();
+const pendingExpansionAnchorNodeId = ref<string>();
 const isGraphGuideOpen = ref(false);
 const isNodeContextMenuOpen = ref(false);
 const isGraphExpanded = ref(false);
@@ -200,7 +201,15 @@ const selectedNodeActionItems = computed(() => createNodeActionItems(nodeActionL
 watch(
   [() => props.graph, graphLayoutOrientation, () => props.layoutPreset, () => props.rootNodeId],
   ([graph, orientation, layoutPreset, rootNodeId]) => {
-    buildSimulation(graph, orientation, { layoutPreset, rootNodeId, annotations: props.annotations });
+    const expansionAnchorNodeId = pendingExpansionAnchorNodeId.value;
+
+    buildSimulation(graph, orientation, {
+      layoutPreset,
+      rootNodeId,
+      annotations: props.annotations,
+      expansionAnchorNodeId
+    });
+    pendingExpansionAnchorNodeId.value = undefined;
     resetNodeDrag();
   },
   { immediate: true }
@@ -391,6 +400,7 @@ function handleSelectedNodeAction(action: NodeContextAction): void {
 function performNodeAction(action: NodeContextAction, node: GraphTraversalNode): void {
   switch (action) {
     case "load-children":
+      pendingExpansionAnchorNodeId.value = node.id;
       emit("load-children", node);
       return;
     case "view-etymology":

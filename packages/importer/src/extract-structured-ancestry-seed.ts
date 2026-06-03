@@ -4,14 +4,13 @@ import { dirname, resolve } from "node:path";
 import { finished } from "node:stream/promises";
 import { pathToFileURL } from "node:url";
 
-import type { GraphNode } from "@etymology-graph/graph";
+import { canonicalGraphWord } from "@etymology-graph/graph";
 
 import { loadPopularWordTargets } from "./popular-word-lists.js";
 import {
   buildSeedTargetIndex,
   findMatchingSeedTargetIndex,
   parseSeedTargets,
-  previewEntry,
   readJsonlRecords,
   seedTargetKey,
   type SeedTarget,
@@ -20,13 +19,19 @@ import {
 
 type FrontierStatus = "pending" | "matched" | "not_found";
 
+type FrontierReason =
+  | "initial_seed"
+  | "ancestor_template"
+  | "structured_descendant"
+  | "structured_derived";
+
 type FrontierTarget = {
   target: SeedTarget;
   key: string;
   depth: number;
   status: FrontierStatus;
+  reason: FrontierReason;
   discoveredBy?: string;
-  reason: "initial_seed" | "hub_related_node" | "hub_root_neighbor" | "cognate_template";
 };
 
 type UiCoverageTarget = {
@@ -39,11 +44,6 @@ type StarterQuery = {
 };
 
 type StarterQueryGroups = Record<string, unknown>;
-
-type SoundChangeTermLike = {
-  languageCode?: unknown;
-  term?: unknown;
-};
 
 type SoundChangeLineageLike = {
   from?: unknown;
@@ -65,7 +65,10 @@ type SoundChangeArticleLike = {
   examples?: unknown;
 };
 
-type ExpansionPassSummary = {
+type WiktextractTemplate = NonNullable<WiktextractEntry["etymology_templates"]>[number];
+type WiktextractDescendant = NonNullable<WiktextractEntry["descendants"]>[number];
+
+type ExtractionPassSummary = {
   pass: number;
   depth: number;
   targetCount: number;
@@ -75,26 +78,35 @@ type ExpansionPassSummary = {
   discoveredTargets: number;
 };
 
-type ExpansionState = {
+type ExtractionState = {
   inputPath: string;
   outputPath: string;
   frontierPath: string;
   popularWordsDirs: string[];
-  hubLanguageCodes: string[];
-  rootOutwardExpansionEnabled: boolean;
-  rootOutwardLanguageCodes: string[];
-  cognateExpansionEnabled: boolean;
-  cognateLanguageCodes: string[];
-  maxExpansionDepth: number;
-  maxHubExpansionDepth: number;
+  uiCoverageModulePaths: string[];
+  maxDepth: number;
   maxEnqueuedTargets: number;
   maxDiscoveredTargetsPerMatch: number;
   limitRecords?: number;
   targetCount: number;
   statusCounts: Record<FrontierStatus, number>;
-  passes: ExpansionPassSummary[];
+  passes: ExtractionPassSummary[];
   targets: FrontierTarget[];
   updatedAt: string;
+};
+
+type EnqueueTargetOptions = {
+  depth: number;
+  reason: FrontierReason;
+  discoveredBy?: string;
+};
+
+type ExtractionPassOptions = {
+  pass: number;
+  depth: number;
+  passTargets: FrontierTarget[];
+  frontier: Map<string, FrontierTarget>;
+  output: NodeJS.WritableStream;
 };
 
 const inputPath = process.env.WIKTEXTRACT_PATH ?? "../../wikidata_downloads/raw-wiktextract-data.jsonl";
@@ -112,77 +124,22 @@ const popularWordsDirs = parseDelimitedList(process.env.POPULAR_WORDS_DIRS) ?? [
 const uiCoverageModulePaths = parseDelimitedList(process.env.UI_SEED_COVERAGE_MODULES) ?? [
   ...defaultUiCoverageModulePaths
 ];
-const outputPath = process.env.SEED_OUTPUT_PATH ?? "../../wikidata_downloads/seeds/prod-seed.jsonl";
+const outputPath = process.env.SEED_OUTPUT_PATH ?? "../../wikidata_downloads/seeds/structured-ancestry-seed.jsonl";
 const frontierPath =
-  process.env.EXPANSION_FRONTIER_PATH ?? "../../wikidata_downloads/checkpoints/prod-expansion-frontier.json";
-const hubLanguageCodes = new Set(
-  parseDelimitedList(process.env.EXPANSION_HUB_LANG_CODES) ?? [
-    "la",
-    "grc",
-    "sa",
-    "ae",
-    "ave",
-    "ine-pro",
-    "iir-pro",
-    "ira-pro",
-    "gem-pro",
-    "gmw-pro",
-    "itc-pro",
-    "cel-pro",
-    "sla-pro"
-  ]
+  process.env.STRUCTURED_ANCESTRY_FRONTIER_PATH ??
+  "../../wikidata_downloads/checkpoints/structured-ancestry-frontier.json";
+const maxDepth = Number(process.env.STRUCTURED_ANCESTRY_MAX_DEPTH ?? 8);
+const maxEnqueuedTargets = Number(process.env.STRUCTURED_ANCESTRY_MAX_TARGETS ?? 500_000);
+const maxDiscoveredTargetsPerMatch = Number(
+  process.env.STRUCTURED_ANCESTRY_MAX_DISCOVERED_TARGETS_PER_MATCH ?? 200
 );
-const rootOutwardExpansionEnabled =
-  process.env.EXPANSION_ENQUEUE_RELATED_FROM_HUBS === undefined
-    ? true
-    : parseBoolean(process.env.EXPANSION_ENQUEUE_RELATED_FROM_HUBS);
-const rootOutwardLanguageCodes = new Set(
-  parseDelimitedList(process.env.EXPANSION_ROOT_OUTWARD_LANG_CODES) ?? [
-    "en",
-    "ang",
-    "enm",
-    "de",
-    "nl",
-    "is",
-    "sv",
-    "da",
-    "no",
-    "fo",
-    "got",
-    "la",
-    "it",
-    "es",
-    "fr",
-    "pt",
-    "ro",
-    "ca",
-    "grc",
-    "el",
-    "sa",
-    "hi",
-    "ru",
-    "pl",
-    "cs",
-    "cy",
-    "ga",
-    "fa",
-    "ae",
-    "ave",
-    ...hubLanguageCodes
-  ]
-);
-const cognateExpansionEnabled =
-  process.env.EXPANSION_ENQUEUE_COGNATES === undefined ? true : parseBoolean(process.env.EXPANSION_ENQUEUE_COGNATES);
-const cognateLanguageCodes = new Set(parseDelimitedList(process.env.EXPANSION_COGNATE_LANG_CODES) ?? rootOutwardLanguageCodes);
-const maxExpansionDepth = Number(process.env.EXPANSION_MAX_DEPTH ?? 2);
-const maxHubExpansionDepth = Number(process.env.EXPANSION_MAX_HUB_DEPTH ?? maxExpansionDepth + 2);
-const maxEnqueuedTargets = Number(process.env.EXPANSION_MAX_TARGETS ?? 125_000);
-const maxDiscoveredTargetsPerMatch = Number(process.env.EXPANSION_MAX_DISCOVERED_TARGETS_PER_MATCH ?? 75);
-const limitRecords = process.env.EXPANSION_LIMIT_RECORDS ? Number(process.env.EXPANSION_LIMIT_RECORDS) : undefined;
+const limitRecords = process.env.STRUCTURED_ANCESTRY_LIMIT_RECORDS
+  ? Number(process.env.STRUCTURED_ANCESTRY_LIMIT_RECORDS)
+  : undefined;
 
 const initialTargets = await loadInitialTargets(popularWordsDirs);
 const frontier = new Map<string, FrontierTarget>();
-const passes: ExpansionPassSummary[] = [];
+const passes: ExtractionPassSummary[] = [];
 
 for (const target of initialTargets) {
   enqueueTarget(frontier, target, {
@@ -195,7 +152,7 @@ await mkdir(dirname(outputPath), { recursive: true });
 const output = createWriteStream(outputPath, { encoding: "utf8", flags: "w" });
 
 try {
-  for (let depth = 0; depth <= maxHubExpansionDepth; depth += 1) {
+  for (let depth = 0; depth <= maxDepth; depth += 1) {
     const passTargets = [...frontier.values()].filter((frontierTarget) => {
       return frontierTarget.depth === depth && frontierTarget.status === "pending";
     });
@@ -204,7 +161,7 @@ try {
       continue;
     }
 
-    const passSummary = await runExpansionPass({
+    const passSummary = await runExtractionPass({
       pass: passes.length,
       depth,
       passTargets,
@@ -212,14 +169,14 @@ try {
       output
     });
     passes.push(passSummary);
-    await writeExpansionState(frontier, passes);
+    await writeExtractionState(frontier, passes);
   }
 } finally {
   output.end();
   await finished(output);
 }
 
-await writeExpansionState(frontier, passes);
+await writeExtractionState(frontier, passes);
 
 console.log({
   inputPath,
@@ -227,13 +184,7 @@ console.log({
   frontierPath,
   popularWordsDirs,
   uiCoverageModulePaths,
-  hubLanguageCodes: [...hubLanguageCodes],
-  rootOutwardExpansionEnabled,
-  rootOutwardLanguageCodes: [...rootOutwardLanguageCodes],
-  cognateExpansionEnabled,
-  cognateLanguageCodes: [...cognateLanguageCodes],
-  maxExpansionDepth,
-  maxHubExpansionDepth,
+  maxDepth,
   maxEnqueuedTargets,
   maxDiscoveredTargetsPerMatch,
   limitRecords,
@@ -242,21 +193,7 @@ console.log({
   passes
 });
 
-type EnqueueTargetOptions = {
-  depth: number;
-  reason: FrontierTarget["reason"];
-  discoveredBy?: string;
-};
-
-type ExpansionPassOptions = {
-  pass: number;
-  depth: number;
-  passTargets: FrontierTarget[];
-  frontier: Map<string, FrontierTarget>;
-  output: NodeJS.WritableStream;
-};
-
-/** Loads committed seed-word directories into the initial frontier. */
+/** Loads committed seed words plus public UI coverage terms into the initial frontier. */
 async function loadInitialTargets(directoryPaths: string[]): Promise<SeedTarget[]> {
   const popularTargets = await Promise.all(directoryPaths.map((directoryPath) => loadPopularWordTargets(directoryPath)));
   const uiCoverageTargets = await loadUiCoverageTargets(uiCoverageModulePaths);
@@ -268,7 +205,7 @@ async function loadInitialTargets(directoryPaths: string[]): Promise<SeedTarget[
   return parseSeedTargets(targetSpecs.join(","));
 }
 
-/** Loads route starter and article terms so public UI examples are always present in production seeds. */
+/** Loads frontend term metadata so structured seeds still cover public examples. */
 async function loadUiCoverageTargets(modulePaths: string[]): Promise<UiCoverageTarget[]> {
   const targets = new Map<string, UiCoverageTarget>();
 
@@ -290,7 +227,7 @@ function uiCoverageTargetsFromModule(moduleExports: Record<string, unknown>): Ui
   ];
 }
 
-/** Extracts language-scoped starter query terms from the search and doublet starter metadata. */
+/** Extracts language-scoped starter query terms from search and doublet starter metadata. */
 function starterCoverageTargets(value: unknown): UiCoverageTarget[] {
   if (!isRecord(value)) {
     return [];
@@ -376,13 +313,8 @@ function graphAnnotationTargetCoverageTarget(value: unknown): UiCoverageTarget[]
   return [{ langCode: value.langCode, word: value.word }];
 }
 
-/** Narrows dynamic module data to objects before reading frontend metadata properties. */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-/** Streams Wiktextract once for one frontier depth and discovers targets for the next pass. */
-async function runExpansionPass(options: ExpansionPassOptions): Promise<ExpansionPassSummary> {
+/** Streams Wiktextract once for a frontier depth and discovers the next wave of records. */
+async function runExtractionPass(options: ExtractionPassOptions): Promise<ExtractionPassSummary> {
   const targets = options.passTargets.map((frontierTarget) => frontierTarget.target);
   const targetKeys = options.passTargets.map((frontierTarget) => frontierTarget.key);
   const targetIndex = buildSeedTargetIndex(targets);
@@ -422,12 +354,8 @@ async function runExpansionPass(options: ExpansionPassOptions): Promise<Expansio
     matchedTargetKeys.add(matchedKey);
     writtenRecords += 1;
 
-    if (options.depth < maxHubExpansionDepth) {
-      const preview = previewEntry(record.entry, {
-        lineNumber: record.lineNumber,
-        byteOffset: record.byteOffset
-      });
-      discoveredTargets += enqueueDiscoveredTargets(options.frontier, preview.nodes, record.entry, frontierTarget, options.depth);
+    if (options.depth < maxDepth) {
+      discoveredTargets += enqueueDiscoveredTargets(options.frontier, record.entry, frontierTarget);
     }
   }
 
@@ -448,57 +376,38 @@ async function runExpansionPass(options: ExpansionPassOptions): Promise<Expansio
   };
 }
 
-/** Adds structured graph neighbors to the frontier, fanning out from influential roots under caps. */
+/** Adds ancestor templates and structured child records to the frontier for later passes. */
 function enqueueDiscoveredTargets(
   frontier: Map<string, FrontierTarget>,
-  nodes: GraphNode[],
   entry: WiktextractEntry,
-  discoveredBy: FrontierTarget,
-  currentDepth: number
+  discoveredBy: FrontierTarget
 ): number {
   let enqueuedCount = 0;
-  const shouldExpandOutward = shouldExpandOutwardFromHub(discoveredBy);
-  const shouldExpandBroadly = currentDepth < maxExpansionDepth;
-  const targetLanguageCodes = shouldExpandOutward && shouldExpandBroadly ? rootOutwardLanguageCodes : hubLanguageCodes;
 
-  if (shouldExpandBroadly) {
-    for (const target of cognateTargets(entry)) {
-      if (!cognateLanguageCodes.has(target.langCode ?? "")) {
-        continue;
-      }
+  for (const target of ancestorTemplateTargets(entry)) {
+    if (enqueuedCount >= maxDiscoveredTargetsPerMatch) {
+      return enqueuedCount;
+    }
 
-      if (enqueuedCount >= maxDiscoveredTargetsPerMatch) {
-        return enqueuedCount;
-      }
-
-      const enqueued = enqueueTarget(frontier, target, {
-        depth: discoveredBy.depth + 1,
-        reason: "cognate_template",
-        discoveredBy: discoveredBy.key
-      });
-
-      if (enqueued) {
-        enqueuedCount += 1;
-      }
+    if (enqueueTarget(frontier, target, {
+      depth: discoveredBy.depth + 1,
+      reason: "ancestor_template",
+      discoveredBy: discoveredBy.key
+    })) {
+      enqueuedCount += 1;
     }
   }
 
-  for (const node of nodes) {
-    if (!targetLanguageCodes.has(node.langCode)) {
-      continue;
-    }
-
+  for (const target of structuredChildTargets(entry)) {
     if (enqueuedCount >= maxDiscoveredTargetsPerMatch) {
-      break;
+      return enqueuedCount;
     }
 
-    const enqueued = enqueueTarget(frontier, { langCode: node.langCode, word: node.word }, {
+    if (enqueueTarget(frontier, target.target, {
       depth: discoveredBy.depth + 1,
-      reason: shouldExpandOutward && !hubLanguageCodes.has(node.langCode) ? "hub_root_neighbor" : "hub_related_node",
+      reason: target.reason,
       discoveredBy: discoveredBy.key
-    });
-
-    if (enqueued) {
+    })) {
       enqueuedCount += 1;
     }
   }
@@ -506,50 +415,172 @@ function enqueueDiscoveredTargets(
   return enqueuedCount;
 }
 
-/** Reads explicit cognate templates as high-signal seed hints without turning them into ancestry edges. */
-function cognateTargets(entry: WiktextractEntry): SeedTarget[] {
-  if (!cognateExpansionEnabled) {
+/** Reads flat ancestry templates as seed hints, not graph edges. */
+function ancestorTemplateTargets(entry: WiktextractEntry): SeedTarget[] {
+  const targets = (entry.etymology_templates ?? []).flatMap((template) => {
+    if (!isAncestorTemplate(template.name)) {
+      return [];
+    }
+
+    return seedTargetFromTemplate(template);
+  });
+
+  return uniqueSeedTargets(targets);
+}
+
+/** Recognizes templates that point at likely ancestor records. */
+function isAncestorTemplate(templateName: string | undefined): boolean {
+  const normalizedName = templateName?.replace(/\+$/, "");
+
+  return normalizedName
+    ? new Set([
+      "inh",
+      "inherited",
+      "der",
+      "derived",
+      "uder",
+      "from",
+      "bor",
+      "borrowed",
+      "lbor",
+      "root"
+    ]).has(normalizedName)
+    : false;
+}
+
+/** Converts a Wiktionary ancestry template argument pair to a seed target. */
+function seedTargetFromTemplate(template: WiktextractTemplate): SeedTarget[] {
+  const langCode = trimOptional(template.args?.["2"]);
+  const linkedTerm = trimOptional(template.args?.["3"]);
+  const displayedTerm = preferredDisplayedTemplateTerm(linkedTerm, template.args?.["4"]) ?? linkedTerm;
+
+  if (!langCode || !displayedTerm || displayedTerm === "-") {
     return [];
   }
 
-  return (entry.etymology_templates ?? []).flatMap((template) => {
-    if (!isCognateTemplate(template.name)) {
-      return [];
-    }
+  return [{ langCode, word: displayedTerm }];
+}
 
-    const term = template.args?.["2"]?.trim();
-    if (!term) {
-      return [];
-    }
+/** Keeps display variants such as Latin macrons when they correspond to a linked template target. */
+function preferredDisplayedTemplateTerm(
+  linkedTerm: string | undefined,
+  displayedTerm: string | undefined
+): string | undefined {
+  if (!linkedTerm) {
+    return undefined;
+  }
 
-    return parseDelimitedList(template.args?.["1"])?.map((langCode) => ({ langCode, word: term })) ?? [];
+  const linkedTermKey = stripDiacritics(linkedTerm);
+  const displayedTerms = trimOptional(displayedTerm)
+    ?.split(",")
+    .map((term) => trimOptional(term))
+    .filter((term): term is string => term !== undefined);
+
+  return displayedTerms?.find((term) => term !== linkedTerm && stripDiacritics(term) === linkedTermKey);
+}
+
+/** Compares displayed variants to plain Wiktionary links without losing graph spelling. */
+function stripDiacritics(value: string): string {
+  return value.normalize("NFD").replace(/\p{M}/gu, "").normalize("NFC");
+}
+
+/** Reads structured descendants and concise derived terms as records to process later. */
+function structuredChildTargets(entry: WiktextractEntry): Array<{ target: SeedTarget; reason: FrontierReason }> {
+  return [
+    ...descendantTargets(entry.descendants ?? [], "structured_descendant"),
+    ...derivedTargets(entry)
+  ];
+}
+
+/** Walks structured descendants while avoiding same-language spelling variant fan-out. */
+function descendantTargets(
+  descendants: WiktextractDescendant[],
+  reason: FrontierReason
+): Array<{ target: SeedTarget; reason: FrontierReason }> {
+  return firstDescendantPerLanguage(descendants).flatMap((descendant) => {
+    const target = seedTargetFromDescendant(descendant);
+    const childTargets = descendantTargets(descendant.descendants ?? [], reason);
+
+    return target ? [{ target, reason }, ...childTargets] : childTargets;
   });
 }
 
-/** Keeps cognate expansion limited to explicit positive cognate templates, not non-cognate notes. */
-function isCognateTemplate(templateName: string | undefined): boolean {
-  return templateName === "cog" || templateName === "cognate";
+/** Converts one Wiktextract descendant node to a seed target. */
+function seedTargetFromDescendant(descendant: WiktextractDescendant): SeedTarget | undefined {
+  const langCode = descendant.lang_code;
+  const word = trimOptional(descendant.word);
+
+  if (!langCode || !word) {
+    return undefined;
+  }
+
+  return { langCode, word };
 }
 
-/** Identifies influential-language matches where sibling branches should make the production graph fuller. */
-function shouldExpandOutwardFromHub(frontierTarget: FrontierTarget): boolean {
-  return rootOutwardExpansionEnabled && frontierTarget.target.langCode !== undefined && hubLanguageCodes.has(frontierTarget.target.langCode);
+/** Enqueues concise derived terms, using the entry language when Wiktextract omits one. */
+function derivedTargets(entry: WiktextractEntry): Array<{ target: SeedTarget; reason: FrontierReason }> {
+  return uniqueSeedTargets(
+    (entry.derived ?? []).flatMap((derivedTerm) => {
+      const target = seedTargetFromDerivedTerm(derivedTerm, entry.lang_code);
+
+      return target ? [target] : [];
+    })
+  ).map((target) => ({ target, reason: "structured_derived" }));
 }
 
-/** Adds a target once, respecting the global cap for expansion runs. */
+/** Converts a derived list item to a seed target when it is a single lexical item. */
+function seedTargetFromDerivedTerm(
+  derivedTerm: WiktextractDescendant,
+  fallbackLangCode: string | undefined
+): SeedTarget | undefined {
+  const langCode = derivedTerm.lang_code ?? fallbackLangCode;
+  const word = trimOptional(derivedTerm.word);
+
+  if (!langCode || !word || !isSingleWordDerivedTerm(word)) {
+    return undefined;
+  }
+
+  return { langCode, word };
+}
+
+/** Avoids queueing sayings, compounds, and phrase-like derived entries from Wiktionary lists. */
+function isSingleWordDerivedTerm(word: string): boolean {
+  return !/[\s-]/u.test(word);
+}
+
+/** Keeps the first sibling descendant for each language so variants do not dominate the frontier. */
+function firstDescendantPerLanguage(descendants: WiktextractDescendant[]): WiktextractDescendant[] {
+  const seenLanguageCodes = new Set<string>();
+  const primaryDescendants: WiktextractDescendant[] = [];
+
+  for (const descendant of descendants) {
+    const languageCode = descendant.lang_code;
+    if (!languageCode || seenLanguageCodes.has(languageCode)) {
+      continue;
+    }
+
+    seenLanguageCodes.add(languageCode);
+    primaryDescendants.push(descendant);
+  }
+
+  return primaryDescendants;
+}
+
+/** Adds a target once, respecting the global cap for extraction runs. */
 function enqueueTarget(
   frontier: Map<string, FrontierTarget>,
   target: SeedTarget,
   options: EnqueueTargetOptions
 ): boolean {
-  const key = seedTargetKey(target);
+  const canonicalTarget = canonicalSeedTarget(target);
+  const key = seedTargetKey(canonicalTarget);
 
   if (frontier.has(key) || frontier.size >= maxEnqueuedTargets) {
     return false;
   }
 
   frontier.set(key, {
-    target,
+    target: canonicalTarget,
     key,
     depth: options.depth,
     status: "pending",
@@ -560,6 +591,28 @@ function enqueueTarget(
   return true;
 }
 
+/** Canonicalizes proto-form stars before frontier matching and reporting. */
+function canonicalSeedTarget(target: SeedTarget): SeedTarget {
+  return {
+    langCode: target.langCode,
+    word: target.langCode ? canonicalGraphWord(target.langCode, target.word) : target.word
+  };
+}
+
+/** Removes duplicate targets while preserving discovery order. */
+function uniqueSeedTargets(targets: SeedTarget[]): SeedTarget[] {
+  const uniqueTargets = new Map<string, SeedTarget>();
+
+  for (const target of targets) {
+    const canonicalTarget = canonicalSeedTarget(target);
+    if (!uniqueTargets.has(seedTargetKey(canonicalTarget))) {
+      uniqueTargets.set(seedTargetKey(canonicalTarget), canonicalTarget);
+    }
+  }
+
+  return [...uniqueTargets.values()];
+}
+
 /** Writes one JSONL record while respecting stream backpressure. */
 async function writeJsonlLine(output: NodeJS.WritableStream, rawLine: string): Promise<void> {
   if (!output.write(`${rawLine}\n`)) {
@@ -567,26 +620,21 @@ async function writeJsonlLine(output: NodeJS.WritableStream, rawLine: string): P
   }
 }
 
-/** Persists the frontier after each pass so expansion runs are inspectable. */
-async function writeExpansionState(frontier: Map<string, FrontierTarget>, passes: ExpansionPassSummary[]): Promise<void> {
+/** Persists the frontier after each pass so extraction runs are inspectable. */
+async function writeExtractionState(frontier: Map<string, FrontierTarget>, passes: ExtractionPassSummary[]): Promise<void> {
   await mkdir(dirname(frontierPath), { recursive: true });
-  await writeFile(`${frontierPath}`, `${JSON.stringify(makeExpansionState(frontier, passes), null, 2)}\n`);
+  await writeFile(`${frontierPath}`, `${JSON.stringify(makeExtractionState(frontier, passes), null, 2)}\n`);
 }
 
-/** Creates a serializable snapshot of the current expansion frontier. */
-function makeExpansionState(frontier: Map<string, FrontierTarget>, passes: ExpansionPassSummary[]): ExpansionState {
+/** Creates a serializable snapshot of the structured ancestry extraction frontier. */
+function makeExtractionState(frontier: Map<string, FrontierTarget>, passes: ExtractionPassSummary[]): ExtractionState {
   return {
     inputPath,
     outputPath,
     frontierPath,
     popularWordsDirs,
-    hubLanguageCodes: [...hubLanguageCodes].sort(),
-    rootOutwardExpansionEnabled,
-    rootOutwardLanguageCodes: [...rootOutwardLanguageCodes].sort(),
-    cognateExpansionEnabled,
-    cognateLanguageCodes: [...cognateLanguageCodes].sort(),
-    maxExpansionDepth,
-    maxHubExpansionDepth,
+    uiCoverageModulePaths,
+    maxDepth,
     maxEnqueuedTargets,
     maxDiscoveredTargetsPerMatch,
     limitRecords,
@@ -615,7 +663,12 @@ function countStatuses(frontier: Map<string, FrontierTarget>): Record<FrontierSt
   return counts;
 }
 
-/** Parses comma-separated environment lists used by expansion scripts. */
+/** Narrows dynamic module data to objects before reading optional metadata properties. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/** Parses comma-separated environment lists used by extraction scripts. */
 function parseDelimitedList(value: string | undefined): string[] | undefined {
   const values = value
     ?.split(",")
@@ -625,7 +678,9 @@ function parseDelimitedList(value: string | undefined): string[] | undefined {
   return values && values.length > 0 ? values : undefined;
 }
 
-/** Parses feature flags from environment variables without making truthiness depend on arbitrary strings. */
-function parseBoolean(value: string | undefined): boolean {
-  return value === "true" || value === "1";
+/** Trims optional strings so empty source values do not become seed targets. */
+function trimOptional(value: string | undefined): string | undefined {
+  const trimmedValue = value?.trim();
+
+  return trimmedValue ? trimmedValue : undefined;
 }

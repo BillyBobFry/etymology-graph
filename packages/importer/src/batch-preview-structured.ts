@@ -1,7 +1,8 @@
-import { previewEntry, processJsonlInBatches } from "./wiktextract.js";
+import { previewStructuredEntry, processJsonlInBatches } from "./wiktextract.js";
 
-const inputPath = process.env.IMPORT_INPUT_PATH ?? "../../wikidata_downloads/seeds/core-seed.jsonl";
-const checkpointPath = process.env.IMPORT_CHECKPOINT_PATH ?? "../../wikidata_downloads/checkpoints/batch-preview.json";
+const inputPath = process.env.IMPORT_INPUT_PATH ?? "../../wikidata_downloads/seeds/structured-ancestry-seed.jsonl";
+const checkpointPath =
+  process.env.IMPORT_CHECKPOINT_PATH ?? "../../wikidata_downloads/checkpoints/structured-ancestry-preview.json";
 const batchSize = Number(process.env.IMPORT_BATCH_SIZE ?? 100);
 const limitRecords = process.env.IMPORT_LIMIT_RECORDS ? Number(process.env.IMPORT_LIMIT_RECORDS) : undefined;
 
@@ -17,7 +18,7 @@ const checkpoint = await processJsonlInBatches({
   limitRecords,
   onBatch(batch) {
     for (const record of batch.records) {
-      const preview = previewEntry(record.entry);
+      const preview = previewStructuredEntry(record.entry);
       previewedRecords += 1;
       previewedNodes += preview.nodes.length;
       previewedEdges += preview.edges.length;

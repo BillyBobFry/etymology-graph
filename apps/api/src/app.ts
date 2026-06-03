@@ -5,7 +5,13 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 
-import { comparisonSetQuerySchema, DEFAULT_ANCESTOR_MAX_DEPTH, EDGE_TYPES } from "@etymology-graph/graph";
+import {
+  comparisonSetQuerySchema,
+  DEFAULT_ANCESTOR_MAX_DEPTH,
+  EDGE_TYPES,
+  similarTermsQuerySchema,
+  sourceLanguageLayersQuerySchema
+} from "@etymology-graph/graph";
 
 import type { GraphRepository } from "./graph-repository.js";
 
@@ -32,6 +38,16 @@ const ancestorPathQuerySchema = z.object({
 
 const languageParamsSchema = z.object({
   langCode: z.string().trim().min(1)
+});
+
+const languageTermsQuerySchema = z.object({
+  query: z.string().trim().default(""),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  connectedOnly: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  cursor: z.string().trim().regex(/^\d+$/).optional()
 });
 
 const childTermsQuerySchema = z.object({
@@ -63,6 +79,12 @@ const searchQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(12)
 });
 
+const similarTermsHttpQuerySchema = z.object({
+  langCode: z.string().trim().min(1),
+  word: z.string().trim().min(1),
+  limit: z.coerce.number().int().min(1).max(24).default(6)
+});
+
 const termEntriesQuerySchema = z.object({
   langCode: z.string().trim().min(1),
   word: z.string().trim().min(1)
@@ -74,6 +96,11 @@ const termsWithAncestorLanguageQuerySchema = z.object({
   maxDepth: z.coerce.number().int().min(1).max(12).default(DEFAULT_ANCESTOR_MAX_DEPTH),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   cursor: z.string().trim().min(1).optional()
+});
+
+const sourceLanguageLayersHttpQuerySchema = z.object({
+  langCode: z.string().trim().min(1),
+  maxDepth: z.coerce.number().int().min(1).max(12).default(DEFAULT_ANCESTOR_MAX_DEPTH)
 });
 
 const REFERENCE_DATA_CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=604800";
@@ -198,6 +225,44 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
     return reply.send(payload);
   });
 
+  server.get("/api/languages/:langCode/terms", async (request, reply) => {
+    const parsedParams = languageParamsSchema.safeParse(request.params);
+    const parsedQuery = languageTermsQuerySchema.safeParse(request.query);
+
+    if (!parsedParams.success || !parsedQuery.success) {
+      return reply.code(400).send({
+        error: "Invalid language terms request",
+        issues: [
+          ...(parsedParams.success
+            ? []
+            : parsedParams.error.issues.map((issue) => ({
+                path: issue.path.join("."),
+                message: issue.message
+              }))),
+          ...(parsedQuery.success
+            ? []
+            : parsedQuery.error.issues.map((issue) => ({
+                path: issue.path.join("."),
+                message: issue.message
+              })))
+        ]
+      });
+    }
+
+    const result = await graphRepository.findLanguageTerms({
+      langCode: parsedParams.data.langCode,
+      ...parsedQuery.data
+    });
+
+    if (!result) {
+      return reply.code(404).send({
+        error: "Language not found"
+      });
+    }
+
+    return result;
+  });
+
   server.get("/api/search", async (request, reply) => {
     const parsedQuery = searchQuerySchema.safeParse(request.query);
 
@@ -216,6 +281,22 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
       langCode: parsedQuery.data.langCode,
       limit: parsedQuery.data.limit
     });
+  });
+
+  server.get("/api/similar-terms", async (request, reply) => {
+    const parsedQuery = similarTermsHttpQuerySchema.safeParse(request.query);
+
+    if (!parsedQuery.success) {
+      return reply.code(400).send({
+        error: "Invalid similar terms query",
+        issues: parsedQuery.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      });
+    }
+
+    return graphRepository.findSimilarTerms(similarTermsQuerySchema.parse(parsedQuery.data));
   });
 
   server.get("/api/ancestors", async (request, reply) => {
@@ -328,6 +409,22 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
     }
 
     return graphRepository.listTermEntries(parsedQuery.data);
+  });
+
+  server.get("/api/source-language-layers", async (request, reply) => {
+    const parsedQuery = sourceLanguageLayersHttpQuerySchema.safeParse(request.query);
+
+    if (!parsedQuery.success) {
+      return reply.code(400).send({
+        error: "Invalid source language layers query",
+        issues: parsedQuery.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      });
+    }
+
+    return graphRepository.listSourceLanguageLayers(sourceLanguageLayersQuerySchema.parse(parsedQuery.data));
   });
 
   server.get("/api/terms-with-ancestor-language", async (request, reply) => {

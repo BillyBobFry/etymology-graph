@@ -2,7 +2,7 @@
 
 The first production shape is one app container plus managed Postgres:
 
-- a Postgres 16 database
+- a Postgres 16 database with pgvector available
 - the Fastify API in `apps/api`, serving `/api/*`
 - the static Vue app built from `apps/web`, served by the same Fastify process
 
@@ -16,6 +16,12 @@ Required for the API:
 DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/etymology_graph
 PORT=3000
 HOST=0.0.0.0
+```
+
+Required for embedding refresh/admin jobs:
+
+```bash
+OPENAI_API_KEY=...
 ```
 
 Optional for split frontend/API hosting:
@@ -42,6 +48,14 @@ Use Railway as one web service plus one Railway Postgres service:
 
 Railway provides `PORT`; the image sets `HOST=0.0.0.0`. The container builds the graph package, API, and web app, then runs `node apps/api/dist/server.js`. Fastify serves API routes under `/api` and falls back to `apps/web/dist/index.html` for Vue router routes.
 
+Railway Postgres should expose pgvector as an available extension. The migration enables it with `CREATE EXTENSION IF NOT EXISTS vector`; a manual availability check should return a row:
+
+```sql
+SELECT name, default_version, installed_version
+FROM pg_available_extensions
+WHERE name = 'vector';
+```
+
 Run migrations and imports as an explicit admin step after the database exists. Do not make the web service import data on every boot.
 
 ## Database Bootstrap
@@ -49,31 +63,24 @@ Run migrations and imports as an explicit admin step after the database exists. 
 Apply every numbered migration in order against the production database:
 
 ```bash
-psql "$DATABASE_URL" -f db/migrations/001_initial_graph.sql
-psql "$DATABASE_URL" -f db/migrations/002_languages.sql
-psql "$DATABASE_URL" -f db/migrations/003_lexical_entries.sql
-psql "$DATABASE_URL" -f db/migrations/004_edge_entry_attribution.sql
-psql "$DATABASE_URL" -f db/migrations/005_traversal_query_indexes.sql
+for migration in db/migrations/*.sql; do
+  psql "$DATABASE_URL" -f "$migration"
+done
 ```
 
-Then load language names and the selected seed graph:
+Then load language names and the structured ancestry graph:
 
 ```bash
 pnpm seed:languages
-pnpm seed:extract:popular
-pnpm import:batch-preview:popular
-pnpm import:db:popular
+pnpm seed:extract:structured-ancestry
+pnpm import:batch-preview:structured
+pnpm import:db:structured
+pnpm embeddings:refresh:english
 ```
 
-For a more connected graph, replace the last three commands with:
+Record the structured seed, import checkpoint paths, and embedding model for each deploy. The raw Wiktextract dump remains local/generated input and should not be copied into app images or static bundles.
 
-```bash
-pnpm seed:extract:prod
-pnpm import:batch-preview:prod
-pnpm import:db:prod
-```
-
-Record the chosen seed command and checkpoint path for each deploy. The raw Wiktextract dump remains local/generated input and should not be copied into app images or static bundles.
+`term_embeddings` is keyed by `(lang_code, normalized_word, model)` and has no foreign key to `graph_nodes`, so embeddings can survive graph table rebuilds. Rerun `pnpm embeddings:refresh:english` after imports so new or changed English terms are embedded.
 
 ## Build Commands
 

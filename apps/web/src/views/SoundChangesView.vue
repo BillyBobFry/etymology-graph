@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { RouterLink } from "vue-router";
-
 import { plainTextFromGlossarySegments } from "../features/glossary/linguisticGlossary";
 import { soundChangeArticles } from "../features/soundChanges/soundChanges";
+import Button from "../uiComponents/Button.vue";
 import Divider from "../uiComponents/Divider.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 </script>
@@ -61,12 +60,12 @@ import PageMain from "../uiComponents/PageMain.vue";
               </p>
             </div>
 
-            <RouterLink
-              class="inline-flex w-fit items-center justify-center rounded-md border border-accent bg-accent px-5 py-3 font-label text-sm font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            <Button
+              size="sm"
               :to="{ name: 'sound-change-article', params: { slug: article.slug } }"
             >
               Read article
-            </RouterLink>
+            </Button>
           </div>
         </article>
       </div>

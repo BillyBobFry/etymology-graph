@@ -11,13 +11,13 @@ This project is a local-first etymology graph exploration tool built from Wiktio
 
 - Frontend: Vue SPA, likely Vite-based, focused on search, graph exploration, and entry detail views.
 - Backend: JavaScript/TypeScript server API that serves graph queries to the SPA.
-- Database: Postgres modelled as graph-shaped relational tables, not a dedicated graph database initially.
-- Importer: streaming JSONL processor for `wikidata_downloads/raw-wiktextract-data.jsonl`; never load the full dump into memory.
+- Database: Postgres modelled as graph-shaped relational tables, with pgvector for term embedding similarity. It is not a dedicated graph database initially.
+- Importer: streaming JSONL processor for `wikidata_downloads/raw-wiktextract-data.jsonl`; never load the full dump into memory. The blessed production pipeline is structured ancestry seed extraction followed by structured DB import.
 
 ## API Query Architecture
 
 - Keep request handlers database-agnostic. Handlers should validate HTTP input, call graph use-case interfaces, and shape HTTP responses; they should not contain SQL, `pg` calls, Cypher, or database traversal details.
-- Model the backend boundary around graph operations such as search, ancestors, descendants, doublets, term entries, and local graph neighborhoods rather than around a generic database abstraction.
+- Model the backend boundary around graph operations such as search, ancestors, descendants, doublets, similar terms, term entries, and local graph neighborhoods rather than around a generic database abstraction.
 - Put database-specific logic behind a repository/service interface, for example a `GraphRepository` implemented first by Postgres and later by a graph-native database such as Neo4j.
 - Shared graph query and response types should live in `@etymology-graph/graph` when they are useful to both API and frontend code.
 - Avoid introducing a database-neutral query DSL until the project has real evidence it needs one; prefer stable app-level graph operations with database-specific implementations.
@@ -28,28 +28,34 @@ This project is a local-first etymology graph exploration tool built from Wiktio
 
 - Represent terms as graph nodes keyed by language code plus normalized word/form. Graph nodes are coarse and intentionally host multiple homograph lexical entries.
 - Lexical entries live in their own table keyed by `(node_id, pos, etymology_number)` and own the per-entry metadata that drives summaries and the entry chooser.
-- Represent etymological relationships as typed edges. Every edge is attributed to the lexical entry that declared it through `graph_edges.originating_entry_id`; this is the primary mechanism for keeping unrelated homograph histories apart during traversal.
+- Represent etymological relationships as typed edges. Every edge is attributed to the lexical entry that declared it through `graph_edges.declaring_entry_id`; this is provenance, not guaranteed applicability to every homograph at the edge's `from_node_id`.
 - Core edge types should include inherited-from, derived-from, borrowed-from, cognate-with, doublet-of, descendant-of, and related/see-also where useful.
-- Descendant lists are supporting graph input: recursively import descendant nodes and source-directed edges, inferring `borrowed_from` or `derived_from` from tags and defaulting to `inherited_from`. Descendant-derived edges are owned by the ancestor entry whose Wiktextract record declared them.
+- Descendant lists are primary graph input: recursively import descendant nodes and source-directed edges, inferring `borrowed_from` or `derived_from` from tags and defaulting to `inherited_from`. Descendant-derived edges are owned by the ancestor entry whose Wiktextract record declared them.
+- Structured etymon trees are primary graph input when Wiktextract provides embedded metadata or rendered `Etymology tree` rows.
+- Flat ancestry templates are not graph edges in the structured importer because they often skip intermediate levels, and a template list is not an adjacency chain: each item points from the current entry toward a possible ancestor. Use them as seed-expansion hints to fetch ancestor records; only the established single-template fallback may create a direct graph edge.
 - Preserve source metadata such as Wiktextract line number, `etymology_number`, template name, confidence/uncertainty, and raw text snippets when available.
+- Term embeddings are a durable semantic read cache in `term_embeddings`, keyed by `(lang_code, normalized_word, model)` rather than by `graph_nodes.id`, so they can survive graph truncation and reimport. Similar-term reads should join this cache back to live graph nodes by `(lang_code, normalized_word)`.
 
 ## Graph Traversal
 
-- Traversal is entry-aware: each query selects an anchor lexical entry (or falls back to the bare graph node when no entry exists) and walks edges whose `originating_entry_id` is in an "allowed entry set" seeded from that anchor.
+- Traversal is entry-aware: each query selects an anchor lexical entry (or falls back to the bare graph node when no entry exists) and walks edges from `graph_edge_walk_mv` whose `declaring_entry_id` is in an "allowed entry set" seeded from that anchor.
+- API graph endpoints read edge facts from `graph_edge_walk_mv`, a denormalized materialized view over `graph_edges`, `graph_nodes`, and declaring lexical entries. Import scripts refresh it automatically after DB imports.
+- Ancestor-style walks use `graph_edge_walk_mv.default_ancestor_walk_candidate`: self-declared ancestor edges win, and ambiguous ancestor-page descendant-list edges are only used when that `from_node_id` has no self-declared ancestor edge.
 - The pure reference function is `traverseAncestors` in `packages/graph/src/index.ts`. The Postgres CTEs in `apps/api/src/postgres-graph-repository.ts` are intentionally a port of that function; both must apply Rule v5 the same way - add a node's other homed entries to the allowed set only when they are the unique entry at the node or when their first ancestor edge agrees with an already-allowed entry's edge.
 - Doublet queries require a real lexical entry at the seed. Their candidate filter rejects bridges through a homograph node when the candidate's outgoing ancestor edge from that node disagrees with the seed's outgoing edge.
 - Child-term traversal is more permissive: it includes edges declared by the seed entry's descendants list, edges self-declared by descendants homed at the candidate child node, and (for entry-less seeds only) every incoming edge so proto-forms still surface descendants.
 
 ## Wiktextract Source Fields
 
-- Prefer structured fields like `etymology_templates`, `descendants`, and `derived` over parsing prose.
+- For graph import, prefer structured etymon trees, `descendants`, `derived`, and formation templates over parsing prose.
+- For seed extraction, use flat `etymology_templates` broadly as hints to enqueue ancestor records, including display forms that differ from raw page titles.
 - Use `descendants.raw_tags` and `descendants.tags` to infer relationship type and uncertainty when importing descendant trees.
 - Keep `etymology_text` as source/explanation text, but do not treat it as the primary structured graph source.
 - Treat uncertain or alternative etymologies as explicit metadata instead of flattening them into certain edges.
 
 ## Build Order
 
-1. Build and validate the importer on a small set of known words.
-2. Store normalized nodes and edges in Postgres.
+1. Build and validate the structured importer on a small set of known words.
+2. Generate `structured-ancestry-seed.jsonl` from committed seeds and UI coverage terms using template hints plus structured descendant/derived expansion.
 3. Add API endpoints for search, ancestors, descendants, doublets, and local graph neighborhoods.
 4. Build the Vue graph UI on top of those API endpoints.

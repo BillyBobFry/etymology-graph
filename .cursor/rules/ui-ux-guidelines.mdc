@@ -28,6 +28,7 @@ alwaysApply: false
 
 - Use `Skeleton.vue` when a primary content frame has a predictable shape and loading would otherwise leave a large blank area, such as result lists, entry detail panels, graph side panels, and stable search result regions.
 - Prefer skeletons that preserve the final layout height and hierarchy. Match expected headings, rows, blocks, or graph reference slips closely enough to prevent layout shift without faking exact content.
+- For loading lists, render item-shaped skeletons that match the final row, chip, card, or menu-item rhythm instead of plain loading copy such as "Finding nearby entries". Keep skeleton items in the same row/wrap behavior as the loaded content, and size them to the equivalent control footprint, such as the same height and approximate width as the buttons they replace.
 - Do not use skeletons for quick control-level feedback, background refetches, or secondary state changes inside an already-rendered result. Use button loading states, `aria-busy`, an inline label, or `StatusNote.vue` instead.
 - Keep skeletons decorative and quiet: use semantic theme tokens, modest opacity pulse, `prefers-reduced-motion`, sharp paper-like corners, and no bright shimmer sweeps or glossy gradients.
 - Pair skeleton regions with accessible loading state on the parent container, such as `aria-busy="true"` or a visually available loading label when the state is not otherwise announced.
@@ -51,6 +52,7 @@ alwaysApply: false
 - `TextField.vue`: use for labeled text-like inputs with help text, required copy, validation copy, and `v-model`.
 - `TextFieldBase.vue`: use only inside higher-level input components when the label, help text, and validation wrapper are supplied elsewhere.
 - `Combobox.vue`: use when users type to filter or choose from a known option list, including search/select flows with empty states and optional custom values.
+- `Select.vue`: use for small to medium curated option sets where scanability is better than text filtering. Prefer it over `Combobox.vue` when the selected value should not become a search query.
 - `Popover.vue`: use for anchored non-modal floating content such as filters, metadata panels, small forms, and disclosure surfaces.
 - `Skeleton.vue`: use for decorative placeholders that preserve stable loading layouts. Set accessible loading semantics on the parent region rather than on each skeleton piece.
 - `StatusNote.vue`: use for compact contextual status messages, especially non-displacing overlays inside graph/data result frames. Make persistent explanatory notes dismissible when they may obscure content.

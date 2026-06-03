@@ -5,8 +5,8 @@ root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root_dir"
 
 env_file="$root_dir/.env.prod"
-seed_path="$root_dir/wikidata_downloads/seeds/prod-seed.jsonl"
-checkpoint_path="$root_dir/wikidata_downloads/checkpoints/prod-import-db.json"
+seed_path="$root_dir/wikidata_downloads/seeds/structured-ancestry-seed.jsonl"
+checkpoint_path="$root_dir/wikidata_downloads/checkpoints/structured-ancestry-import-db.json"
 backup_dir="$root_dir/wikidata_downloads/backups"
 extract_seed=false
 skip_backup=false
@@ -26,12 +26,12 @@ while [[ $# -gt 0 ]]; do
 Usage: pnpm db:refresh:prod [--extract-seed] [--skip-backup]
 
 Destructively refreshes the production Railway database from .env.prod:
-  1. optionally regenerates wikidata_downloads/seeds/prod-seed.jsonl
+  1. optionally regenerates wikidata_downloads/seeds/structured-ancestry-seed.jsonl
   2. backs up the current remote database with pg_dump
   3. drops and recreates the public schema
   4. reapplies db/migrations/*.sql
   5. imports language metadata
-  6. imports the production seed with a fresh checkpoint
+  6. imports the structured ancestry seed with a fresh checkpoint
 
 Required confirmation:
   CONFIRM_PROD_DB_RESET=refresh-railway-prod pnpm db:refresh:prod
@@ -94,13 +94,13 @@ command -v psql >/dev/null 2>&1 || {
 }
 
 if [[ "$extract_seed" == true ]]; then
-  echo "Regenerating production seed..."
-  pnpm seed:extract:prod
+  echo "Regenerating structured ancestry seed..."
+  pnpm seed:extract:structured-ancestry
 fi
 
 if [[ ! -f "$seed_path" ]]; then
-  echo "Missing production seed: $seed_path" >&2
-  echo "Run again with --extract-seed, or run pnpm seed:extract:prod first." >&2
+  echo "Missing structured ancestry seed: $seed_path" >&2
+  echo "Run again with --extract-seed, or run pnpm seed:extract:structured-ancestry first." >&2
   exit 1
 fi
 
@@ -132,11 +132,11 @@ done
 echo "Importing language metadata..."
 pnpm seed:languages
 
-echo "Removing local production import checkpoint..."
+echo "Removing local structured ancestry import checkpoint..."
 rm -f "$checkpoint_path"
 
-echo "Importing production graph data..."
-pnpm import:db:prod
+echo "Importing structured ancestry graph data..."
+pnpm import:db:structured
 
 echo "Production refresh complete. Row counts:"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'

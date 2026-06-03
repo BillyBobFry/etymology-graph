@@ -3,6 +3,7 @@ import * as combobox from "@zag-js/combobox";
 import { normalizeProps, useMachine, type PropTypes } from "@zag-js/vue";
 import { computed, nextTick, ref, useId, watch } from "vue";
 import MenuItem from "./MenuItem.vue";
+import Skeleton from "./Skeleton.vue";
 import TextField from "./TextField.vue";
 
 
@@ -20,6 +21,7 @@ type VirtualizedOption = {
 
 const defaultListMaxHeight = 288;
 const virtualOverscan = 4;
+const loadingSkeletonRows = [0, 1, 2] as const;
 
 const props = withDefaults(
   defineProps<{
@@ -37,6 +39,8 @@ const props = withDefaults(
     readonly?: boolean;
     required?: boolean;
     emptyText?: string;
+    loading?: boolean;
+    loadingText?: string;
     filterOptions?: boolean;
     openOnClick?: boolean;
     allowCustomValue?: boolean;
@@ -59,6 +63,8 @@ const props = withDefaults(
     readonly: false,
     required: false,
     emptyText: "No matching terms",
+    loading: false,
+    loadingText: "Loading options",
     filterOptions: true,
     openOnClick: true,
     allowCustomValue: false,
@@ -324,24 +330,42 @@ watch(() => props.closeOnEmpty && !inputValue.value.trim(), (shouldClose) => {
             ref="listboxRef"
             class="overflow-y-auto p-1 overscroll-contain"
             :style="listboxStyle"
+            :aria-busy="loading ? 'true' : undefined"
             @scroll.passive="handleListScroll"
           >
             <li
-              v-if="visibleOptions.length === 0"
+              v-if="loading"
+              class="grid gap-2 px-3 py-3"
+              role="status"
+              aria-live="polite"
+            >
+              <span class="sr-only">{{ loadingText }}</span>
+              <span
+                v-for="row in loadingSkeletonRows"
+                :key="row"
+                class="rounded-md px-1 py-2"
+                aria-hidden="true"
+              >
+                <Skeleton tone="raised" class="h-4 w-2/3" />
+              </span>
+            </li>
+
+            <li
+              v-else-if="visibleOptions.length === 0"
               class="px-4 py-3 font-sans text-sm text-text-muted"
             >
               <slot name="empty">{{ emptyText }}</slot>
             </li>
 
             <li
-              v-if="virtualizeOptions && virtualPaddingTop > 0"
+              v-if="!loading && virtualizeOptions && virtualPaddingTop > 0"
               role="presentation"
               aria-hidden="true"
               :style="{ height: `${virtualPaddingTop}px` }"
             />
 
             <MenuItem
-              v-for="entry in renderedOptionEntries"
+              v-for="entry in loading ? [] : renderedOptionEntries"
               :key="entry.option.value"
               :label="entry.option.label"
               :description="entry.option.description"
@@ -361,7 +385,7 @@ watch(() => props.closeOnEmpty && !inputValue.value.trim(), (shouldClose) => {
             </MenuItem>
 
             <li
-              v-if="virtualizeOptions && virtualPaddingBottom > 0"
+              v-if="!loading && virtualizeOptions && virtualPaddingBottom > 0"
               role="presentation"
               aria-hidden="true"
               :style="{ height: `${virtualPaddingBottom}px` }"

@@ -30,22 +30,22 @@ Preview a small number of Wiktextract entries without loading the full dump:
 pnpm import:sample
 ```
 
-Extract the committed common-word seed data:
+Generate the structured ancestry seed from committed seed-word inputs and UI coverage terms:
 
 ```bash
-pnpm seed:extract:popular
-pnpm import:batch-preview:popular
-pnpm import:db:popular
+pnpm seed:extract:structured-ancestry
+pnpm import:batch-preview:structured
+pnpm import:db:structured
 ```
 
-The popular extractor reads committed seed-word lists from
-`data/seed-words/thousand-most-common-words/` and `data/seed-words/corpora/`, streams the full
-Wiktextract dump once, and writes matching entries to `wikidata_downloads/seeds/popular-seed.jsonl`.
-The common-word files are normalized from the MIT-licensed `SMenigat/thousand-most-common-words`
-dataset. The Corpora files are a reviewed English allowlist from the CC0-licensed `dariusk/corpora`
-dataset; see `data/seed-words/corpora/manifest.json` for included upstream paths and keys. You can
-point `POPULAR_WORDS_DIRS` at comma-separated directories when testing local-only lists. Each
-word-list file can be a compact array:
+The structured ancestry extractor reads committed seed-word lists from
+`data/seed-words/thousand-most-common-words/` and `data/seed-words/corpora/`, adds public UI coverage
+terms, streams the full Wiktextract dump, and writes
+`wikidata_downloads/seeds/structured-ancestry-seed.jsonl`. The common-word files are normalized from
+the MIT-licensed `SMenigat/thousand-most-common-words` dataset. The Corpora files are a reviewed
+English allowlist from the CC0-licensed `dariusk/corpora` dataset; see
+`data/seed-words/corpora/manifest.json` for included upstream paths and keys. Each word-list file can
+be a compact array:
 
 ```json
 ["the", "be", "and"]
@@ -64,39 +64,14 @@ or an object with metadata:
 }
 ```
 
-To grow a more connected production graph without importing the full Wiktextract dump, run influential-root
-expansion:
+Exercise resumable batch processing against the structured ancestry seed:
 
 ```bash
-pnpm seed:extract:prod
-pnpm import:batch-preview:prod
-pnpm import:db:prod
+pnpm import:batch-preview:structured
 ```
 
-Production expansion starts from the committed popular seed targets, writes
-`wikidata_downloads/seeds/prod-seed.jsonl`, and persists an inspectable frontier report to
-`wikidata_downloads/checkpoints/prod-expansion-frontier.json`. It also loads public UI coverage terms
-from `apps/web/src/features/terms/starterQueries.ts` and
-`apps/web/src/features/soundChanges/soundChanges.ts`, so starter searches and editorial examples are
-included as initial targets. It first follows structured graph nodes into hub languages such as Latin,
-Ancient Greek, Sanskrit, Avestan, Proto-Indo-European, Proto-Germanic, and Proto-West Germanic. Once a
-matched target is itself in a hub language, it can add bounded neighboring targets in configured outward
-languages so roots produce useful sibling branches rather than isolated ancestry chains. Explicit `cog`
-templates also enqueue allowed cognate terms as high-signal neighbors without treating them as ancestry
-edges. Hub-language forms get a few extra follow-up passes by default, so a visible term that stops at a
-proto-form can still cause that proto-form to be imported and connected upstream. Tune it with
-`UI_SEED_COVERAGE_MODULES`, `EXPANSION_HUB_LANG_CODES`, `EXPANSION_ROOT_OUTWARD_LANG_CODES`,
-`EXPANSION_COGNATE_LANG_CODES`, `EXPANSION_ENQUEUE_COGNATES`, `EXPANSION_MAX_DEPTH`,
-`EXPANSION_MAX_HUB_DEPTH`, `EXPANSION_MAX_TARGETS`, and `EXPANSION_MAX_DISCOVERED_TARGETS_PER_MATCH`.
-
-Exercise resumable batch processing against a seed JSONL file:
-
-```bash
-pnpm import:batch-preview
-```
-
-This writes a checkpoint to `wikidata_downloads/checkpoints/batch-preview.json` so later runs resume
-from the last committed byte offset.
+This writes a checkpoint to `wikidata_downloads/checkpoints/structured-ancestry-preview.json` so later
+runs resume from the last committed byte offset.
 
 Import the generated seed nodes and edges into Postgres:
 
@@ -107,15 +82,20 @@ psql "$DATABASE_URL" -f db/migrations/002_languages.sql
 psql "$DATABASE_URL" -f db/migrations/003_lexical_entries.sql
 psql "$DATABASE_URL" -f db/migrations/004_edge_entry_attribution.sql
 pnpm seed:languages
-pnpm import:db
+pnpm import:db:structured
 ```
 
 Apply every numbered migration in `db/migrations/` in order. Migration `004` adds the
-`graph_edges.originating_entry_id` attribution that keeps homograph histories apart and truncates
-`graph_nodes` so reapplying it against an existing DB forces a full reimport.
+`graph_edges.declaring_entry_id` provenance field and truncates `graph_nodes` so reapplying it
+against an existing DB forces a full reimport. Migration `010` creates `graph_edge_walk_mv`, the
+denormalized edge read model used by the API to apply the default ambiguity policy.
 
-`pnpm import:db` reads `.env`, defaults to `wikidata_downloads/seeds/core-seed.jsonl`, and writes its
-resume checkpoint to `wikidata_downloads/checkpoints/import-db.json`.
+`pnpm import:db:structured` reads `.env`, defaults to
+`wikidata_downloads/seeds/structured-ancestry-seed.jsonl`, and writes its resume checkpoint to
+`wikidata_downloads/checkpoints/structured-ancestry-import-db.json`. It refreshes
+`graph_edge_walk_mv` after full batch processing so API reads see the imported graph. Limited runs with
+`IMPORT_LIMIT_RECORDS` skip that refresh by default; set `IMPORT_REFRESH_GRAPH_EDGE_WALK=true` to force
+it.
 
 `pnpm seed:languages` fetches Wiktionary's generated language list and upserts `code` to canonical-name
 mappings into the `languages` table used by API graph responses.

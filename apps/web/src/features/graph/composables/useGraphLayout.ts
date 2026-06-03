@@ -39,6 +39,10 @@ const radialMinimumDescendants = 6;
 const labelClearanceRadius = 58;
 const layoutWarmupTicks = 180;
 const layeredOrderingPasses = 4;
+const expansionFanDistance = 138;
+const expansionFanRingSpacing = 78;
+const expansionFanNodesPerRing = 9;
+const expansionFanAngleStep = Math.PI / 10;
 const graphFitPadding = 64;
 const graphFitMaxZoom = 2.4;
 const graphFitTextHalfWidthPerCharacter = 4.2;
@@ -159,6 +163,7 @@ type BuildSimulationOptions = {
   preserveExistingLayout?: boolean;
   rootNodeId?: string;
   annotations?: GraphNodeAnnotation[];
+  expansionAnchorNodeId?: string;
 };
 
 /** Coordinates graph positioning so GraphCanvas can focus on orchestration and rendering. */
@@ -209,11 +214,18 @@ export function useGraphLayout(options: GraphLayoutOptions) {
     });
     const layoutKey = graphLayoutPlanKey(layoutPlan);
     const canPreserveExistingLayout = buildOptions.preserveExistingLayout ?? true;
+    const hasExpansionAnchor = buildOptions.expansionAnchorNodeId
+      ? previousNodesById.has(buildOptions.expansionAnchorNodeId)
+      : false;
     const shouldPreserveLayout =
       canPreserveExistingLayout &&
       renderedLayoutOrientation === orientation &&
-      renderedLayoutKey === layoutKey &&
+      (renderedLayoutKey === layoutKey || hasExpansionAnchor) &&
       shouldPreserveExistingLayout(graph, previousNodesById);
+    const expansionPositions =
+      shouldPreserveLayout && buildOptions.expansionAnchorNodeId
+        ? expansionInitialNodePositions(graph, buildOptions.expansionAnchorNodeId, previousNodesById, orientation)
+        : new Map<string, GraphLayoutPoint>();
 
     stopSimulation();
 
@@ -238,7 +250,8 @@ export function useGraphLayout(options: GraphLayoutOptions) {
         ...node,
         layoutKind: "term" as const,
         preferredSiblingPosition,
-        ...initialNodePosition(node.id, generationLevel, maxGenerationLevel, preferredSiblingPosition, orientation, layoutPlan)
+        ...(expansionPositions.get(node.id) ??
+          initialNodePosition(node.id, generationLevel, maxGenerationLevel, preferredSiblingPosition, orientation, layoutPlan))
       };
     });
 
@@ -1550,6 +1563,110 @@ function preferredNodeSiblingPositions(
   }
 
   return positions;
+}
+
+type ExpansionDirection = "descendant" | "source" | "peer";
+
+/** Seeds newly loaded neighbors beside the node the user expanded so the update feels local. */
+function expansionInitialNodePositions(
+  graph: EtymologyGraph,
+  anchorNodeId: string,
+  previousNodesById: Map<string, PositionedGraphNode>,
+  orientation: GraphLayoutOrientation
+): Map<string, GraphLayoutPoint> {
+  const anchorNode = previousNodesById.get(anchorNodeId);
+
+  if (!anchorNode) {
+    return new Map();
+  }
+
+  const nodeDirections = expansionNodeDirections(graph, anchorNodeId, previousNodesById);
+  const positions = new Map<string, GraphLayoutPoint>();
+
+  for (const [direction, nodeIds] of nodeDirections) {
+    nodeIds.forEach((nodeId, index) => {
+      positions.set(nodeId, expansionFanPosition(anchorNode, direction, orientation, index, nodeIds.length));
+    });
+  }
+
+  return positions;
+}
+
+/** Groups new direct neighbors by relationship direction so each group can fan out from the right side. */
+function expansionNodeDirections(
+  graph: EtymologyGraph,
+  anchorNodeId: string,
+  previousNodesById: Map<string, PositionedGraphNode>
+): Map<ExpansionDirection, string[]> {
+  const directions = new Map<ExpansionDirection, string[]>();
+
+  for (const node of graph.nodes) {
+    if (previousNodesById.has(node.id)) {
+      continue;
+    }
+
+    const direction = expansionDirectionForNode(graph.edges, node.id, anchorNodeId);
+
+    if (!direction) {
+      continue;
+    }
+
+    directions.set(direction, [...(directions.get(direction) ?? []), node.id]);
+  }
+
+  return directions;
+}
+
+/** Classifies a new node's link to the anchor using source-directed edge semantics. */
+function expansionDirectionForNode(
+  edges: EtymologyGraph["edges"],
+  nodeId: string,
+  anchorNodeId: string
+): ExpansionDirection | null {
+  for (const edge of edges) {
+    if (edge.fromNodeId === nodeId && edge.toNodeId === anchorNodeId) {
+      return isSourceDirectedEdgeType(edge.type) ? "descendant" : "peer";
+    }
+
+    if (edge.fromNodeId === anchorNodeId && edge.toNodeId === nodeId) {
+      return isSourceDirectedEdgeType(edge.type) ? "source" : "peer";
+    }
+  }
+
+  return null;
+}
+
+/** Places an expansion group in short arcs, adding rings only when many children arrive at once. */
+function expansionFanPosition(
+  anchorNode: PositionedGraphNode,
+  direction: ExpansionDirection,
+  orientation: GraphLayoutOrientation,
+  index: number,
+  count: number
+): GraphLayoutPoint {
+  const ringIndex = Math.floor(index / expansionFanNodesPerRing);
+  const indexInRing = index % expansionFanNodesPerRing;
+  const ringCount = Math.min(expansionFanNodesPerRing, count - ringIndex * expansionFanNodesPerRing);
+  const centeredIndex = indexInRing - (ringCount - 1) / 2;
+  const angle = expansionBaseAngle(direction, orientation) + centeredIndex * expansionFanAngleStep;
+  const distance = expansionFanDistance + ringIndex * expansionFanRingSpacing;
+
+  return {
+    x: nodeX(anchorNode) + Math.cos(angle) * distance,
+    y: nodeY(anchorNode) + Math.sin(angle) * distance
+  };
+}
+
+/** Aims child expansions toward younger generations and source expansions toward older generations. */
+function expansionBaseAngle(direction: ExpansionDirection, orientation: GraphLayoutOrientation): number {
+  switch (direction) {
+    case "descendant":
+      return orientation === "horizontal" ? Math.PI : -Math.PI / 2;
+    case "source":
+      return orientation === "horizontal" ? 0 : Math.PI / 2;
+    case "peer":
+      return orientation === "horizontal" ? Math.PI / 2 : 0;
+  }
 }
 
 /** Picks deterministic starting coordinates for shape-aware layouts before any force relaxation. */

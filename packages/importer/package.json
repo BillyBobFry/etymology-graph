@@ -7,18 +7,21 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "import:sample": "tsx src/sample.ts",
-    "seed:extract:popular": "tsx src/extract-popular-seed.ts",
-    "seed:expand:prod": "tsx src/expand-popular-seed.ts",
+    "seed:extract:structured-ancestry": "tsx src/extract-structured-ancestry-seed.ts",
     "seed:languages": "pnpm seed:languages:generate",
     "seed:languages:generate": "tsx src/generate-language-seed.ts",
     "seed:languages:validate": "tsx src/validate-language-seed.ts",
     "seed:languages:import": "tsx src/import-languages.ts",
-    "import:batch-preview": "tsx src/batch-preview.ts",
-    "import:db": "tsx src/import-db.ts"
+    "import:batch-preview:structured": "tsx src/batch-preview-structured.ts",
+    "import:db:structured": "tsx src/import-db-structured.ts",
+    "atlas:refresh:source-languages": "tsx src/refresh-source-language-layers.ts",
+    "embeddings:refresh:english": "tsx src/refresh-graph-node-embeddings.ts",
+    "llm:etymology": "tsx src/llm-etymology.ts"
   },
   "dependencies": {
     "@etymology-graph/graph": "workspace:*",
     "dotenv": "^17.4.2",
+    "openai": "^6.41.0",
     "pg": "^8.21.0",
     "zod": "^4.4.3"
   },

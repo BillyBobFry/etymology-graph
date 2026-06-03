@@ -12,6 +12,45 @@ import { useSearchTermsQuery } from "./composables/useSearchTermsQuery";
 import { fallbackSearchLanguage } from "./searchLanguageStore";
 
 const searchDebounceMs = 250;
+const fallbackTermPlaceholder = "Search terms in this language";
+const languageTermPlaceholderExamples: Record<string, readonly [string, string, string]> = {
+  en: ["bread", "father", "water"],
+  es: ["pan", "padre", "agua"],
+  pt: ["pão", "pai", "água"],
+  fr: ["pain", "père", "eau"],
+  it: ["pane", "padre", "acqua"],
+  ro: ["pâine", "tată", "apă"],
+  de: ["Brot", "Vater", "Wasser"],
+  nl: ["brood", "vader", "water"],
+  sv: ["bröd", "far", "vatten"],
+  da: ["brød", "far", "vand"],
+  no: ["brød", "far", "vann"],
+  is: ["brauð", "faðir", "vatn"],
+  ru: ["хлеб", "отец", "вода"],
+  pl: ["chleb", "ojciec", "woda"],
+  uk: ["хліб", "батько", "вода"],
+  cs: ["chléb", "otec", "voda"],
+  bg: ["хляб", "баща", "вода"],
+  el: ["ψωμί", "πατέρας", "νερό"],
+  hi: ["रोटी", "पिता", "पानी"],
+  ur: ["روٹی", "باپ", "پانی"],
+  fa: ["نان", "پدر", "آب"],
+  ar: ["خبز", "أب", "ماء"],
+  tr: ["ekmek", "baba", "su"],
+  he: ["לחם", "אב", "מים"],
+  zh: ["水", "父亲", "面包"],
+  ja: ["水", "父", "パン"],
+  ko: ["물", "아버지", "빵"],
+  vi: ["nước", "cha", "bánh mì"],
+  id: ["roti", "ayah", "air"],
+  ms: ["roti", "ayah", "air"],
+  th: ["น้ำ", "พ่อ", "ขนมปัง"],
+  ta: ["அப்பா", "தண்ணீர்", "அப்பம்"],
+  bn: ["রুটি", "বাবা", "জল"],
+  sw: ["mkate", "baba", "maji"],
+  la: ["pater", "panis", "aqua"],
+  grc: ["πατήρ", "ἄρτος", "ὕδωρ"]
+};
 
 type SearchStatus = "idle" | "loading" | "success" | "empty" | "error";
 
@@ -67,8 +106,14 @@ const searchOptions = computed(() =>
 );
 
 const searchStatus = computed<SearchStatus>(() => {
-  if (!selectedLangCode.value || !searchQueryText.value) {
+  const nextQuery = searchTerm.value.trim();
+
+  if (!selectedLangCode.value || !nextQuery) {
     return "idle";
+  }
+
+  if (nextQuery !== searchQueryText.value) {
+    return "loading";
   }
 
   if (searchTermsQuery.isPending.value || (searchTermsQuery.isFetching.value && !searchTermsQuery.data.value)) {
@@ -88,6 +133,14 @@ const languageHelpText = computed(() => {
   }
 
   return null;
+});
+
+const termPlaceholder = computed(() => {
+  if (!selectedLangCode.value) {
+    return "Choose a language first";
+  }
+
+  return formatTermPlaceholder(selectedLangCode.value);
 });
 
 const searchEmptyText = computed(() => {
@@ -240,6 +293,13 @@ function searchResultDescription(result: GraphNode): string {
   return summaryParts.length > 0 ? summaryParts.join(" · ") : result.id;
 }
 
+/** Builds language-specific starter examples for the term search field. */
+function formatTermPlaceholder(langCode: string): string {
+  const examples = languageTermPlaceholderExamples[langCode];
+
+  return examples ? `${examples.join(", ")}...` : fallbackTermPlaceholder;
+}
+
 /** Formats IPA with an accent or region label when Wiktextract provided one. */
 function formatIpa(result: GraphNode): string | undefined {
   const ipa = result.lexicalSummary?.ipa;
@@ -296,12 +356,14 @@ function hasLanguage(availableLanguages: Language[], langCode: string): boolean 
       v-model:input-value="searchTerm"
       label="Term"
       :options="searchOptions"
-      :placeholder="selectedLangCode ? 'bread, father, château...' : 'Choose a language first'"
+      :placeholder="termPlaceholder"
       autocomplete="off"
       :open-on-click="false"
       :filter-options="false"
       :disabled="!selectedLangCode"
       :empty-text="searchEmptyText"
+      :loading="searchStatus === 'loading'"
+      loading-text="Searching terms"
       close-on-empty
     >
       <template #option="{ option }">

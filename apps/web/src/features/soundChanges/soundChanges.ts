@@ -137,7 +137,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             tone: "unchanged",
             title: "Branch with p",
             body:
-              "This branch did not undergo the Germanic p to f shift. Spanish padre and French père preserve the older p-lineage contrast.",
+              "This branch did not undergo the Germanic p to f shift. Spanish padre and Sanskrit pitṛ́ preserve the older p-lineage contrast.",
             placement: "above-left"
           }
         ],
@@ -187,17 +187,17 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             }
           },
           {
-            id: "pere-fr",
-            label: "French père",
+            id: "pitr-sa",
+            label: "Sanskrit pitṛ́",
             from: {
               languageCode: "ine-pro",
               languageName: "Proto-Indo-European",
               term: "*ph₂tḗr"
             },
             to: {
-              languageCode: "fr",
-              languageName: "French",
-              term: "père"
+              languageCode: "sa",
+              languageName: "Sanskrit",
+              term: "पितृ"
             }
           }
         ]
@@ -234,7 +234,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             tone: "unchanged",
             title: "Branch with t",
             body:
-              "This branch did not take the Germanic t to th shift. Italian tre and Russian три keep the comparison with t visible.",
+              "This branch did not take the Germanic t to th shift. Latin trēs and French trois keep the comparison with t visible.",
             placement: "above-left"
           }
         ],
@@ -270,31 +270,31 @@ export const soundChangeArticles: SoundChangeArticle[] = [
         ],
         comparisons: [
           {
-            id: "tre-it",
-            label: "Italian tre",
+            id: "tres-la",
+            label: "Latin trēs",
             from: {
               languageCode: "ine-pro",
               languageName: "Proto-Indo-European",
               term: "*tréyes"
             },
             to: {
-              languageCode: "it",
-              languageName: "Italian",
-              term: "tre"
+              languageCode: "la",
+              languageName: "Latin",
+              term: "trēs"
             }
           },
           {
-            id: "tri-ru",
-            label: "Russian три",
+            id: "trois-fr",
+            label: "French trois",
             from: {
               languageCode: "ine-pro",
               languageName: "Proto-Indo-European",
               term: "*tréyes"
             },
             to: {
-              languageCode: "ru",
-              languageName: "Russian",
-              term: "три"
+              languageCode: "fr",
+              languageName: "French",
+              term: "trois"
             }
           }
         ]
@@ -596,7 +596,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             tone: "unchanged",
             title: "Branch with s",
             body:
-              "This comparison form did not develop the r outcome. English was keeps the s comparison visible beside were.",
+              "This comparison form did not develop the r outcome. English was and Gothic 𐍅𐌰𐍃 keep the s comparison visible beside were.",
             placement: "above-left"
           }
         ],
@@ -613,20 +613,6 @@ export const soundChangeArticles: SoundChangeArticle[] = [
               languageCode: "en",
               languageName: "English",
               term: "were"
-            }
-          },
-          {
-            id: "waren-de-verner",
-            label: "German waren",
-            from: {
-              languageCode: "ine-pro",
-              languageName: "Proto-Indo-European",
-              term: "*h₂wes-"
-            },
-            to: {
-              languageCode: "de",
-              languageName: "German",
-              term: "waren"
             }
           }
         ],
@@ -646,17 +632,17 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             }
           },
           {
-            id: "vasati-sa-verner",
-            label: "Sanskrit vasati",
+            id: "was-got-verner",
+            label: "Gothic 𐍅𐌰𐍃",
             from: {
               languageCode: "ine-pro",
               languageName: "Proto-Indo-European",
               term: "*h₂wes-"
             },
             to: {
-              languageCode: "sa",
-              languageName: "Sanskrit",
-              term: "वसति"
+              languageCode: "got",
+              languageName: "Gothic",
+              term: "𐍅𐌰𐍃"
             }
           }
         ]
@@ -707,16 +693,16 @@ export const soundChangeArticles: SoundChangeArticle[] = [
         title: "c before e softens",
         pattern: "Latin c before e → Romance palatal consonants",
         explanation:
-          "Centum words show a hard Latin c splitting into different Romance outcomes, while Sardinian keeps a conservative k-like spelling path.",
+          "Centum words show a hard Latin c splitting into Romance outcomes, while Latin and Greek keep harder comparison branches visible.",
         shiftedLabel: "Romance reflexes with softened c",
         comparisonLabel: "Forms with harder c or k-like outcomes",
         annotations: [
           {
-            id: "centum-shifted-italian",
+            id: "centum-shifted-french",
             targetGroupId: "shifted",
             target: {
-              langCode: "it",
-              word: "cento"
+              langCode: "fr",
+              word: "cent"
             },
             fallbackTargets: [
               {
@@ -731,15 +717,15 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             tone: "shifted",
             title: "Softened c",
             body:
-              "This branch shows Latin c before e becoming a palatal sound. Italian cento and French cent make the softened outcome visible.",
+              "This branch shows Latin c before e becoming a palatal sound. French cent makes the softened outcome visible in the connected graph.",
             placement: "above-right"
           },
           {
-            id: "centum-unchanged-sardinian",
+            id: "centum-unchanged-latin",
             targetGroupId: "comparisons",
             target: {
-              langCode: "sc",
-              word: "chentu"
+              langCode: "la",
+              word: "centum"
             },
             fallbackTargets: [
               {
@@ -750,32 +736,18 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             tone: "unchanged",
             title: "Harder comparison",
             body:
-              "This comparison branch keeps a harder k-like value where many Romance branches show a softened consonant.",
+              "This comparison branch keeps a harder k-like value before the Romance softening seen in French cent.",
             placement: "above-left"
           }
         ],
         shifted: [
           {
-            id: "cento-it-palatalization",
-            label: "Italian cento",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "centum"
-            },
-            to: {
-              languageCode: "it",
-              languageName: "Italian",
-              term: "cento"
-            }
-          },
-          {
             id: "cent-fr-palatalization",
             label: "French cent",
             from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "centum"
+              languageCode: "ine-pro",
+              languageName: "Proto-Indo-European",
+              term: "*ḱm̥tóm"
             },
             to: {
               languageCode: "fr",
@@ -786,120 +758,35 @@ export const soundChangeArticles: SoundChangeArticle[] = [
         ],
         comparisons: [
           {
-            id: "chentu-sc-palatalization",
-            label: "Sardinian chentu",
+            id: "centum-la-palatalization",
+            label: "Latin centum",
             from: {
+              languageCode: "ine-pro",
+              languageName: "Proto-Indo-European",
+              term: "*ḱm̥tóm"
+            },
+            to: {
               languageCode: "la",
               languageName: "Latin",
               term: "centum"
+            }
+          },
+          {
+            id: "hekaton-grc-palatalization",
+            label: "Ancient Greek hekatón",
+            from: {
+              languageCode: "ine-pro",
+              languageName: "Proto-Indo-European",
+              term: "*ḱm̥tóm"
             },
             to: {
-              languageCode: "sc",
-              languageName: "Sardinian",
-              term: "chentu"
+              languageCode: "grc",
+              languageName: "Ancient Greek",
+              term: "ἑκατόν"
             }
           }
         ]
       },
-      {
-        id: "caelum-c-before-ae",
-        title: "c before ae softens",
-        pattern: "Latin c before ae → Romance palatal consonants",
-        explanation:
-          "Caelum descendants show the same front-vowel environment after Latin ae developed toward an e-like vowel in Romance.",
-        shiftedLabel: "Romance reflexes with softened c",
-        comparisonLabel: "Forms with harder c or k-like outcomes",
-        annotations: [
-          {
-            id: "caelum-shifted-italian",
-            targetGroupId: "shifted",
-            target: {
-              langCode: "it",
-              word: "cielo"
-            },
-            fallbackTargets: [
-              {
-                langCode: "fr",
-                word: "ciel"
-              },
-              {
-                langCode: "es",
-                word: "cielo"
-              }
-            ],
-            tone: "shifted",
-            title: "Palatal branch",
-            body:
-              "This branch shows Latin c moving toward a palatal sound before an e-like vowel.",
-            placement: "above-right"
-          },
-          {
-            id: "caelum-unchanged-sardinian",
-            targetGroupId: "comparisons",
-            target: {
-              langCode: "sc",
-              word: "chelu"
-            },
-            fallbackTargets: [
-              {
-                langCode: "la",
-                word: "caelum"
-              }
-            ],
-            tone: "unchanged",
-            title: "Harder comparison",
-            body:
-              "This comparison branch keeps a k-like written form where the larger Romance pattern shows softening.",
-            placement: "above-left"
-          }
-        ],
-        shifted: [
-          {
-            id: "cielo-it-palatalization",
-            label: "Italian cielo",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "caelum"
-            },
-            to: {
-              languageCode: "it",
-              languageName: "Italian",
-              term: "cielo"
-            }
-          },
-          {
-            id: "ciel-fr-palatalization",
-            label: "French ciel",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "caelum"
-            },
-            to: {
-              languageCode: "fr",
-              languageName: "French",
-              term: "ciel"
-            }
-          }
-        ],
-        comparisons: [
-          {
-            id: "chelu-sc-palatalization",
-            label: "Sardinian chelu",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "caelum"
-            },
-            to: {
-              languageCode: "sc",
-              languageName: "Sardinian",
-              term: "chelu"
-            }
-          }
-        ]
-      }
     ]
   },
   {
@@ -914,7 +801,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
       { text: "affricates", termId: "affricate" },
       " and ",
       { text: "fricatives", termId: "fricative" },
-      ", which is why German Apfel, zwei, and machen look different from English apple, two, and make."
+      ", which is why German zwei and machen look different from English two and make."
     ],
     affectedLanguages: ["Old High German", "German", "Yiddish", "Alemannic German", "Bavarian"],
     families: ["Indo-European", "Germanic"],
@@ -945,101 +832,6 @@ export const soundChangeArticles: SoundChangeArticle[] = [
       }
     ],
     examples: [
-      {
-        id: "p-to-pf",
-        title: "p becomes pf",
-        pattern: "Proto-West Germanic p → High German pf",
-        explanation:
-          "Apple words show German pf beside English and Dutch forms that keep the older p comparison visible.",
-        shiftedLabel: "High German reflexes with pf",
-        comparisonLabel: "Germanic cognates without the High German shift",
-        annotations: [
-          {
-            id: "high-german-pf-shifted-german",
-            targetGroupId: "shifted",
-            target: {
-              langCode: "de",
-              word: "Apfel"
-            },
-            fallbackTargets: [
-              {
-                langCode: "goh",
-                word: "apful"
-              }
-            ],
-            tone: "shifted",
-            title: "Branch with pf",
-            body:
-              "This branch shows older p becoming High German pf. German Apfel keeps that shifted consonant visible.",
-            placement: "above-right"
-          },
-          {
-            id: "high-german-pf-unchanged-english",
-            targetGroupId: "comparisons",
-            target: {
-              langCode: "en",
-              word: "apple"
-            },
-            fallbackTargets: [
-              {
-                langCode: "nl",
-                word: "appel"
-              }
-            ],
-            tone: "unchanged",
-            title: "Branch with p",
-            body:
-              "This comparison branch did not take the High German p to pf shift. English apple and Dutch appel preserve the older p contrast.",
-            placement: "above-left"
-          }
-        ],
-        shifted: [
-          {
-            id: "apfel-de-high-german",
-            label: "German Apfel",
-            from: {
-              languageCode: "gmw-pro",
-              languageName: "Proto-West Germanic",
-              term: "*applu"
-            },
-            to: {
-              languageCode: "de",
-              languageName: "German",
-              term: "Apfel"
-            }
-          }
-        ],
-        comparisons: [
-          {
-            id: "apple-en-high-german",
-            label: "English apple",
-            from: {
-              languageCode: "gmw-pro",
-              languageName: "Proto-West Germanic",
-              term: "*applu"
-            },
-            to: {
-              languageCode: "en",
-              languageName: "English",
-              term: "apple"
-            }
-          },
-          {
-            id: "appel-nl-high-german",
-            label: "Dutch appel",
-            from: {
-              languageCode: "gmw-pro",
-              languageName: "Proto-West Germanic",
-              term: "*applu"
-            },
-            to: {
-              languageCode: "nl",
-              languageName: "Dutch",
-              term: "appel"
-            }
-          }
-        ]
-      },
       {
         id: "t-to-z",
         title: "t becomes z",
@@ -1330,7 +1122,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             tone: "shifted",
             title: "Satem branch",
             body:
-              "This branch shows the palatal k-like sound becoming a sibilant. Sanskrit śatam and Russian sto make the shifted outcome visible.",
+              "This branch shows the palatal k-like sound becoming a sibilant. Sanskrit śatam makes the shifted outcome visible in the connected graph.",
             placement: "above-right"
           },
           {
@@ -1366,20 +1158,6 @@ export const soundChangeArticles: SoundChangeArticle[] = [
               languageCode: "sa",
               languageName: "Sanskrit",
               term: "शत"
-            }
-          },
-          {
-            id: "sto-ru-satem",
-            label: "Russian sto",
-            from: {
-              languageCode: "ine-pro",
-              languageName: "Proto-Indo-European",
-              term: "*ḱm̥tóm"
-            },
-            to: {
-              languageCode: "ru",
-              languageName: "Russian",
-              term: "сто"
             }
           }
         ],
@@ -1419,7 +1197,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
         title: "k becomes sh or s",
         pattern: "Proto-Indo-European ḱ → Indo-Iranian ś and Slavic s",
         explanation:
-          "Ten words show the same branch split: Sanskrit and Russian have sibilant outcomes while Latin and Greek keep harder consonants.",
+          "Ten words show the same branch split: Sanskrit has a sibilant outcome while Greek keeps a harder consonant.",
         shiftedLabel: "Satem reflexes with sibilants",
         comparisonLabel: "Centum cognates with hard consonants",
         annotations: [
@@ -1439,15 +1217,15 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             tone: "shifted",
             title: "Satem branch",
             body:
-              "This branch shows the palatal stop shifting into a sibilant. Sanskrit daśa and Russian desyat' belong to the satem side.",
+              "This branch shows the palatal stop shifting into a sibilant. Sanskrit daśa belongs to the satem side.",
             placement: "above-right"
           },
           {
-            id: "ten-satem-unchanged-latin",
+            id: "ten-satem-unchanged-greek",
             targetGroupId: "comparisons",
             target: {
-              langCode: "la",
-              word: "decem"
+              langCode: "grc",
+              word: "δέκα"
             },
             fallbackTargets: [
               {
@@ -1458,7 +1236,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             tone: "unchanged",
             title: "Centum branch",
             body:
-              "This comparison branch did not take satem palatalization. Latin decem and Greek deka keep the harder consonant contrast.",
+              "This comparison branch did not take satem palatalization. Greek deka keeps the harder consonant contrast in the connected graph.",
             placement: "above-left"
           }
         ],
@@ -1476,37 +1254,9 @@ export const soundChangeArticles: SoundChangeArticle[] = [
               languageName: "Sanskrit",
               term: "दश"
             }
-          },
-          {
-            id: "desyat-ru-satem",
-            label: "Russian desyat'",
-            from: {
-              languageCode: "ine-pro",
-              languageName: "Proto-Indo-European",
-              term: "*déḱm̥"
-            },
-            to: {
-              languageCode: "ru",
-              languageName: "Russian",
-              term: "десять"
-            }
           }
         ],
         comparisons: [
-          {
-            id: "decem-la-satem",
-            label: "Latin decem",
-            from: {
-              languageCode: "ine-pro",
-              languageName: "Proto-Indo-European",
-              term: "*déḱm̥"
-            },
-            to: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "decem"
-            }
-          },
           {
             id: "deka-grc-satem",
             label: "Ancient Greek deka",
@@ -1526,265 +1276,14 @@ export const soundChangeArticles: SoundChangeArticle[] = [
     ]
   },
   {
-    slug: "romance-h-loss",
-    title: "Romance H-Loss",
-    subtitle:
-      "How Latin h weakened until many Romance descendants kept only a written trace or no trace at all.",
-    overview: [
-      "Romance h-loss shows how a sound can disappear while spelling remembers it unevenly. Latin h was already weak, and in many Romance lineages it stopped being pronounced, leaving ",
-      { text: "descendants", termId: "descendant" },
-      " such as Italian uomo, French homme, and Spanish hombre."
-    ],
-    affectedLanguages: ["Italian", "French", "Spanish", "Portuguese", "Romanian"],
-    families: ["Indo-European", "Romance"],
-    sections: [
-      {
-        heading: "The change",
-        body: [
-          "Latin h weakened and disappeared as a pronounced consonant in Romance. Some descendants still write h, while others lost it from spelling as well."
-        ]
-      },
-      {
-        heading: "Where to look",
-        body: [
-          "The pattern is easiest to see at the start of Latin words. Romance descendants may begin with a vowel, keep silent h in spelling, or show later reshaping from surrounding sounds."
-        ]
-      },
-      {
-        heading: "How to read the examples",
-        body: [
-          "Each graph starts from a Latin source and compares Romance ",
-          { text: "reflexes", termId: "reflex" },
-          " that lost pronounced h with the Latin source form used as the comparison point."
-        ]
-      }
-    ],
-    examples: [
-      {
-        id: "homo-h-loss",
-        title: "initial h disappears",
-        pattern: "Latin h → silent or absent Romance h",
-        explanation:
-          "Human words show Latin h dropping from pronunciation, even when French or Spanish spelling keeps an h on the page.",
-        shiftedLabel: "Romance reflexes without pronounced h",
-        comparisonLabel: "Latin source with written h",
-        annotations: [
-          {
-            id: "homo-h-loss-shifted-italian",
-            targetGroupId: "shifted",
-            target: {
-              langCode: "it",
-              word: "uomo"
-            },
-            fallbackTargets: [
-              {
-                langCode: "fr",
-                word: "homme"
-              },
-              {
-                langCode: "es",
-                word: "hombre"
-              }
-            ],
-            tone: "shifted",
-            title: "Branch without pronounced h",
-            body:
-              "This branch shows Latin h disappearing as a pronounced sound. Italian uomo has no written h, while French homme and Spanish hombre keep silent spelling traces.",
-            placement: "above-right"
-          },
-          {
-            id: "homo-h-loss-latin-source",
-            targetGroupId: "comparisons",
-            target: {
-              langCode: "la",
-              word: "homō"
-            },
-            tone: "unchanged",
-            title: "Latin source",
-            body:
-              "This source form keeps the written h that later Romance pronunciation lost.",
-            placement: "above-left"
-          }
-        ],
-        shifted: [
-          {
-            id: "uomo-it-h-loss",
-            label: "Italian uomo",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "homō"
-            },
-            to: {
-              languageCode: "it",
-              languageName: "Italian",
-              term: "uomo"
-            }
-          },
-          {
-            id: "homme-fr-h-loss",
-            label: "French homme",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "homō"
-            },
-            to: {
-              languageCode: "fr",
-              languageName: "French",
-              term: "homme"
-            }
-          },
-          {
-            id: "hombre-es-h-loss",
-            label: "Spanish hombre",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "homō"
-            },
-            to: {
-              languageCode: "es",
-              languageName: "Spanish",
-              term: "hombre"
-            }
-          }
-        ],
-        comparisons: [
-          {
-            id: "homo-la-h-loss",
-            label: "Latin homō",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "homō"
-            },
-            to: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "homō"
-            }
-          }
-        ]
-      },
-      {
-        id: "habere-h-loss",
-        title: "h falls away before a vowel",
-        pattern: "Latin h before a → Romance vowel onset",
-        explanation:
-          "Have words show the Latin h disappearing before a vowel, producing Romance forms that begin directly with a vowel or silent h spelling.",
-        shiftedLabel: "Romance reflexes without pronounced h",
-        comparisonLabel: "Latin source with written h",
-        annotations: [
-          {
-            id: "habere-h-loss-shifted-french",
-            targetGroupId: "shifted",
-            target: {
-              langCode: "fr",
-              word: "avoir"
-            },
-            fallbackTargets: [
-              {
-                langCode: "it",
-                word: "avere"
-              },
-              {
-                langCode: "es",
-                word: "haber"
-              }
-            ],
-            tone: "shifted",
-            title: "Branch without h",
-            body:
-              "This branch shows Latin h lost before the following vowel. French avoir and Italian avere begin without a pronounced h.",
-            placement: "above-right"
-          },
-          {
-            id: "habere-h-loss-latin-source",
-            targetGroupId: "comparisons",
-            target: {
-              langCode: "la",
-              word: "habeō"
-            },
-            tone: "unchanged",
-            title: "Latin source",
-            body:
-              "This source form keeps the written h that the Romance descendants lost in pronunciation.",
-            placement: "above-left"
-          }
-        ],
-        shifted: [
-          {
-            id: "avoir-fr-h-loss",
-            label: "French avoir",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "habeō"
-            },
-            to: {
-              languageCode: "fr",
-              languageName: "French",
-              term: "avoir"
-            }
-          },
-          {
-            id: "avere-it-h-loss",
-            label: "Italian avere",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "habeō"
-            },
-            to: {
-              languageCode: "it",
-              languageName: "Italian",
-              term: "avere"
-            }
-          },
-          {
-            id: "haber-es-h-loss",
-            label: "Spanish haber",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "habeō"
-            },
-            to: {
-              languageCode: "es",
-              languageName: "Spanish",
-              term: "haber"
-            }
-          }
-        ],
-        comparisons: [
-          {
-            id: "habere-la-h-loss",
-            label: "Latin habeō",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "habeō"
-            },
-            to: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "habeō"
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
     slug: "spanish-f-to-h",
     title: "Spanish F to H",
     subtitle:
       "How many Latin initial f sounds became Spanish h, while neighboring Romance languages kept f-like descendants.",
     overview: [
-      "Spanish f to h is a Romance sound change where Latin initial f weakened in many words. Modern Spanish often writes h, now usually silent, where Portuguese, Italian, and French ",
+      "Spanish f to h is a Romance sound change where Latin initial f weakened in many words. Modern Spanish often writes h, now usually silent, where related ",
       { text: "cognates", termId: "cognate" },
-      " still show f or a related consonant."
+      " can still show f or a related consonant."
     ],
     affectedLanguages: ["Spanish", "Old Spanish", "Asturian", "Gascon"],
     families: ["Indo-European", "Romance"],
@@ -1792,13 +1291,13 @@ export const soundChangeArticles: SoundChangeArticle[] = [
       {
         heading: "The change",
         body: [
-          "In many Spanish lineages, Latin initial f weakened to h and later became silent in standard pronunciation. The spelling h still marks the history in words such as hacer, hijo, and hierro."
+          "In many Spanish lineages, Latin initial f weakened to h and later became silent in standard pronunciation. The spelling h still marks that history in words such as hijo."
         ]
       },
       {
         heading: "Where it stands out",
         body: [
-          "The contrast is clearest beside other Romance branches. Portuguese, Italian, and French often preserve f-like sounds in the same word families where Spanish shows h."
+          "The contrast is clearest beside related forms that preserve f-like sounds in the same word families where Spanish shows h."
         ]
       },
       {
@@ -1814,100 +1313,11 @@ export const soundChangeArticles: SoundChangeArticle[] = [
     ],
     examples: [
       {
-        id: "facere-f-to-h",
-        title: "f becomes h",
-        pattern: "Latin initial f → Spanish h",
-        explanation:
-          "Make/do words show Spanish h where Portuguese and Italian keep f-like consonants from the Latin source.",
-        shiftedLabel: "Spanish reflexes with h",
-        comparisonLabel: "Romance cognates with f-like sounds",
-        annotations: [
-          {
-            id: "facere-f-to-h-shifted-spanish",
-            targetGroupId: "shifted",
-            target: {
-              langCode: "es",
-              word: "hacer"
-            },
-            tone: "shifted",
-            title: "Spanish branch with h",
-            body:
-              "This branch shows Latin initial f weakening to Spanish h. Modern hacer keeps the written trace of that shift.",
-            placement: "above-right"
-          },
-          {
-            id: "facere-f-to-h-unchanged-portuguese",
-            targetGroupId: "comparisons",
-            target: {
-              langCode: "pt",
-              word: "fazer"
-            },
-            fallbackTargets: [
-              {
-                langCode: "it",
-                word: "fare"
-              }
-            ],
-            tone: "unchanged",
-            title: "Branch with f",
-            body:
-              "This comparison branch did not take the Spanish f to h shift. Portuguese fazer and Italian fare keep an f-like consonant.",
-            placement: "above-left"
-          }
-        ],
-        shifted: [
-          {
-            id: "hacer-es-f-to-h",
-            label: "Spanish hacer",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "facere"
-            },
-            to: {
-              languageCode: "es",
-              languageName: "Spanish",
-              term: "hacer"
-            }
-          }
-        ],
-        comparisons: [
-          {
-            id: "fazer-pt-f-to-h",
-            label: "Portuguese fazer",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "facere"
-            },
-            to: {
-              languageCode: "pt",
-              languageName: "Portuguese",
-              term: "fazer"
-            }
-          },
-          {
-            id: "fare-it-f-to-h",
-            label: "Italian fare",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "facere"
-            },
-            to: {
-              languageCode: "it",
-              languageName: "Italian",
-              term: "fare"
-            }
-          }
-        ]
-      },
-      {
         id: "filius-f-to-h",
         title: "f becomes h before i",
         pattern: "Latin initial f → Spanish h before i",
         explanation:
-          "Son words show Spanish hijo beside Portuguese and Italian forms that preserve f-like descendants.",
+          "Son words show Spanish hijo beside Latin fīlius, which preserves the older f spelling in the connected graph.",
         shiftedLabel: "Spanish reflexes with h",
         comparisonLabel: "Romance cognates with f-like sounds",
         annotations: [
@@ -1928,19 +1338,13 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             id: "filius-f-to-h-unchanged-portuguese",
             targetGroupId: "comparisons",
             target: {
-              langCode: "pt",
-              word: "filho"
+              langCode: "la",
+              word: "fīlius"
             },
-            fallbackTargets: [
-              {
-                langCode: "it",
-                word: "figlio"
-              }
-            ],
             tone: "unchanged",
             title: "Branch with f",
             body:
-              "This comparison branch did not take the Spanish f to h shift. Portuguese filho and Italian figlio keep the f-family contrast.",
+              "This comparison branch did not take the Spanish f to h shift. Latin fīlius keeps the f-family contrast.",
             placement: "above-left"
           }
         ],
@@ -1949,9 +1353,9 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             id: "hijo-es-f-to-h",
             label: "Spanish hijo",
             from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "fīlius"
+              languageCode: "itc-pro",
+              languageName: "Proto-Italic",
+              term: "*fīlios"
             },
             to: {
               languageCode: "es",
@@ -1962,124 +1366,21 @@ export const soundChangeArticles: SoundChangeArticle[] = [
         ],
         comparisons: [
           {
-            id: "filho-pt-f-to-h",
-            label: "Portuguese filho",
+            id: "filius-la-f-to-h",
+            label: "Latin fīlius",
             from: {
+              languageCode: "itc-pro",
+              languageName: "Proto-Italic",
+              term: "*fīlios"
+            },
+            to: {
               languageCode: "la",
               languageName: "Latin",
               term: "fīlius"
-            },
-            to: {
-              languageCode: "pt",
-              languageName: "Portuguese",
-              term: "filho"
-            }
-          },
-          {
-            id: "figlio-it-f-to-h",
-            label: "Italian figlio",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "fīlius"
-            },
-            to: {
-              languageCode: "it",
-              languageName: "Italian",
-              term: "figlio"
             }
           }
         ]
       },
-      {
-        id: "ferrum-f-to-h",
-        title: "f becomes h before e",
-        pattern: "Latin initial f → Spanish h before e",
-        explanation:
-          "Iron words show Spanish hierro beside Romance cognates that keep f from the Latin source.",
-        shiftedLabel: "Spanish reflexes with h",
-        comparisonLabel: "Romance cognates with f-like sounds",
-        annotations: [
-          {
-            id: "ferrum-f-to-h-shifted-spanish",
-            targetGroupId: "shifted",
-            target: {
-              langCode: "es",
-              word: "hierro"
-            },
-            tone: "shifted",
-            title: "Spanish branch with h",
-            body:
-              "This branch shows Latin initial f weakening to Spanish h before the following vowel.",
-            placement: "above-right"
-          },
-          {
-            id: "ferrum-f-to-h-unchanged-portuguese",
-            targetGroupId: "comparisons",
-            target: {
-              langCode: "pt",
-              word: "ferro"
-            },
-            fallbackTargets: [
-              {
-                langCode: "it",
-                word: "ferro"
-              }
-            ],
-            tone: "unchanged",
-            title: "Branch with f",
-            body:
-              "This comparison branch keeps the f-like consonant visible. Portuguese ferro and Italian ferro did not take the Spanish f to h shift.",
-            placement: "above-left"
-          }
-        ],
-        shifted: [
-          {
-            id: "hierro-es-f-to-h",
-            label: "Spanish hierro",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "ferrum"
-            },
-            to: {
-              languageCode: "es",
-              languageName: "Spanish",
-              term: "hierro"
-            }
-          }
-        ],
-        comparisons: [
-          {
-            id: "ferro-pt-f-to-h",
-            label: "Portuguese ferro",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "ferrum"
-            },
-            to: {
-              languageCode: "pt",
-              languageName: "Portuguese",
-              term: "ferro"
-            }
-          },
-          {
-            id: "ferro-it-f-to-h",
-            label: "Italian ferro",
-            from: {
-              languageCode: "la",
-              languageName: "Latin",
-              term: "ferrum"
-            },
-            to: {
-              languageCode: "it",
-              languageName: "Italian",
-              term: "ferro"
-            }
-          }
-        ]
-      }
     ]
   }
 ];

@@ -7,7 +7,7 @@ description: Curate committed seed word datasets for the etymology graph, especi
 
 ## Goal
 
-Keep committed seed data useful, reviewable, and reproducible. Prefer explicit source files and denylist edits over hidden one-off agent judgment.
+Keep committed seed data useful, reviewable, and reproducible. These committed targets seed the structured ancestry extractor (`pnpm seed:extract:structured-ancestry`), which then expands through Wiktextract ancestry templates, first-per-language descendants, and single-token derived records. Prefer explicit source files and denylist edits over hidden one-off agent judgment.
 
 ## Corpora Workflow
 
@@ -66,6 +66,12 @@ Run focused checks:
 ```bash
 pnpm --filter @etymology-graph/importer test -- popular-word-lists.test.ts
 pnpm --filter @etymology-graph/importer typecheck
+```
+
+For validating generated graph coverage from committed seeds, prefer the structured ancestry path over the legacy popular/prod expansion:
+
+```bash
+pnpm seed:extract:structured-ancestry
 ```
 
 For a loader count check:

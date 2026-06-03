@@ -47,6 +47,7 @@ alwaysApply: false
 
 - Use surfaces where containment helps interaction or scanning: search forms, result controls, popovers, node details, current examples, error notices, loading frames, and small index/reference groups.
 - Do not wrap every page section in a card. Page headings, explanatory copy, and primary section structure should often be painted directly on the parchment with dividers and spacing.
+- Dense indexes and long result lists should read like atlas lists, not card stacks. Prefer `border-y` plus `divide-y` rows and subtle hover fills over per-row borders, shadows, or raised slips.
 - Treat contained surfaces as archival slips laid on parchment, not glossy app cards. Use translucent warm paper fills such as `bg-surface/55`, `bg-surface/60`, or `bg-surface/65` so the page texture can breathe through.
 - Use lighter fills for nested clickable slips, around `bg-surface/45`, with hover states that rise only slightly, such as `hover:bg-surface/75` or `hover:bg-surface-muted`.
 - Keep borders hairline and ink-like with `border-border` or `border-border-strong`. Prefer borders and paper tone over stronger shadows.

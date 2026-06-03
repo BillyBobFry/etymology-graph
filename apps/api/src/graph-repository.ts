@@ -12,9 +12,15 @@ import type {
   DoubletsQuery,
   DoubletsResult,
   LanguageDetailResult,
+  LanguageTermsQuery,
+  LanguageTermsResult,
   LanguagesResult,
   SearchTermsQuery,
   SearchTermsResult,
+  SimilarTermsQuery,
+  SimilarTermsResult,
+  SourceLanguageLayersQuery,
+  SourceLanguageLayersResult,
   TermEntriesQuery,
   TermEntriesResult,
   TermsWithAncestorLanguageQuery,
@@ -24,7 +30,10 @@ import type {
 export type GraphRepository = {
   listLanguages(): Promise<LanguagesResult>;
   findLanguage(langCode: string): Promise<LanguageDetailResult | undefined>;
+  findLanguageTerms(query: LanguageTermsQuery): Promise<LanguageTermsResult | undefined>;
+  listSourceLanguageLayers(query: SourceLanguageLayersQuery): Promise<SourceLanguageLayersResult>;
   searchTerms(query: SearchTermsQuery): Promise<SearchTermsResult>;
+  findSimilarTerms(query: SimilarTermsQuery): Promise<SimilarTermsResult>;
   listTermEntries(query: TermEntriesQuery): Promise<TermEntriesResult>;
   findAncestors(query: AncestorsQuery): Promise<AncestorsResult>;
   findAncestorPath(query: AncestorPathQuery): Promise<AncestorPathResult>;

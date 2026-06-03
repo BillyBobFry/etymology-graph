@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import AncestorLanguageSuggestions from "./AncestorLanguageSuggestions.vue";
 
-type AncestorLanguageSuggestion = {
-  ancestorLangCode: string;
-  ancestorName: string;
-  description: string;
-};
+import type { ResolvedAncestorLanguageSuggestion } from "./ancestorLanguageSuggestions";
 
 defineProps<{
-  suggestions: AncestorLanguageSuggestion[];
+  suggestions: ResolvedAncestorLanguageSuggestion[];
+  activeAncestorLangCode?: string;
 }>();
 
 const emit = defineEmits<{
@@ -29,6 +26,7 @@ const emit = defineEmits<{
     <AncestorLanguageSuggestions
       v-if="suggestions.length > 0"
       :suggestions="suggestions"
+      :active-ancestor-lang-code="activeAncestorLangCode"
       @select="emit('select', $event)"
     />
   </div>

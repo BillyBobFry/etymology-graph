@@ -13,10 +13,18 @@ import {
   type LexicalEntry
 } from "@etymology-graph/graph";
 
-import { buildSeedTargetIndex, findMatchingSeedTargetIndex, previewEntry, type WiktextractEntry } from "./wiktextract.js";
+import {
+  buildSeedTargetIndex,
+  findMatchingSeedTargetIndex,
+  previewEntry,
+  previewStructuredEntry,
+  type WiktextractEntry
+} from "./wiktextract.js";
 
 const fixtureDirectory = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "wiktextract");
 const previewEdgeIds = (entry: WiktextractEntry): string[] => previewEntry(entry).edges.map((edge) => edge.id);
+const previewStructuredEdgeIds = (entry: WiktextractEntry): string[] =>
+  previewStructuredEntry(entry).edges.map((edge) => edge.id);
 const previewMergedEdgeIds = (entries: WiktextractEntry[]): string[] => [
   ...new Set(entries.flatMap((entry) => previewEdgeIds(entry)))
 ];
@@ -119,6 +127,311 @@ describe("previewEntry", () => {
         "fro:sample:derived_from:la:exemplum:from:en:sample:entry:noun:0",
       ]
     `);
+  });
+
+  it("ignores flat ancestry chains because they can skip intermediate levels", () => {
+    const entry: WiktextractEntry = {
+      word: "sample",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_text: "From Middle English sample, from Old French sample, from Latin exemplum.",
+      etymology_templates: [
+        template("der", "en", "enm", "sample", "Middle English sample"),
+        template("der", "en", "fro", "sample", "Old French sample"),
+        template("der", "en", "la", "exemplum", "Latin exemplum")
+      ]
+    };
+
+    expect(previewStructuredEdgeIds(entry)).toEqual([]);
+  });
+
+  it("uses a single flat ancestry template when no structured source edge exists", () => {
+    const entry: WiktextractEntry = {
+      word: "roial",
+      lang: "Old French",
+      lang_code: "fro",
+      pos: "adj",
+      etymology_text: "From Latin rēgālem.",
+      etymology_templates: [
+        template("inh", "fro", "la", "regalis", "Latin rēgālem")
+      ]
+    };
+
+    expect(previewStructuredEdgeIds(entry)).toEqual([
+      "fro:roial:inherited_from:la:regalis:from:fro:roial:entry:adj:0"
+    ]);
+  });
+
+  it("does not infer a direct source when flat templates include an upstream chain", () => {
+    const entry: WiktextractEntry = {
+      word: "tre",
+      lang: "Italian",
+      lang_code: "it",
+      pos: "num",
+      etymology_text: "Inherited from Latin trēs, from Proto-Italic *trēs, from Proto-Indo-European *tréyes.",
+      etymology_templates: [
+        template("inh", "it", "la", "trēs", "Latin trēs"),
+        template("inh+", "it", "la", "trēs", "Inherited from Latin trēs"),
+        template("inh", "it", "itc-pro", "*trēs", "Proto-Italic *trēs"),
+        template("inh", "it", "ine-pro", "*tréyes", "Proto-Indo-European *tréyes")
+      ]
+    };
+
+    expect(previewStructuredEdgeIds(entry)).toEqual([]);
+  });
+
+  it("uses rendered etymon trees when Wiktextract omits the root terms payload", () => {
+    const entry: WiktextractEntry = {
+      word: "trois",
+      lang: "Old French",
+      lang_code: "fro",
+      pos: "num",
+      etymology_templates: [
+        template(
+          "etymon",
+          "fro",
+          ":inh",
+          "la:trēs<id:three>",
+          'Etymology tree\nProto-Indo-European *tréyes\nProto-Italic *trēs\nLatin trēs\nOld French trois\n[Appendix:Glossary#inherited|Inherited]] from", "keyword" : "inherited" } ], "status" : "ok", "lang_name" : "Proto-Italic", "term" : "*trēs", "lang" : "itc-pro" } ], "keyword_label" : "Inherited from", "keyword" : "inherited" } ], "status" : "ok", "lang_name" : "Latin", "term" : "trēs", "lang" : "la" } ], "keyword_label" : "Inherited from", "keyword" : "inherited" } ], "status" : "ok", "lang_name" : "Old French", "term" : "trois", "lang" : "fro" }" data-id="three"',
+          { tree: "1" }
+        )
+      ]
+    };
+
+    expect(previewStructuredEdgeIds(entry)).toEqual([
+      "la:trēs:inherited_from:itc-pro:*trēs:from:fro:trois:entry:num:0",
+      "fro:trois:inherited_from:la:trēs:from:fro:trois:entry:num:0"
+    ]);
+  });
+
+  it("uses embedded etymon metadata even when Wiktextract omits the tree flag", () => {
+    const entry: WiktextractEntry = {
+      word: "cycle",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_number: 1,
+      etymology_templates: [
+        {
+          name: "etymon",
+          args: {
+            "1": "en",
+            "2": ":inh",
+            "3": "enm:cicle"
+          },
+          expansion:
+            '"terms" : [ { "children" : [ { "keyword" : "inherited", "terms" : [ { "children" : [ { "keyword" : "der", "terms" : [ { "children" : [ { "keyword" : "der", "terms" : [ { "children" : [ ], "term" : "κύκλος", "lang" : "grc" } ] } ], "term" : "cyclus", "lang" : "la-lat" } ] } ], "term" : "cicle", "lang" : "enm" } ] } ], "term" : "cycle", "lang" : "en" } ]'
+        }
+      ]
+    };
+
+    expect(previewStructuredEdgeIds(entry)).toEqual([
+      "en:cycle:inherited_from:enm:cicle:from:en:cycle:entry:noun:1",
+      "enm:cicle:derived_from:la-lat:cyclus:from:en:cycle:entry:noun:1",
+      "la-lat:cyclus:derived_from:grc:κύκλος:from:en:cycle:entry:noun:1"
+    ]);
+  });
+
+  it("uses embedded etymology metadata from ety templates", () => {
+    const entry: WiktextractEntry = {
+      word: "truth",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_templates: [
+        {
+          name: "ety",
+          args: {
+            "1": "en",
+            "2": ":inh",
+            "3": "enm:trouthe",
+            tree: "1"
+          },
+          expansion:
+            '"terms" : [ { "children" : [ { "keyword" : "inh", "terms" : [ { "children" : [ { "keyword" : "inh", "terms" : [ { "children" : [ ], "term" : "trēowþ", "lang" : "ang" } ] } ], "term" : "trouthe", "lang" : "enm" } ] } ], "term" : "truth", "lang" : "en" } ]'
+        }
+      ]
+    };
+
+    expect(previewStructuredEdgeIds(entry)).toEqual([
+      "en:truth:inherited_from:enm:trouthe:from:en:truth:entry:noun:0",
+      "enm:trouthe:inherited_from:ang:trēowþ:from:en:truth:entry:noun:0"
+    ]);
+  });
+
+  it("can preview derived arrays as structured child-to-source edges", () => {
+    const entry: WiktextractEntry = {
+      word: "sample",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      derived: [
+        {
+          lang: "English",
+          lang_code: "en",
+          word: "sampled"
+        },
+        {
+          lang: "English",
+          lang_code: "en",
+          word: "resample",
+          raw_tags: ["borrowed"]
+        }
+      ]
+    };
+
+    expect(previewStructuredEdgeIds(entry)).toMatchInlineSnapshot(`
+      [
+        "en:sampled:derived_from:en:sample:from:en:sample:entry:noun:0",
+      ]
+    `);
+  });
+
+  it("connects suffix-derived entries to their lexical base", () => {
+    const entry: WiktextractEntry = {
+      word: "regalis",
+      lang: "Latin",
+      lang_code: "la",
+      pos: "adj",
+      etymology_text: "Derived from the oblique stem reg- of rēx (“king”) + -ālis.",
+      etymology_templates: [
+        {
+          name: "suffix",
+          args: {
+            "1": "la",
+            "2": "rēx",
+            "3": "ālis"
+          },
+          expansion: "rēx (“king”) + -ālis"
+        }
+      ]
+    };
+
+    expect(previewStructuredEdgeIds(entry)).toEqual([
+      "la:regalis:derived_from:la:rēx:from:la:regalis:entry:adj:0"
+    ]);
+  });
+
+  it("keeps only the first descendant per language at each level", () => {
+    const entry: WiktextractEntry = {
+      word: "brēad",
+      lang: "Old English",
+      lang_code: "ang",
+      pos: "noun",
+      descendants: [
+        {
+          lang: "Middle English",
+          lang_code: "enm",
+          word: "bred",
+          descendants: [
+            {
+              lang: "English",
+              lang_code: "en",
+              word: "bread"
+            }
+          ]
+        },
+        {
+          lang: "Middle English",
+          lang_code: "enm",
+          word: "bread",
+          descendants: [
+            {
+              lang: "English",
+              lang_code: "en",
+              word: "bread"
+            }
+          ]
+        },
+        {
+          lang: "Middle English",
+          lang_code: "enm",
+          word: "bræd",
+          descendants: [
+            {
+              lang: "English",
+              lang_code: "en",
+              word: "bread"
+            }
+          ]
+        }
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toContain("en:bread:inherited_from:enm:bred:from:ang:brēad:entry:noun:0");
+    expect(edgeIds).not.toContain("en:bread:inherited_from:enm:bread:from:ang:brēad:entry:noun:0");
+    expect(edgeIds).not.toContain("en:bread:inherited_from:enm:bræd:from:ang:brēad:entry:noun:0");
+  });
+
+  it("collapses repeated same-language descendant layers before importing modern children", () => {
+    const entry: WiktextractEntry = {
+      word: "kuningaz",
+      lang: "Proto-Germanic",
+      lang_code: "gem-pro",
+      pos: "noun",
+      descendants: [
+        {
+          lang: "Old English",
+          lang_code: "ang",
+          word: "cyning",
+          descendants: [
+            {
+              lang: "Middle English",
+              lang_code: "enm",
+              word: "king",
+              descendants: [
+                {
+                  lang: "English",
+                  lang_code: "en",
+                  word: "king"
+                }
+              ]
+            },
+            {
+              lang: "Middle English",
+              lang_code: "enm",
+              word: "kenin",
+              descendants: [
+                {
+                  lang: "English",
+                  lang_code: "en",
+                  word: "king"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          lang: "Old English",
+          lang_code: "ang",
+          word: "cing",
+          descendants: [
+            {
+              lang: "Middle English",
+              lang_code: "enm",
+              word: "cing",
+              descendants: [
+                {
+                  lang: "English",
+                  lang_code: "en",
+                  word: "king"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toContain("en:king:inherited_from:enm:king:from:gem-pro:*kuningaz:entry:noun:0");
+    expect(edgeIds).not.toContain("en:king:inherited_from:enm:kenin:from:gem-pro:*kuningaz:entry:noun:0");
+    expect(edgeIds).not.toContain("en:king:inherited_from:enm:cing:from:gem-pro:*kuningaz:entry:noun:0");
+    expect(edgeIds).not.toContain("enm:cing:inherited_from:ang:cing:from:gem-pro:*kuningaz:entry:noun:0");
   });
 
   it("keeps a borrowed same-sentence ancestry chain", () => {
@@ -1182,6 +1495,18 @@ describe("seed target matching", () => {
       lang: "Proto-Germanic",
       lang_code: "gem-pro",
       pos: "noun"
+    };
+
+    expect(findMatchingSeedTargetIndex(targetIndex, entry)).toBe(0);
+  });
+
+  it("matches diacritic-bearing targets against plain Wiktextract entry titles", () => {
+    const targetIndex = buildSeedTargetIndex([{ langCode: "la", word: "trēs" }]);
+    const entry: WiktextractEntry = {
+      word: "tres",
+      lang: "Latin",
+      lang_code: "la",
+      pos: "num"
     };
 
     expect(findMatchingSeedTargetIndex(targetIndex, entry)).toBe(0);

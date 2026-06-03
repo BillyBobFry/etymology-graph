@@ -18,6 +18,7 @@
     "@zag-js/menu": "^1.41.0",
     "@zag-js/navigation-menu": "^1.41.0",
     "@zag-js/popover": "^1.41.0",
+    "@zag-js/select": "^1.41.0",
     "@zag-js/tooltip": "^1.41.0",
     "@zag-js/vue": "^1.41.0",
     "d3-force": "^3.0.0",

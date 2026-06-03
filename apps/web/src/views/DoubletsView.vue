@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePreferredReducedMotion } from "@vueuse/core";
 import { computed, nextTick, ref, watch } from "vue";
-import { RouterLink, useRoute, useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import {
   DEFAULT_ANCESTOR_MAX_DEPTH,
@@ -263,13 +263,15 @@ watch(
         Exploring same-language words that reconnect with
         <span class="font-bold text-text">{{ routeLabel }}</span> through shared ancestors.
       </p>
-      <RouterLink
+      <Button
         v-if="langCode"
         :to="{ name: 'doublet-groups', params: { langCode } }"
-        class="mt-5 inline-flex w-fit items-center justify-center rounded-md border border-border-strong bg-surface/65 px-4 py-2.5 font-label text-sm font-bold leading-none text-text transition duration-200 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        variant="secondary"
+        size="sm"
+        class="mt-5"
       >
         {{ doubletGroupsLabel }}
-      </RouterLink>
+      </Button>
     </section>
 
     <template v-if="entrySelection.entries.value.length > 1">

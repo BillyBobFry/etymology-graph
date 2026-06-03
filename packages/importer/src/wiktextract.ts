@@ -56,6 +56,7 @@ export type WiktextractEntry = {
   etymology_text?: string;
   etymology_templates?: WiktextractTemplate[];
   descendants?: WiktextractDescendant[];
+  derived?: WiktextractDescendant[];
   senses?: WiktextractSense[];
   sounds?: WiktextractSound[];
 };
@@ -440,10 +441,10 @@ export function previewEntry(entry: WiktextractEntry, sourceMetadata?: ImportSou
   }
 
   const currentNode = makeNode(entry.lang_code, entry.word);
-  const originatingEntryId = makeLexicalEntryId(currentNode.id, entry.pos, entry.etymology_number);
+  const declaringEntryId = makeLexicalEntryId(currentNode.id, entry.pos, entry.etymology_number);
   const nodesById = new Map<string, GraphNode>([[currentNode.id, currentNode]]);
-  const treeEdges = extractTreeAncestryEdges(entry, currentNode, nodesById, originatingEntryId);
-  const templateEdges = extractTemplateAncestryEdges(entry, currentNode, nodesById, originatingEntryId);
+  const treeEdges = extractTreeAncestryEdges(entry, currentNode, nodesById, declaringEntryId);
+  const templateEdges = extractTemplateAncestryEdges(entry, currentNode, nodesById, declaringEntryId);
   const ancestryEdges =
     treeEdges.length > 0 ? supplementTreeEdgesWithMissingRootEdges(treeEdges, templateEdges) : templateEdges;
   const ancestryEdgesWithRoots = supplementAncestryEdgesWithRootTemplates(
@@ -451,28 +452,76 @@ export function previewEntry(entry: WiktextractEntry, sourceMetadata?: ImportSou
     entry,
     currentNode,
     nodesById,
-    originatingEntryId
+    declaringEntryId
   );
   const affixBaseEdges = hasOutgoingAncestryEdge(ancestryEdgesWithRoots, currentNode.id)
     ? []
-    : extractAffixBaseEdges(entry, currentNode, nodesById, originatingEntryId);
+    : extractAffixBaseEdges(entry, currentNode, nodesById, declaringEntryId);
   const compoundEdges =
     ancestryEdgesWithRoots.length === 0 && affixBaseEdges.length === 0
-      ? extractCompoundEdges(entry, currentNode, nodesById, originatingEntryId)
+      ? extractCompoundEdges(entry, currentNode, nodesById, declaringEntryId)
       : [];
   const edges = [
     ...ancestryEdgesWithRoots,
     ...affixBaseEdges,
     ...compoundEdges,
-    ...extractDescendantEdges(entry, currentNode, nodesById, originatingEntryId)
+    ...extractDescendantEdges(entry, currentNode, nodesById, declaringEntryId)
   ];
-  const lexicalEntries = [makeLexicalEntry(entry, currentNode, originatingEntryId, sourceMetadata)];
+  const lexicalEntries = [makeLexicalEntry(entry, currentNode, declaringEntryId, sourceMetadata)];
 
   return {
     nodes: [...nodesById.values()],
     edges,
     lexicalEntries
   };
+}
+
+export function previewStructuredEntry(entry: WiktextractEntry, sourceMetadata?: ImportSourceMetadata): ImportPreview {
+  if (!entry.lang_code || !entry.word) {
+    return { nodes: [], edges: [], lexicalEntries: [] };
+  }
+
+  const currentNode = makeNode(entry.lang_code, entry.word);
+  const declaringEntryId = makeLexicalEntryId(currentNode.id, entry.pos, entry.etymology_number);
+  const nodesById = new Map<string, GraphNode>([[currentNode.id, currentNode]]);
+  const treeEdges = extractTreeAncestryEdges(entry, currentNode, nodesById, declaringEntryId);
+  const fallbackTemplateEdges = hasOutgoingAncestryEdge(treeEdges, currentNode.id)
+    ? []
+    : extractSingleTemplateAncestryFallbackEdge(entry, currentNode, nodesById, declaringEntryId);
+  const sourceEdges = [...treeEdges, ...fallbackTemplateEdges];
+  const affixBaseEdges = hasOutgoingAncestryEdge(sourceEdges, currentNode.id)
+    ? []
+    : extractAffixBaseEdges(entry, currentNode, nodesById, declaringEntryId);
+  const compoundEdges =
+    sourceEdges.length === 0 && affixBaseEdges.length === 0
+      ? extractCompoundEdges(entry, currentNode, nodesById, declaringEntryId)
+      : [];
+  const edges = [
+    ...sourceEdges,
+    ...affixBaseEdges,
+    ...compoundEdges,
+    ...extractDescendantEdges(entry, currentNode, nodesById, declaringEntryId),
+    ...extractDerivedEdges(entry, currentNode, nodesById, declaringEntryId)
+  ];
+  const lexicalEntries = [makeLexicalEntry(entry, currentNode, declaringEntryId, sourceMetadata)];
+
+  return {
+    nodes: [...nodesById.values()],
+    edges: uniqueGraphEdges(edges),
+    lexicalEntries
+  };
+}
+
+/** Uses flat ancestry only when Wiktextract exposes one unambiguous source-template edge. */
+function extractSingleTemplateAncestryFallbackEdge(
+  entry: WiktextractEntry,
+  currentNode: GraphNode,
+  nodesById: Map<string, GraphNode>,
+  declaringEntryId: string
+): GraphEdge[] {
+  const templateEdges = extractTemplateAncestryEdges(entry, currentNode, nodesById, declaringEntryId);
+
+  return templateEdges.length === 1 ? templateEdges : [];
 }
 
 /** Checks whether tree or flat templates already connect the current entry to a source term. */
@@ -485,12 +534,12 @@ function extractAffixBaseEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
   nodesById: Map<string, GraphNode>,
-  originatingEntryId: string
+  declaringEntryId: string
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
   for (const template of entry.etymology_templates ?? []) {
-    if (template.name !== "af") {
+    if (template.name !== "af" && template.name !== "suffix") {
       continue;
     }
 
@@ -509,7 +558,7 @@ function extractAffixBaseEdges(
       entry.etymology_number,
       template.name,
       templateIsUncertain(template),
-      originatingEntryId
+      declaringEntryId
     );
   }
 
@@ -533,7 +582,7 @@ function extractCompoundEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
   nodesById: Map<string, GraphNode>,
-  originatingEntryId: string
+  declaringEntryId: string
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
@@ -552,7 +601,7 @@ function extractCompoundEdges(
 
       nodesById.set(componentNode.id, componentNode);
       edges.push({
-        id: makeGraphEdgeId(currentNode.id, "compound_of", componentNode.id, originatingEntryId),
+        id: makeGraphEdgeId(currentNode.id, "compound_of", componentNode.id, declaringEntryId),
         fromNodeId: currentNode.id,
         toNodeId: componentNode.id,
         type: "compound_of",
@@ -560,7 +609,7 @@ function extractCompoundEdges(
         etymologyNumber: entry.etymology_number,
         templateName: template.name,
         uncertain: false,
-        originatingEntryId
+        declaringEntryId
       });
     }
   }
@@ -611,7 +660,7 @@ function extractTemplateAncestryEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
   nodesById: Map<string, GraphNode>,
-  originatingEntryId: string
+  declaringEntryId: string
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
   let childNode = currentNode;
@@ -670,7 +719,7 @@ function extractTemplateAncestryEdges(
       entry.etymology_number,
       template.name,
       templateIsUncertain(template),
-      originatingEntryId
+      declaringEntryId
     );
     if (parallelSourceNode && shouldAttachSharedParallelSource) {
       appendTemplateAncestryEdge(
@@ -682,7 +731,7 @@ function extractTemplateAncestryEdges(
         entry.etymology_number,
         template.name,
         templateIsUncertain(template),
-        originatingEntryId
+        declaringEntryId
       );
     }
     if (parallelSourceNode && transition !== "resetToBranchBaseWithParallelSource") {
@@ -705,7 +754,7 @@ function appendTemplateAncestryEdge(
   etymologyNumber: number | undefined,
   templateName: string | undefined,
   uncertain: boolean,
-  originatingEntryId: string
+  declaringEntryId: string
 ): void {
   if (childNode.id === parentNode.id) {
     return;
@@ -714,7 +763,7 @@ function appendTemplateAncestryEdge(
   nodesById.set(childNode.id, childNode);
   nodesById.set(parentNode.id, parentNode);
   edges.push({
-    id: makeGraphEdgeId(childNode.id, edgeType, parentNode.id, originatingEntryId),
+    id: makeGraphEdgeId(childNode.id, edgeType, parentNode.id, declaringEntryId),
     fromNodeId: childNode.id,
     toNodeId: parentNode.id,
     type: edgeType,
@@ -722,7 +771,7 @@ function appendTemplateAncestryEdge(
     etymologyNumber,
     templateName,
     uncertain,
-    originatingEntryId
+    declaringEntryId
   });
 }
 
@@ -775,7 +824,7 @@ function supplementAncestryEdgesWithRootTemplates(
   entry: WiktextractEntry,
   currentNode: GraphNode,
   nodesById: Map<string, GraphNode>,
-  originatingEntryId: string
+  declaringEntryId: string
 ): GraphEdge[] {
   const rootTemplates = (entry.etymology_templates ?? []).filter((template) => template.name === "root");
   if (rootTemplates.length === 0 || ancestryEdges.length === 0) {
@@ -797,7 +846,7 @@ function supplementAncestryEdgesWithRootTemplates(
       }
 
       const rootNode = makeNode(rootTerm.langCode, rootTerm.term);
-      const edgeId = makeGraphEdgeId(terminalSourceNode.id, "derived_from", rootNode.id, originatingEntryId);
+      const edgeId = makeGraphEdgeId(terminalSourceNode.id, "derived_from", rootNode.id, declaringEntryId);
       if (edgeIds.has(edgeId)) {
         continue;
       }
@@ -811,7 +860,7 @@ function supplementAncestryEdgesWithRootTemplates(
         entry.etymology_number,
         rootTemplate.name,
         templateIsUncertain(rootTemplate),
-        originatingEntryId
+        declaringEntryId
       );
       edgeIds.add(edgeId);
     }
@@ -1062,12 +1111,12 @@ function extractTreeAncestryEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
   nodesById: Map<string, GraphNode>,
-  originatingEntryId: string
+  declaringEntryId: string
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
   for (const template of entry.etymology_templates ?? []) {
-    if (template.name !== "etymon" || template.args?.tree !== "1" || !template.expansion) {
+    if ((template.name !== "etymon" && template.name !== "ety") || !template.expansion) {
       continue;
     }
 
@@ -1076,7 +1125,7 @@ function extractTreeAncestryEdges(
       nodesById,
       entry.etymology_number,
       template.name,
-      originatingEntryId
+      declaringEntryId
     );
     edges.push(...metadataEdges);
 
@@ -1103,7 +1152,7 @@ function extractTreeAncestryEdges(
       const parentNode = makeNode(parentTerm.langCode, parentTerm.term);
 
       edges.push({
-        id: makeGraphEdgeId(childNode.id, edgeType, parentNode.id, originatingEntryId),
+        id: makeGraphEdgeId(childNode.id, edgeType, parentNode.id, declaringEntryId),
         fromNodeId: childNode.id,
         toNodeId: parentNode.id,
         type: edgeType,
@@ -1111,7 +1160,7 @@ function extractTreeAncestryEdges(
         etymologyNumber: entry.etymology_number,
         templateName: template.name,
         uncertain: parentTerm.uncertain,
-        originatingEntryId
+        declaringEntryId
       });
     }
   }
@@ -1134,7 +1183,7 @@ function extractStructuredTreeAncestryEdges(
   nodesById: Map<string, GraphNode>,
   etymologyNumber: number | undefined,
   templateName: string | undefined,
-  originatingEntryId: string
+  declaringEntryId: string
 ): GraphEdge[] {
   const metadata = parseEtymologyTreeMetadata(expansion);
   if (!metadata) {
@@ -1143,7 +1192,7 @@ function extractStructuredTreeAncestryEdges(
 
   const edges: GraphEdge[] = [];
   for (const term of metadata.terms) {
-    appendStructuredTreeTermEdges(term, nodesById, etymologyNumber, templateName, originatingEntryId, edges);
+    appendStructuredTreeTermEdges(term, nodesById, etymologyNumber, templateName, declaringEntryId, edges);
   }
 
   return edges;
@@ -1155,14 +1204,14 @@ function appendStructuredTreeTermEdges(
   nodesById: Map<string, GraphNode>,
   etymologyNumber: number | undefined,
   templateName: string | undefined,
-  originatingEntryId: string,
+  declaringEntryId: string,
   edges: GraphEdge[]
 ): void {
   const childNode = treeMetadataNode(childTerm);
   if (!childNode) {
     for (const relation of childTerm.children) {
       for (const parentTerm of relation.terms) {
-        appendStructuredTreeTermEdges(parentTerm, nodesById, etymologyNumber, templateName, originatingEntryId, edges);
+        appendStructuredTreeTermEdges(parentTerm, nodesById, etymologyNumber, templateName, declaringEntryId, edges);
       }
     }
     return;
@@ -1187,7 +1236,7 @@ function appendStructuredTreeTermEdges(
       nodesById.set(parentNode.id, parentNode);
       if (edgeType && childNode.id !== parentNode.id) {
         edges.push({
-          id: makeGraphEdgeId(childNode.id, edgeType, parentNode.id, originatingEntryId),
+          id: makeGraphEdgeId(childNode.id, edgeType, parentNode.id, declaringEntryId),
           fromNodeId: childNode.id,
           toNodeId: parentNode.id,
           type: edgeType,
@@ -1195,11 +1244,11 @@ function appendStructuredTreeTermEdges(
           etymologyNumber,
           templateName,
           uncertain: parentTerm.uncertain,
-          originatingEntryId
+          declaringEntryId
         });
       }
 
-      appendStructuredTreeTermEdges(parentTerm, nodesById, etymologyNumber, templateName, originatingEntryId, edges);
+      appendStructuredTreeTermEdges(parentTerm, nodesById, etymologyNumber, templateName, declaringEntryId, edges);
     }
   }
 }
@@ -1347,7 +1396,7 @@ function extractDescendantEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
   nodesById: Map<string, GraphNode>,
-  originatingEntryId: string
+  declaringEntryId: string
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
@@ -1355,7 +1404,32 @@ function extractDescendantEdges(
     entry.descendants ?? [],
     currentNode,
     entry.etymology_number,
-    originatingEntryId,
+    "descendants",
+    undefined,
+    declaringEntryId,
+    nodesById,
+    edges
+  );
+
+  return edges;
+}
+
+/** Extracts terms Wiktextract explicitly lists as derived from this entry. */
+function extractDerivedEdges(
+  entry: WiktextractEntry,
+  currentNode: GraphNode,
+  nodesById: Map<string, GraphNode>,
+  declaringEntryId: string
+): GraphEdge[] {
+  const edges: GraphEdge[] = [];
+
+  appendDescendantEdges(
+    entry.derived ?? [],
+    currentNode,
+    entry.etymology_number,
+    "derived",
+    "derived_from",
+    declaringEntryId,
     nodesById,
     edges
   );
@@ -1368,49 +1442,144 @@ function appendDescendantEdges(
   descendants: WiktextractDescendant[],
   parentNode: GraphNode,
   etymologyNumber: number | undefined,
-  originatingEntryId: string,
+  templateName: string,
+  defaultEdgeType: GraphEdge["type"] | undefined,
+  declaringEntryId: string,
   nodesById: Map<string, GraphNode>,
   edges: GraphEdge[]
 ): void {
-  for (const descendant of descendants) {
+  const primaryDescendants = firstDescendantPerLanguage(descendants);
+  const nestedDescendantOwnerIndexes = descendantVariantChildOwnerIndexes(primaryDescendants);
+
+  for (const [descendantIndex, descendant] of primaryDescendants.entries()) {
     if (!descendant.lang_code || !descendant.word) {
       continue;
     }
 
     const descendantNode = makeNode(descendant.lang_code, descendant.word);
-    const edgeType = inferDescendantEdgeType(descendant);
+    const edgeType = inferDescendantEdgeType(descendant, defaultEdgeType);
     nodesById.set(descendantNode.id, descendantNode);
     edges.push({
-      id: makeGraphEdgeId(descendantNode.id, edgeType, parentNode.id, originatingEntryId),
+      id: makeGraphEdgeId(descendantNode.id, edgeType, parentNode.id, declaringEntryId),
       fromNodeId: descendantNode.id,
       toNodeId: parentNode.id,
       type: edgeType,
       source: "wiktextract",
       etymologyNumber,
-      templateName: "descendants",
+      templateName,
       uncertain: descendantIsUncertain(descendant),
-      originatingEntryId
+      declaringEntryId
     });
 
     appendDescendantEdges(
-      descendant.descendants ?? [],
+      ownedNestedDescendants(descendant.descendants ?? [], nestedDescendantOwnerIndexes, descendantIndex),
       descendantNode,
       etymologyNumber,
-      originatingEntryId,
+      templateName,
+      defaultEdgeType,
+      declaringEntryId,
       nodesById,
       edges
     );
   }
 }
 
+/** Keeps the first sibling descendant for each language so spelling variants do not fan out ancestry. */
+function firstDescendantPerLanguage(descendants: WiktextractDescendant[]): WiktextractDescendant[] {
+  const seenLanguageCodes = new Set<string>();
+  const primaryDescendants: WiktextractDescendant[] = [];
+
+  for (const descendant of descendants) {
+    const languageCode = descendant.lang_code;
+    if (!languageCode || seenLanguageCodes.has(languageCode)) {
+      continue;
+    }
+
+    seenLanguageCodes.add(languageCode);
+    primaryDescendants.push(descendant);
+  }
+
+  return primaryDescendants;
+}
+
+/** Chooses one sibling spelling variant to own repeated nested descendants such as `enm:bread -> en:bread`. */
+function descendantVariantChildOwnerIndexes(descendants: WiktextractDescendant[]): Map<string, number> {
+  const ownerIndexesByChildKey = new Map<string, number>();
+
+  for (const [descendantIndex, descendant] of descendants.entries()) {
+    for (const child of descendant.descendants ?? []) {
+      const childKey = descendantNodeKey(child);
+      if (!childKey) {
+        continue;
+      }
+
+      const existingOwnerIndex = ownerIndexesByChildKey.get(childKey);
+      if (
+        existingOwnerIndex === undefined ||
+        descendantIsMoreSpecificChildOwner(descendant, child, descendants[existingOwnerIndex])
+      ) {
+        ownerIndexesByChildKey.set(childKey, descendantIndex);
+      }
+    }
+  }
+
+  return ownerIndexesByChildKey;
+}
+
+/** Keeps every unique nested child, but drops repeats owned by a better sibling spelling variant. */
+function ownedNestedDescendants(
+  descendants: WiktextractDescendant[],
+  ownerIndexesByChildKey: Map<string, number>,
+  ownerIndex: number
+): WiktextractDescendant[] {
+  return descendants.filter((descendant) => {
+    const descendantKey = descendantNodeKey(descendant);
+
+    return !descendantKey || ownerIndexesByChildKey.get(descendantKey) === ownerIndex;
+  });
+}
+
+/** Prefers a spelling variant that exactly matches the repeated descendant word. */
+function descendantIsMoreSpecificChildOwner(
+  candidateOwner: WiktextractDescendant,
+  child: WiktextractDescendant,
+  existingOwner: WiktextractDescendant | undefined
+): boolean {
+  return descendantWordsMatch(candidateOwner, child) && !descendantWordsMatch(existingOwner, child);
+}
+
+/** Compares graph-normalized words so spelling-owner checks match imported node identity. */
+function descendantWordsMatch(
+  owner: WiktextractDescendant | undefined,
+  child: WiktextractDescendant
+): boolean {
+  if (!owner?.word || !child.word) {
+    return false;
+  }
+
+  return normalizeWord(graphNodeWord(owner.word)) === normalizeWord(graphNodeWord(child.word));
+}
+
+/** Builds a stable key for repeated descendant nodes before full node construction. */
+function descendantNodeKey(descendant: WiktextractDescendant): string | undefined {
+  if (!descendant.lang_code || !descendant.word) {
+    return undefined;
+  }
+
+  return makeNode(descendant.lang_code, descendant.word).id;
+}
+
 /** Infers the most specific relationship available from descendant tags, defaulting to inheritance. */
-function inferDescendantEdgeType(descendant: WiktextractDescendant): GraphEdge["type"] {
+function inferDescendantEdgeType(
+  descendant: WiktextractDescendant,
+  defaultEdgeType: GraphEdge["type"] | undefined
+): GraphEdge["type"] {
   const normalizedTags = descendantTags(descendant);
   const matchedEdgeType = descendantTagEdgeTypes.find(({ tagIncludes }) =>
     normalizedTags.some((tag) => tag.includes(tagIncludes))
   )?.edgeType;
 
-  return matchedEdgeType ?? "inherited_from";
+  return matchedEdgeType ?? defaultEdgeType ?? "inherited_from";
 }
 
 /** Marks uncertainty when Wiktextract tags explicitly qualify the descendant relationship. */
@@ -1832,7 +2001,7 @@ function graphNodeWord(word: string): string {
 function makeLexicalEntry(
   entry: WiktextractEntry,
   node: GraphNode,
-  originatingEntryId: string,
+  declaringEntryId: string,
   sourceMetadata: ImportSourceMetadata | undefined
 ): LexicalEntry {
   const pronunciations = extractPronunciations(entry.sounds ?? []);
@@ -1841,7 +2010,7 @@ function makeLexicalEntry(
   const primarySense = senses[0];
 
   return {
-    id: originatingEntryId,
+    id: declaringEntryId,
     nodeId: node.id,
     langCode: node.langCode,
     word: node.word,
@@ -2036,8 +2205,15 @@ function seedTargetNormalizedWords(word: string, langCode: string | undefined): 
   const canonicalWord = langCode ? canonicalGraphWord(langCode, word) : word;
   const normalizedWord = normalizeWord(canonicalWord);
   const unstarredWord = canonicalWord.startsWith("*") ? normalizeWord(canonicalWord.slice(1)) : undefined;
+  const plainWord = normalizeWord(stripDiacritics(canonicalWord));
+  const plainUnstarredWord = canonicalWord.startsWith("*") ? normalizeWord(stripDiacritics(canonicalWord.slice(1))) : undefined;
 
-  return [...new Set([normalizedWord, ...(unstarredWord ? [unstarredWord] : [])])];
+  return [...new Set([
+    normalizedWord,
+    plainWord,
+    ...(unstarredWord ? [unstarredWord] : []),
+    ...(plainUnstarredWord ? [plainUnstarredWord] : [])
+  ])];
 }
 
 /** Looks up raw and canonical spellings because Wiktextract is inconsistent about proto stars. */
@@ -2049,8 +2225,12 @@ function entrySeedNormalizedWords(entry: WiktextractEntry): string[] {
   const rawEntryWord = entry.word;
   const rawWord = normalizeWord(rawEntryWord);
   const canonicalWord = entry.lang_code ? normalizeWord(canonicalGraphWord(entry.lang_code, rawEntryWord)) : rawWord;
+  const plainRawWord = normalizeWord(stripDiacritics(rawEntryWord));
+  const plainCanonicalWord = entry.lang_code
+    ? normalizeWord(stripDiacritics(canonicalGraphWord(entry.lang_code, rawEntryWord)))
+    : plainRawWord;
 
-  return [...new Set([canonicalWord, rawWord])];
+  return [...new Set([canonicalWord, rawWord, plainCanonicalWord, plainRawWord])];
 }
 
 /** Keeps lowercase seed targets from being satisfied by earlier proper-name homographs. */

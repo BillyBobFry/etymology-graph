@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { RouterLink } from "vue-router";
-
+import Button from "../uiComponents/Button.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 </script>
 
@@ -16,12 +15,9 @@ import PageMain from "../uiComponents/PageMain.vue";
       <p class="mb-6 max-w-3xl text-lg leading-8 text-text-page-muted">
         Return home to choose etymology, doublets, source languages, or sound changes.
       </p>
-      <RouterLink
-        class="inline-flex w-fit items-center justify-center rounded-md border border-accent bg-accent px-5 py-3 font-label font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
-        :to="{ name: 'home' }"
-      >
+      <Button :to="{ name: 'home' }">
         Back to the atlas
-      </RouterLink>
+      </Button>
     </section>
   </PageMain>
 </template>

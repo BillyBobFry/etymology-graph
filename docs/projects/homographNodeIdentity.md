@@ -107,32 +107,34 @@ Any future design discussion should preserve the evidence above and account for:
 
 ## Resolution: Option B (Edge Ownership + Entry-Aware Traversal)
 
-The project shipped Option B from the design pass: keep coarse `graph_nodes` identity, but attribute every edge to the lexical entry that declared it and only traverse edges that belong to an "allowed entry set" rooted at the chosen anchor entry.
+The project shipped Option B from the design pass: keep coarse `graph_nodes` identity, but attribute every edge to the lexical entry that declared it and traverse a denormalized edge read model with an "allowed entry set" rooted at the chosen anchor entry.
 
 ### Schema
 
-- `graph_edges` carries `originating_entry_id`, a `NOT NULL` FK to `lexical_entries(id)` with `ON DELETE CASCADE`.
-- Edge IDs include the originating entry, formatted as `${fromNodeId}:${edgeType}:${toNodeId}:from:${originatingEntryId}`. The same ancestor link declared by two different entries is therefore two distinct edge rows.
-- Indexes exist on `graph_edges (originating_entry_id)` and `graph_edges (from_node_id, originating_entry_id)`.
+- `graph_edges` carries `declaring_entry_id`, a `NOT NULL` FK to `lexical_entries(id)` with `ON DELETE CASCADE`.
+- Edge IDs include the declaring entry, formatted as `${fromNodeId}:${edgeType}:${toNodeId}:from:${declaringEntryId}`. The same ancestor link declared by two different entries is therefore two distinct edge rows.
+- Indexes exist on `graph_edges (declaring_entry_id)` and `graph_edges (from_node_id, declaring_entry_id)`.
 - Migration `db/migrations/004_edge_entry_attribution.sql` adds the column, indexes, and `TRUNCATE graph_nodes CASCADE` to force a reimport with the new edge id shape.
+- `graph_edge_walk_mv` denormalizes edge, node, and declaring-entry facts for API reads. Its `default_ancestor_walk_candidate` flag applies the current ambiguity policy for ancestor-style traversal.
 
 ### Importer
 
-- `previewEntry` (in `packages/importer/src/wiktextract.ts`) computes the originating entry id once per Wiktextract entry and threads it through template, tree, and descendants edge construction via `makeGraphEdgeId`.
-- `upsertGraphBatch` (in `packages/importer/src/postgres.ts`) writes `originating_entry_id` on insert and conflict update.
-- `deleteStaleRootAncestryEdges` is scoped by `(from_node_id, originating_entry_id)` so reimporting one entry never deletes another entry's edges out of a shared homograph node.
+- `previewEntry` (in `packages/importer/src/wiktextract.ts`) computes the declaring entry id once per Wiktextract entry and threads it through template, tree, and descendants edge construction via `makeGraphEdgeId`.
+- `upsertGraphBatch` (in `packages/importer/src/postgres.ts`) writes `declaring_entry_id` on insert and conflict update.
+- `deleteStaleRootAncestryEdges` is scoped by `(from_node_id, declaring_entry_id)` so reimporting one entry never deletes another entry's edges out of a shared homograph node.
+- DB import scripts refresh `graph_edge_walk_mv` after full batch processing so API reads see the newly imported graph. Limited runs with `IMPORT_LIMIT_RECORDS` skip refresh by default.
 
 ### API Traversal (Rule v5)
 
 `apps/api/src/postgres-graph-repository.ts` implements three CTEs used by `findAncestors`, `findChildTerms`, and `findDoublets`:
 
 - `anchor_entry` picks the lexical entry to traverse from. Inputs are `langCode` + `normalizedWord` plus optional `pos` and `etymologyNumber`. When unspecified, ordering is lowest `etymology_number` then alphabetic `pos` then entry id, which is stable across requests.
-- `anchor_resolved` falls back to the bare graph node when no lexical entry exists for the term (intermediate proto-forms imported only as graph nodes still resolve). The walk records `entry_scoped = (entry_id IS NOT NULL)` and skips the originating-entry filter when `entry_scoped` is false.
-- `ancestor_walk` (recursive) only follows edges whose `originating_entry_id` is in `allowed_entry_ids`. At each visited node `N`, additional entries homed at `N` join the allowed set under Rule v5 when either (a) they are the only entry homed at `N`, or (b) their first ancestor edge from `N` lands on the same target as an already-allowed entry's edge from `N`. The seed edge join in the SQL mirrors `expandAllowedEntries` in `packages/graph/src/index.ts`.
+- `anchor_resolved` falls back to the bare graph node when no lexical entry exists for the term (intermediate proto-forms imported only as graph nodes still resolve). The walk records `entry_scoped = (entry_id IS NOT NULL)` and skips the declaring-entry filter when `entry_scoped` is false.
+- `ancestor_walk` (recursive) only follows `graph_edge_walk_mv` rows whose `declaring_entry_id` is in `allowed_entry_ids` and whose `default_ancestor_walk_candidate` is true. At each visited node `N`, additional entries homed at `N` join the allowed set under Rule v5 when either (a) they are the only entry homed at `N`, or (b) their first candidate ancestor edge from `N` lands on the same target as an already-allowed entry's edge from `N`. The seed edge join in the SQL mirrors `expandAllowedEntries` in `packages/graph/src/index.ts`.
 
 `findDoublets` builds a candidate set whose ancestor edges meet the seed's allowed set at a shared ancestor. Candidates pass only when the shared ancestor has no homograph divergence at all (single outgoing ancestor edge), or when the candidate's own outgoing edge from that ancestor lands on the same node as the seed's. That guard is what keeps `en:is` out of `en:ice`'s doublet list despite both sharing `enm:is`.
 
-`findChildTerms` is more permissive: it includes edges declared by the seed entry's own descendants list, edges self-declared by descendant entries homed at the from-node, and (for entry-less seeds) every incoming edge.
+`findChildTerms` is more permissive: it reads from `graph_edge_walk_mv` but does not apply the ancestor default-candidate filter. It includes edges declared by the seed entry's own descendants list, edges self-declared by descendant entries homed at the from-node, and (for entry-less seeds) every incoming edge.
 
 ### Pure Reference Implementation And Tests
 
@@ -142,7 +144,7 @@ The project shipped Option B from the design pass: keep coarse `graph_nodes` ide
 
 ### API And Frontend Surface
 
-- `GraphEdge` (in `@etymology-graph/graph`) now carries `originatingEntryId`. Ancestor, child, and doublet query schemas accept optional `pos` and `etymologyNumber`.
+- `GraphEdge` (in `@etymology-graph/graph`) now carries `declaringEntryId`. Ancestor, child, and doublet query schemas accept optional `pos` and `etymologyNumber`.
 - The new `/api/term-entries?langCode=...&word=...` endpoint returns every lexical entry for a term so the frontend can offer a chooser. The repository method is `listTermEntries`.
 - `apps/web` adds `useTermEntriesQuery`, `useTermEntrySelection`, and `EntryChooser.vue`. `EtymologyView.vue` and `DoubletsView.vue` render the chooser whenever a term has multiple entries and sync `pos` / `etym` query params into ancestor / doublet requests.
 

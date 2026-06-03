@@ -1,17 +1,30 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { RouterLink, useRoute } from "vue-router";
+import { useRoute } from "vue-router";
 
 import GlossaryText from "../features/glossary/GlossaryText.vue";
 import type { GlossaryTextSegment } from "../features/glossary/linguisticGlossary";
+import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
 import SoundChangeExampleGraph from "../features/soundChanges/SoundChangeExampleGraph.vue";
 import { findSoundChangeArticle } from "../features/soundChanges/soundChanges";
+import Button from "../uiComponents/Button.vue";
 import Divider from "../uiComponents/Divider.vue";
 import Link from "../uiComponents/Link.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 
 const route = useRoute();
 const article = computed(() => findSoundChangeArticle(firstRouteParam(route.params.slug) ?? ""));
+const languagesQuery = useLanguagesQuery();
+const languagesByCanonicalName = computed(
+  () => new Map((languagesQuery.data.value?.languages ?? []).map((language) => [language.canonicalName, language]))
+);
+const affectedLanguages = computed(
+  () =>
+    article.value?.affectedLanguages.map((canonicalName) => ({
+      canonicalName,
+      langCode: languagesByCanonicalName.value.get(canonicalName)?.code
+    })) ?? []
+);
 const graphExamplesIntro: GlossaryTextSegment[] = [
   "Each set compares Germanic ",
   { text: "reflexes", termId: "reflex" },
@@ -61,7 +74,19 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
               Affects
             </dt>
             <dd class="mt-1 leading-7 text-text-muted">
-              {{ article.affectedLanguages.join(", ") }}
+              <template
+                v-for="(affectedLanguage, index) in affectedLanguages"
+                :key="affectedLanguage.canonicalName"
+              >
+                <Link
+                  v-if="affectedLanguage.langCode"
+                  :to="{ name: 'language-detail', params: { langCode: affectedLanguage.langCode } }"
+                >
+                  {{ affectedLanguage.canonicalName }}
+                </Link>
+                <span v-else>{{ affectedLanguage.canonicalName }}</span>
+                <span v-if="index < affectedLanguages.length - 1">, </span>
+              </template>
             </dd>
           </div>
         </dl>
@@ -127,11 +152,11 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
     <p class="text-text-page-muted">
       This article is not in the atlas yet.
     </p>
-    <RouterLink
-      class="inline-flex w-fit items-center justify-center rounded-md border border-accent bg-accent px-5 py-3 font-label text-sm font-bold leading-none text-accent-contrast shadow-paper transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    <Button
+      size="sm"
       :to="{ name: 'sound-changes' }"
     >
       Browse sound changes
-    </RouterLink>
+    </Button>
   </PageMain>
 </template>
