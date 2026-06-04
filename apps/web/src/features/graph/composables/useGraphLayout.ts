@@ -36,6 +36,7 @@ const radialDepthSpacing = 156;
 const radialArcSpacing = 118;
 const radialMinimumDirectChildren = 3;
 const radialMinimumDescendants = 6;
+const layeredDagDepthSpacing = 220;
 const labelClearanceRadius = 58;
 const layoutWarmupTicks = 180;
 const layeredOrderingPasses = 4;
@@ -145,6 +146,10 @@ export type GraphLayoutPlan =
       shape: "radial";
       rootNodeId: string;
       depthOrders: Map<number, string[]>;
+    }
+  | {
+      shape: "layered-dag";
+      nodePositions: Map<string, GraphLayoutPoint>;
     }
   | {
       shape: "force";
@@ -712,9 +717,16 @@ function graphLayoutPlanKey(layoutPlan: GraphLayoutPlan): string {
       return `doublet-arms:${layoutPlan.rootNodeId}`;
     case "radial":
       return `radial:${layoutPlan.rootNodeId}`;
+    case "layered-dag":
+      return `layered-dag:${layeredDagPositionKey(layoutPlan.nodePositions)}`;
     case "force":
       return "force";
   }
+}
+
+/** Keeps DAG layout preservation tied to the actual rank and sibling targets. */
+function layeredDagPositionKey(nodePositions: Map<string, GraphLayoutPoint>): string {
+  return Array.from(nodePositions, ([nodeId, position]) => `${nodeId}:${position.x},${position.y}`).join("|");
 }
 
 type GraphLayoutPlanOptions = {
@@ -750,6 +762,12 @@ export function graphLayoutPlan(
 
   if (linearOrder) {
     return { shape: "linear", orderedNodeIds: linearOrder, orientation: options.orientation };
+  }
+
+  const layeredDagPlan = layeredDagLayoutPlan(graph, sourceEdges, generationLevels, options.orientation);
+
+  if (layeredDagPlan) {
+    return layeredDagPlan;
   }
 
   const radialRootId = radialSourceTreeRootId(graph, sourceEdges);
@@ -1255,6 +1273,112 @@ function doubletArmNodePositions(
   return nodePositions;
 }
 
+/** Builds a strict directional layout for source-only graphs that cannot loop back on themselves. */
+function layeredDagLayoutPlan(
+  graph: EtymologyGraph,
+  sourceEdges: EtymologyGraph["edges"],
+  generationLevels: Map<string, number>,
+  orientation: GraphLayoutOrientation
+): GraphLayoutPlan | null {
+  if (graph.nodes.length < 2 || sourceEdges.length === 0 || !isSourceDirectedAcyclicGraph(graph, sourceEdges)) {
+    return null;
+  }
+
+  const maxGenerationLevel = Math.max(1, ...generationLevels.values());
+  const generationOrders = orderedGenerationNodeIds(graph, generationLevels, maxGenerationLevel);
+
+  return {
+    shape: "layered-dag",
+    nodePositions: layeredDagNodePositions(graph, generationLevels, generationOrders, maxGenerationLevel, orientation)
+  };
+}
+
+/** Rejects source-directed graphs with cycles before assigning one-way ancestry layers. */
+function isSourceDirectedAcyclicGraph(graph: EtymologyGraph, sourceEdges: EtymologyGraph["edges"]): boolean {
+  const nodeIds = new Set(graph.nodes.map((node) => node.id));
+  const parentIdsByChildId = new Map<string, string[]>();
+
+  for (const edge of sourceEdges) {
+    if (!nodeIds.has(edge.fromNodeId) || !nodeIds.has(edge.toNodeId)) {
+      continue;
+    }
+
+    parentIdsByChildId.set(edge.fromNodeId, [...(parentIdsByChildId.get(edge.fromNodeId) ?? []), edge.toNodeId]);
+  }
+
+  const visitingNodeIds = new Set<string>();
+  const visitedNodeIds = new Set<string>();
+
+  return graph.nodes.every((node) => isSourceDirectedAcyclicNode(node.id, parentIdsByChildId, visitingNodeIds, visitedNodeIds));
+}
+
+/** Walks child-to-source links with DFS so a back edge disqualifies the DAG layout. */
+function isSourceDirectedAcyclicNode(
+  nodeId: string,
+  parentIdsByChildId: Map<string, string[]>,
+  visitingNodeIds: Set<string>,
+  visitedNodeIds: Set<string>
+): boolean {
+  if (visitedNodeIds.has(nodeId)) {
+    return true;
+  }
+
+  if (visitingNodeIds.has(nodeId)) {
+    return false;
+  }
+
+  visitingNodeIds.add(nodeId);
+
+  for (const parentNodeId of parentIdsByChildId.get(nodeId) ?? []) {
+    if (!isSourceDirectedAcyclicNode(parentNodeId, parentIdsByChildId, visitingNodeIds, visitedNodeIds)) {
+      return false;
+    }
+  }
+
+  visitingNodeIds.delete(nodeId);
+  visitedNodeIds.add(nodeId);
+
+  return true;
+}
+
+/** Converts acyclic ancestry ranks into fixed left-to-right or top-to-bottom target points. */
+function layeredDagNodePositions(
+  graph: EtymologyGraph,
+  generationLevels: Map<string, number>,
+  generationOrders: Map<number, string[]>,
+  maxGenerationLevel: number,
+  orientation: GraphLayoutOrientation
+): Map<string, GraphLayoutPoint> {
+  const nodePositions = new Map<string, GraphLayoutPoint>();
+  const siblingPositions = preferredNodeSiblingPositions(generationOrders, orientation);
+
+  for (const node of graph.nodes) {
+    const generationLevel = generationLevels.get(node.id) ?? 0;
+    const siblingPosition = siblingPositions.get(node.id) ?? siblingAxisCenter(orientation);
+    const generationPosition = generationAxisPosition(
+      generationLevel,
+      maxGenerationLevel,
+      orientation,
+      layeredDagDepthSpacing
+    );
+
+    nodePositions.set(
+      node.id,
+      orientation === "horizontal"
+        ? {
+            x: generationPosition,
+            y: siblingPosition
+          }
+        : {
+            x: siblingPosition,
+            y: generationPosition
+          }
+    );
+  }
+
+  return nodePositions;
+}
+
 /** Finds a single source-directed path so one-line etymologies can use a diagonal layout. */
 function linearSourcePathOrder(graph: EtymologyGraph, sourceEdges: EtymologyGraph["edges"]): string[] | null {
   if (graph.nodes.length < 2 || sourceEdges.length !== graph.nodes.length - 1) {
@@ -1699,6 +1823,8 @@ function shapeTargetPosition(nodeId: string, layoutPlan: GraphLayoutPlan): { x: 
       return layoutPlan.nodePositions.get(nodeId) ?? null;
     case "radial":
       return radialTargetPosition(nodeId, layoutPlan.depthOrders);
+    case "layered-dag":
+      return layoutPlan.nodePositions.get(nodeId) ?? null;
     case "force":
       return null;
   }
@@ -1825,6 +1951,8 @@ function chargeStrength(layoutPlan: GraphLayoutPlan, node: LayoutSimulationNode)
       return -100;
     case "radial":
       return -190;
+    case "layered-dag":
+      return -120;
     case "force":
       return -640;
   }
@@ -1890,7 +2018,7 @@ function shapeForceX(layoutPlan: GraphLayoutPlan): ReturnType<typeof forceX<Layo
     ? null
     : forceX<LayoutSimulationNode>((node) =>
         isAnnotationNode(node) ? layoutNodeX(node) : shapeTargetPosition(node.id, layoutPlan)?.x ?? nodeX(node)
-      ).strength((node) => isAnnotationNode(node) ? 0 : 0.24);
+      ).strength((node) => isAnnotationNode(node) ? 0 : shapeForceStrength(layoutPlan));
 }
 
 /** Pulls preset layouts back toward their target Y coordinate after collision/link relaxation. */
@@ -1899,7 +2027,12 @@ function shapeForceY(layoutPlan: GraphLayoutPlan): ReturnType<typeof forceY<Layo
     ? null
     : forceY<LayoutSimulationNode>((node) =>
         isAnnotationNode(node) ? layoutNodeY(node) : shapeTargetPosition(node.id, layoutPlan)?.y ?? nodeY(node)
-      ).strength((node) => isAnnotationNode(node) ? 0 : 0.24);
+      ).strength((node) => isAnnotationNode(node) ? 0 : shapeForceStrength(layoutPlan));
+}
+
+/** Makes DAG ranks stricter than decorative shapes so source direction remains legible. */
+function shapeForceStrength(layoutPlan: GraphLayoutPlan): number {
+  return layoutPlan.shape === "layered-dag" ? 0.72 : 0.24;
 }
 
 /** Pulls annotation cards toward their preferred side of the anchor node inside the shared simulation. */
