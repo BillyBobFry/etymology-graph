@@ -87,6 +87,7 @@ const {
   zoomPercentage,
   viewportTransform,
   isPanning,
+  canUseNativeInlineTouchScroll,
   zoomIn,
   zoomOut,
   setHomeViewport,
@@ -479,9 +480,10 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
       <template #trigger="{ getContextTriggerProps }">
         <svg
           ref="svgRef"
-          class="relative z-1 block w-full touch-none select-none focus-visible:outline-[3px] focus-visible:outline-offset-[-6px] focus-visible:outline-accent/40 focus:outline-none h-full"
+          class="relative z-1 block w-full select-none focus-visible:outline-[3px] focus-visible:outline-offset-[-6px] focus-visible:outline-accent/40 focus:outline-none h-full"
           :class="[
             isGraphExpanded ? 'min-h-dvh' : 'min-h-[min(72dvh,560px)] md:min-h-[360px]',
+            canUseNativeInlineTouchScroll ? 'touch-pan-y' : 'touch-none',
             canDragGraphNodes ? 'cursor-grab' : 'cursor-default',
             isPanning && 'cursor-grabbing'
           ]"

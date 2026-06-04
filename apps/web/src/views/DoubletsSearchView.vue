@@ -1,28 +1,27 @@
 <script setup lang="ts">
 import { useQueryClient } from "@tanstack/vue-query";
-import { useIntersectionObserver } from "@vueuse/core";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { DEFAULT_ANCESTOR_MAX_DEPTH, type DoubletGroup, type DoubletsQuery, type Language } from "@etymology-graph/graph";
+import { DEFAULT_ANCESTOR_MAX_DEPTH, type ComparisonSetQuery, type DoubletGroup, type Language } from "@etymology-graph/graph";
 
 import DoubletGroupsAccordion from "../features/graph/DoubletGroupsAccordion.vue";
 import GraphEvidencePanel from "../features/graph/GraphEvidencePanel.vue";
 import {
-  doubletGraphQueryKey,
-  fetchDoubletGraph,
-  useDoubletGraphQuery
-} from "../features/graph/composables/useDoubletGraphQuery";
+  comparisonSetQueryKey,
+  fetchComparisonSet,
+  useComparisonSetQuery
+} from "../features/soundChanges/useComparisonSetQuery";
 import { useDoubletGroupsQuery } from "../features/graph/composables/useDoubletGroupsQuery";
 import LanguageSelector from "../features/languages/LanguageSelector.vue";
 import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
 import { fallbackSearchLanguage, useSearchLanguageStore } from "../features/terms/searchLanguageStore";
+import Button from "../uiComponents/Button.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 import Skeleton from "../uiComponents/Skeleton.vue";
 
-const defaultGroupLimit = 24;
+const defaultGroupLimit = 5;
 const defaultEntryLimit = 12;
-const defaultGraphLimit = 18;
 
 type ResultsStatus = "idle" | "loading" | "success" | "empty" | "error";
 type GraphStatus = "idle" | "loading" | "success" | "empty" | "error";
@@ -35,7 +34,6 @@ const languagesQuery = useLanguagesQuery();
 const languages = computed(() => languagesQuery.data.value?.languages ?? []);
 const routeLangCode = computed(() => firstRouteParam(route.params.langCode));
 const expandedGroupId = ref<string>();
-const infiniteScrollSentinel = ref<HTMLElement | null>(null);
 const selectedLangCode = computed({
   get: () => searchLanguageStore.selectedSearchLanguage,
   set: setSelectedLanguage
@@ -56,23 +54,10 @@ const resultQueryInput = computed(() => {
 const groupsQuery = useDoubletGroupsQuery(resultQueryInput);
 const groups = computed(() => groupsQuery.data.value?.pages.flatMap((page) => page.groups) ?? []);
 const expandedGroup = computed(() => groups.value.find((group) => group.sharedAncestor.id === expandedGroupId.value));
-const expandedGraphInput = computed<DoubletsQuery | null>(() => {
-  const entry = expandedGroup.value?.entries[0];
-
-  if (!entry) {
-    return null;
-  }
-
-  return {
-    langCode: entry.langCode,
-    word: entry.word,
-    maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH,
-    limit: defaultGraphLimit,
-    pos: entry.pos,
-    etymologyNumber: entry.etymologyNumber
-  };
-});
-const expandedGraphQuery = useDoubletGraphQuery(expandedGraphInput);
+const expandedGraphInput = computed<ComparisonSetQuery | null>(() =>
+  expandedGroup.value ? comparisonSetQueryForGroup(expandedGroup.value) : null
+);
+const expandedGraphQuery = useComparisonSetQuery(expandedGraphInput);
 const expandedGraphRootNodeId = computed(() => {
   const graph = expandedGraphQuery.data.value?.graph;
   const sharedAncestorId = expandedGroup.value?.sharedAncestor.id;
@@ -129,18 +114,6 @@ watch(languages, ensureValidLanguageSelection, { immediate: true });
 watch(selectedLangCode, () => {
   expandedGroupId.value = undefined;
 });
-
-useIntersectionObserver(
-  infiniteScrollSentinel,
-  ([entry]) => {
-    if (entry?.isIntersecting && groupsQuery.hasNextPage.value && !groupsQuery.isFetchingNextPage.value) {
-      void groupsQuery.fetchNextPage();
-    }
-  },
-  {
-    rootMargin: "240px"
-  }
-);
 
 /** Applies route language params to the shared language preference. */
 function syncLanguageFromRoute(langCode: string | undefined): void {
@@ -200,37 +173,56 @@ function findLanguage(langCode: string | undefined): Language | undefined {
   return languages.value.find((language) => language.code === langCode);
 }
 
-/** Builds a focused doublet graph request from the first sampled entry in a group. */
-function doubletGraphQueryForGroup(group: DoubletGroup): DoubletsQuery | null {
-  const entry = group.entries[0];
-
-  if (!entry) {
+/** Builds a focused evidence graph from the verified ancestor and sampled group entries. */
+function comparisonSetQueryForGroup(group: DoubletGroup): ComparisonSetQuery | null {
+  if (group.entries.length === 0) {
     return null;
   }
 
   return {
-    langCode: entry.langCode,
-    word: entry.word,
+    root: {
+      langCode: group.sharedAncestor.langCode,
+      word: group.sharedAncestor.word
+    },
     maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH,
-    limit: defaultGraphLimit,
-    pos: entry.pos,
-    etymologyNumber: entry.etymologyNumber
+    groups: [
+      {
+        id: group.sharedAncestor.id,
+        label: "Doublet group",
+        items: group.entries.map((entry) => ({
+          id: entry.id,
+          langCode: entry.langCode,
+          word: entry.word,
+          pos: entry.pos,
+          etymologyNumber: entry.etymologyNumber
+        }))
+      }
+    ]
   };
 }
 
 /** Starts loading graph evidence as soon as a result trigger shows user intent. */
 function prefetchDoubletGraph(group: DoubletGroup): void {
-  const query = doubletGraphQueryForGroup(group);
+  const query = comparisonSetQueryForGroup(group);
 
   if (!query) {
     return;
   }
 
   void queryClient.prefetchQuery({
-    queryKey: doubletGraphQueryKey(query),
-    queryFn: ({ signal }) => fetchDoubletGraph(query, signal),
+    queryKey: comparisonSetQueryKey(query),
+    queryFn: ({ signal }) => fetchComparisonSet(query, signal),
     staleTime: 60_000
   });
+}
+
+/** Loads the next verified group page only after explicit user intent. */
+function loadMoreGroups(): void {
+  if (!groupsQuery.hasNextPage.value || groupsQuery.isFetchingNextPage.value) {
+    return;
+  }
+
+  void groupsQuery.fetchNextPage();
 }
 
 /** Extracts the first string value from Vue Router params. */
@@ -347,7 +339,6 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
         </template>
       </DoubletGroupsAccordion>
 
-      <div ref="infiniteScrollSentinel" class="min-h-1" aria-hidden="true"></div>
       <div
         v-if="groupsQuery.isFetchingNextPage.value"
         class="grid gap-3"
@@ -356,12 +347,22 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
         aria-label="Loading more doublet groups"
       >
         <Skeleton
-          v-for="item in 3"
+          v-for="item in 5"
           :key="item"
           variant="block"
           tone="raised"
           class="h-22 rounded-[3px] shadow-paper"
         />
+      </div>
+      <div v-else-if="groupsQuery.hasNextPage.value" class="flex justify-center pt-2">
+        <Button
+          variant="secondary"
+          :loading="groupsQuery.isFetchingNextPage.value"
+          loading-label="Loading groups"
+          @click="loadMoreGroups"
+        >
+          Load more
+        </Button>
       </div>
     </section>
   </PageMain>

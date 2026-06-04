@@ -343,10 +343,10 @@ watch(() => props.closeOnEmpty && !inputValue.value.trim(), (shouldClose) => {
               <span
                 v-for="row in loadingSkeletonRows"
                 :key="row"
-                class="rounded-md px-1 py-2"
+                class="flex h-[86px] items-center rounded-md px-3"
                 aria-hidden="true"
               >
-                <Skeleton tone="raised" class="h-4 w-2/3" />
+                <Skeleton tone="raised" class="h-10 w-2/3" />
               </span>
             </li>
 

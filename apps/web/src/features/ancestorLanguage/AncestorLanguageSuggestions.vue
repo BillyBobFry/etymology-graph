@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Badge from "../../uiComponents/Badge.vue";
 import Button from "../../uiComponents/Button.vue";
 
 import type { ResolvedAncestorLanguageSuggestion } from "./ancestorLanguageSuggestions";
@@ -25,24 +26,33 @@ function isSuggestionDisabled(suggestion: AncestorLanguageSuggestion): boolean {
   return suggestion.status !== undefined && suggestion.status !== "available";
 }
 
-/** Formats layer coverage for compact card metadata. */
-function coverageLabel(suggestion: AncestorLanguageSuggestion): string | undefined {
+/** Formats layer coverage for compact inline status metadata. */
+function coverageBadgeLabel(suggestion: AncestorLanguageSuggestion): string | undefined {
   if (suggestion.status === "unrefreshed") {
-    return "Index pending";
+    return "Pending";
   }
 
   if (suggestion.status === "empty") {
-    return "No paths in the index yet";
+    return "No paths";
   }
 
   if (suggestion.matchCount !== undefined) {
-    const countLabel = new Intl.NumberFormat().format(suggestion.matchCount);
-    const noun = suggestion.matchCount === 1 ? "match" : "matches";
-
-    return `${countLabel} ${noun}`;
+    return new Intl.NumberFormat().format(suggestion.matchCount);
   }
 
   return undefined;
+}
+
+/** Keeps number-only coverage badges clear to assistive tech and hover users. */
+function coverageBadgeAccessibleLabel(suggestion: AncestorLanguageSuggestion): string | undefined {
+  if (suggestion.matchCount === undefined) {
+    return coverageBadgeLabel(suggestion);
+  }
+
+  const countLabel = new Intl.NumberFormat().format(suggestion.matchCount);
+  const noun = suggestion.matchCount === 1 ? "match" : "matches";
+
+  return `${countLabel} ${noun}`;
 }
 </script>
 
@@ -60,14 +70,18 @@ function coverageLabel(suggestion: AncestorLanguageSuggestion): string | undefin
       @click="emit('select', suggestion.ancestorLangCode)"
     >
       <span class="contents">
-        <span>{{ suggestion.ancestorName }}</span>
-        <span class="font-sans text-sm font-normal leading-5 text-text-muted">{{ suggestion.description }}</span>
-        <span
-          v-if="coverageLabel(suggestion)"
-          class="font-label text-xs font-bold uppercase tracking-[0.12em] text-text-muted"
-        >
-          {{ coverageLabel(suggestion) }}
+        <span class="flex items-center justify-between gap-2">
+          <span>{{ suggestion.ancestorName }}</span>
+          <Badge
+            v-if="coverageBadgeLabel(suggestion)"
+            class="mt-0.5 shrink-0"
+            :aria-label="coverageBadgeAccessibleLabel(suggestion)"
+            :title="coverageBadgeAccessibleLabel(suggestion)"
+          >
+            {{ coverageBadgeLabel(suggestion) }}
+          </Badge>
         </span>
+        <span class="font-sans text-sm font-normal leading-5 text-text-muted">{{ suggestion.description }}</span>
       </span>
     </Button>
   </div>

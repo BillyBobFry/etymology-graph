@@ -13,7 +13,7 @@ import PageMain from "../uiComponents/PageMain.vue";
         This path is not in the atlas.
       </h1>
       <p class="mb-6 max-w-3xl text-lg leading-8 text-text-page-muted">
-        Return home to choose etymology, doublets, source languages, or sound changes.
+        Return home to choose etymology, doublets, word lineages, or sound changes.
       </p>
       <Button :to="{ name: 'home' }">
         Back to the atlas

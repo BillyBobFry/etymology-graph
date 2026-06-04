@@ -14,7 +14,6 @@ import {
 
 import AncestorLanguageResultsAccordion from "../features/ancestorLanguage/AncestorLanguageResultsAccordion.vue";
 import AncestorLanguageSearchEmptyState from "../features/ancestorLanguage/AncestorLanguageSearchEmptyState.vue";
-import AncestorLanguageSuggestions from "../features/ancestorLanguage/AncestorLanguageSuggestions.vue";
 import GraphEvidencePanel from "../features/graph/GraphEvidencePanel.vue";
 import {
   ancestorPathQueryKey,
@@ -25,12 +24,14 @@ import {
   isCuratedAncestorLanguage,
   isCuratedDescendantLanguage,
   resolveAncestorLanguageSuggestions,
-  resolveDescendantLanguageOptions
+  resolveDescendantLanguageOptions,
+  type ResolvedAncestorLanguageSuggestion
 } from "../features/ancestorLanguage/ancestorLanguageSuggestions";
 import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
 import { useSourceLanguageLayersQuery } from "../features/ancestorLanguage/composables/useSourceLanguageLayersQuery";
 import { useTermsWithAncestorLanguageQuery } from "../features/ancestorLanguage/composables/useTermsWithAncestorLanguageQuery";
 import { fallbackSearchLanguage, useSearchLanguageStore } from "../features/terms/searchLanguageStore";
+import Badge from "../uiComponents/Badge.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 import Select from "../uiComponents/Select.vue";
 import Skeleton from "../uiComponents/Skeleton.vue";
@@ -39,6 +40,7 @@ const defaultResultLimit = 24;
 
 type ResultsStatus = "idle" | "loading" | "success" | "empty" | "error";
 type GraphStatus = "idle" | "loading" | "success" | "empty" | "error";
+type ResolvedSourceLayerSuggestion = ResolvedAncestorLanguageSuggestion & Partial<SourceLanguageLayer>;
 
 const route = useRoute();
 const router = useRouter();
@@ -86,20 +88,28 @@ const suggestedAncestors = computed(() =>
     ...sourceLayersByAncestorCode.value.get(suggestion.ancestorLangCode)
   }))
 );
+const visibleSourceLayerSuggestions = computed<ResolvedSourceLayerSuggestion[]>(() =>
+  [...suggestedAncestors.value]
+    .filter((suggestion) => suggestion.status === "available")
+    .sort((left, right) => (right.matchCount ?? 0) - (left.matchCount ?? 0))
+);
 const selectedSourceLayerIsAvailable = computed(() =>
-  suggestedAncestors.value.some((suggestion) => suggestion.ancestorLangCode === ancestorLangCode.value)
+  visibleSourceLayerSuggestions.value.some((suggestion) => suggestion.ancestorLangCode === ancestorLangCode.value)
 );
 const selectedSourceLayerHasMatches = computed(() => {
   const selectedLayer = findSelectedSourceLayer();
 
   return selectedLayer?.status === "available";
 });
+const selectedSourceLayer = computed(() =>
+  suggestedAncestors.value.find((suggestion) => suggestion.ancestorLangCode === ancestorLangCode.value)
+);
 const sourceLayerHelpText = computed(() => {
   const descendantName = descendantLanguage.value?.canonicalName;
 
   return descendantName
-    ? `Choose a curated source layer to find ${descendantName} words that trace back to it.`
-    : "Choose a language first, then pick one of its curated source layers.";
+    ? `Browse curated source layers and open the ${descendantName} words that trace back to them.`
+    : "Choose a language first, then open one of its curated source layers.";
 });
 const resultQueryInput = computed(() => {
   if (
@@ -163,14 +173,43 @@ const graphStatus = computed<GraphStatus>(() => {
 });
 const resultHeading = computed(() => {
   if (!descendantLanguage.value || !ancestorLanguage.value) {
-    return "Choose a source layer";
+    return "Open a source layer";
   }
 
   return `${descendantLanguage.value.canonicalName} words from ${ancestorLanguage.value.canonicalName}`;
 });
+const resultSummary = computed(() => {
+  if (!descendantLanguage.value) {
+    return "Choose a language to see its source layers.";
+  }
+
+  if (!selectedSourceLayer.value) {
+    return `Choose a source layer to list ${descendantLanguage.value.canonicalName} words with a shared lineage.`;
+  }
+
+  if (selectedSourceLayer.value.status === "available") {
+    return selectedSourceLayer.value.description;
+  }
+
+  if (selectedSourceLayer.value.status === "empty") {
+    return "No paths in the index yet for this source layer.";
+  }
+
+  if (selectedSourceLayer.value.status === "unrefreshed") {
+    return "This source layer is waiting for coverage.";
+  }
+
+  return "Checking coverage for this source layer.";
+});
+const sourceIndexHeading = computed(() =>
+  descendantLanguage.value
+    ? `${descendantLanguage.value.canonicalName} source layers`
+    : "Source layers"
+);
 
 watch([routeDescendantLangCode, routeAncestorLangCode], syncLanguagePairFromRoute, { immediate: true });
 watch(languages, ensureValidLanguageSelection, { immediate: true });
+watch(visibleSourceLayerSuggestions, ensureDefaultAncestorSelection, { immediate: true });
 watch([descendantLangCode, ancestorLangCode], () => {
   expandedEntryId.value = undefined;
 });
@@ -215,6 +254,20 @@ function ensureValidLanguageSelection(availableLanguages: Language[]): void {
     !isCuratedAncestorLanguage(descendantLangCode.value, selectedAncestorLangCode.value)
   ) {
     selectedAncestorLangCode.value = undefined;
+  }
+}
+
+/** Opens the first result-bearing source drawer so the atlas starts with useful results. */
+function ensureDefaultAncestorSelection(suggestions: ResolvedSourceLayerSuggestion[]): void {
+  if (sourceLayerQuery.isPending.value || sourceLayerQuery.isError.value) {
+    return;
+  }
+
+  const selectionIsVisible = suggestions.some((suggestion) => suggestion.ancestorLangCode === ancestorLangCode.value);
+  const firstVisibleSuggestion = suggestions[0];
+
+  if (!selectionIsVisible && firstVisibleSuggestion) {
+    ancestorLangCode.value = firstVisibleSuggestion.ancestorLangCode;
   }
 }
 
@@ -277,6 +330,35 @@ function setAncestorLanguage(langCode: string | undefined): void {
 /** Runs a search by committing a suggested source language as the ancestor selection. */
 function selectAncestorLanguage(langCode: string): void {
   ancestorLangCode.value = langCode;
+}
+
+/** Formats coverage as compact status metadata in the source-layer index. */
+function sourceLayerBadgeLabel(suggestion: ResolvedSourceLayerSuggestion): string | undefined {
+  if (suggestion.status === "unrefreshed") {
+    return "Pending";
+  }
+
+  if (suggestion.status === "empty") {
+    return "No paths";
+  }
+
+  if (suggestion.matchCount !== undefined) {
+    return new Intl.NumberFormat().format(suggestion.matchCount);
+  }
+
+  return undefined;
+}
+
+/** Expands numeric coverage badges for assistive tech and native tooltips. */
+function sourceLayerBadgeAccessibleLabel(suggestion: ResolvedSourceLayerSuggestion): string | undefined {
+  if (suggestion.matchCount === undefined) {
+    return sourceLayerBadgeLabel(suggestion);
+  }
+
+  const countLabel = new Intl.NumberFormat().format(suggestion.matchCount);
+  const noun = suggestion.matchCount === 1 ? "match" : "matches";
+
+  return `${countLabel} ${noun}`;
 }
 
 /** Finds the first candidate language code present in the imported language list. */
@@ -343,40 +425,52 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
   <PageMain>
     <section class="border-b border-border-strong pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-        Source languages
+        Word lineages
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
-        Explore the source layers behind a language.
+        Open a drawer of words with the same source.
       </h1>
       <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
-        Choose a modern language, then browse curated historical layers that shaped its vocabulary.
+        Browse a language by historical layer, then inspect the paths that connect each word back to a shared source.
       </p>
     </section>
 
-    <section class="grid gap-5">
-      <div>
-        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-          Atlas language
-        </p>
-        <h2 class="max-w-2xl text-2xl font-bold leading-tight text-text">
-          Pick a language, then choose one of its curated source layers.
-        </h2>
-      </div>
-      <div class="grid gap-5 rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
+    <section
+      class="grid gap-5 rounded-[3px] border border-border bg-surface/60 p-4 shadow-paper sm:p-5"
+      aria-labelledby="ancestor-language-results"
+    >
+      <div class="grid gap-5 border-b border-border pb-5 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,18rem)] lg:items-end">
+        <div class="grid gap-2">
+          <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+            Lineage atlas
+          </p>
+          <h2 id="ancestor-language-results" class="text-3xl font-black leading-tight tracking-[-0.04em] text-text">
+            {{ resultHeading }}
+          </h2>
+          <p class="max-w-3xl text-base leading-7 text-text-muted">
+            {{ resultSummary }}
+          </p>
+        </div>
+
         <Select
           id="ancestor-language-descendant"
           v-model="descendantLangCode"
-          label="To language"
+          label="Showing words in"
           :options="descendantLanguageOptions"
-          placeholder="Choose a modern language"
+          placeholder="Choose a language"
           empty-text="No curated languages found"
           constant-trigger-width
         />
+      </div>
 
-        <div class="grid gap-3">
+      <div class="grid gap-5 lg:grid-cols-[minmax(14rem,19rem)_minmax(0,1fr)] lg:items-start">
+        <aside
+          class="grid gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:grid-rows-[auto_minmax(0,1fr)] lg:overflow-hidden"
+          aria-labelledby="source-layer-index-heading"
+        >
           <div class="grid gap-1">
-            <p class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
-              From source layers
+            <p id="source-layer-index-heading" class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
+              {{ sourceIndexHeading }}
             </p>
             <p class="text-sm leading-6 text-text-muted">
               {{ sourceLayerHelpText }}
@@ -387,100 +481,127 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
             >
               Loading coverage
             </p>
-            <p
-              v-else-if="sourceLayerQuery.isError.value"
-              class="text-sm leading-6 text-danger"
-            >
+            <p v-else-if="sourceLayerQuery.isError.value" class="text-sm leading-6 text-danger">
               Could not load source-layer coverage.
             </p>
           </div>
 
-          <AncestorLanguageSuggestions
-            v-if="suggestedAncestors.length > 0"
-            :suggestions="suggestedAncestors"
+          <ul
+            v-if="visibleSourceLayerSuggestions.length > 0"
+            class="flex gap-2 overflow-x-auto pb-1 lg:grid lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:pr-1 lg:pb-0"
+            aria-label="Source layers"
+          >
+            <li
+              v-for="suggestion in visibleSourceLayerSuggestions"
+              :key="suggestion.ancestorLangCode"
+              class="min-w-56 lg:min-w-0"
+            >
+              <button
+                type="button"
+                class="grid h-full w-full cursor-pointer gap-1 rounded-[3px] border border-border bg-surface/45 p-3 text-left transition hover:bg-surface/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-55"
+                :class="suggestion.ancestorLangCode === ancestorLangCode ? 'border-accent bg-accent-soft text-text' : ''"
+                :aria-pressed="suggestion.ancestorLangCode === ancestorLangCode"
+                @click="selectAncestorLanguage(suggestion.ancestorLangCode)"
+              >
+                <span class="flex items-start justify-between gap-3">
+                  <span class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
+                    {{ suggestion.ancestorName }}
+                  </span>
+                  <Badge
+                    v-if="sourceLayerBadgeLabel(suggestion)"
+                    class="mt-0.5 shrink-0"
+                    :aria-label="sourceLayerBadgeAccessibleLabel(suggestion)"
+                    :title="sourceLayerBadgeAccessibleLabel(suggestion)"
+                  >
+                    {{ sourceLayerBadgeLabel(suggestion) }}
+                  </Badge>
+                </span>
+                <span class="text-sm leading-5 text-text-muted">
+                  {{ suggestion.description }}
+                </span>
+              </button>
+            </li>
+          </ul>
+          <p v-else class="text-sm leading-6 text-text-muted">
+            No source layers with matches are available for this language yet.
+          </p>
+        </aside>
+
+        <div class="min-w-0">
+          <div
+            v-if="resultsStatus === 'idle'"
+            class="grid min-h-64 place-items-center rounded-[3px] border border-dashed border-border bg-surface/35 p-6 text-center text-text-muted"
+          >
+            <div class="grid max-w-md gap-2">
+              <p class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
+                Choose a source layer
+              </p>
+              <p class="leading-7">
+                Pick a historical source on the left to open its shared word list.
+              </p>
+            </div>
+          </div>
+
+          <div
+            v-else-if="resultsStatus === 'loading'"
+            class="grid gap-3"
+            role="status"
+            aria-busy="true"
+            aria-label="Loading matching entries"
+          >
+            <Skeleton
+              v-for="item in 4"
+              :key="item"
+              variant="block"
+              tone="raised"
+              class="h-25 rounded-[3px] shadow-paper"
+            />
+          </div>
+
+          <div v-else-if="resultsStatus === 'error'" class="rounded-[3px] border border-danger/50 bg-surface/60 p-5 text-danger shadow-paper">
+            Could not load matches for this pair.
+          </div>
+
+          <AncestorLanguageSearchEmptyState
+            v-else-if="resultsStatus === 'empty'"
+            :suggestions="visibleSourceLayerSuggestions"
             :active-ancestor-lang-code="ancestorLangCode"
             @select="selectAncestorLanguage"
           />
-          <p v-else class="text-sm leading-6 text-text-muted">
-            No curated source layers are available for this language yet.
-          </p>
+
+          <AncestorLanguageResultsAccordion
+            v-else
+            v-model="expandedEntryId"
+            :matches="matches"
+            @prefetch-match="prefetchAncestorPath"
+          >
+            <template #panel="{ match }">
+              <GraphEvidencePanel
+                :key="match.entry.id"
+                :status="graphStatus"
+                :graph="expandedGraphQuery.data.value?.graph ?? null"
+                :root-node-id="match.entry.nodeId"
+              />
+            </template>
+          </AncestorLanguageResultsAccordion>
+
+          <div ref="infiniteScrollSentinel" class="min-h-1" aria-hidden="true"></div>
+          <div
+            v-if="resultsQuery.isFetchingNextPage.value"
+            class="mt-3 grid gap-3"
+            role="status"
+            aria-busy="true"
+            aria-label="Loading more matches"
+          >
+            <Skeleton
+              v-for="item in 3"
+              :key="item"
+              variant="block"
+              tone="raised"
+              class="h-22 rounded-[3px] shadow-paper"
+            />
+          </div>
         </div>
-      </div>
-    </section>
-
-    <section class="grid gap-5" aria-labelledby="ancestor-language-results">
-      <div
-        v-if="resultsStatus !== 'idle'"
-        class="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4"
-      >
-        <div>
-          <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-            Matches
-          </p>
-          <h2 id="ancestor-language-results" class="text-2xl font-bold leading-tight text-text">
-            {{ resultHeading }}
-          </h2>
-        </div>
-      </div>
-
-      <div
-        v-if="resultsStatus === 'loading'"
-        class="grid gap-3"
-        role="status"
-        aria-busy="true"
-        aria-label="Loading matching entries"
-      >
-        <Skeleton
-          v-for="item in 4"
-          :key="item"
-          variant="block"
-          tone="raised"
-          class="h-25 rounded-[3px] shadow-paper"
-        />
-      </div>
-
-      <div v-else-if="resultsStatus === 'error'" class="rounded-[3px] border border-danger/50 bg-surface/60 p-5 text-danger shadow-paper">
-        Could not load matches for this pair.
-      </div>
-
-      <AncestorLanguageSearchEmptyState
-        v-else-if="resultsStatus === 'empty'"
-        :suggestions="suggestedAncestors"
-        :active-ancestor-lang-code="ancestorLangCode"
-        @select="selectAncestorLanguage"
-      />
-
-      <AncestorLanguageResultsAccordion
-        v-else
-        v-model="expandedEntryId"
-        :matches="matches"
-        @prefetch-match="prefetchAncestorPath"
-      >
-        <template #panel="{ match }">
-          <GraphEvidencePanel
-            :key="match.entry.id"
-            :status="graphStatus"
-            :graph="expandedGraphQuery.data.value?.graph ?? null"
-            :root-node-id="match.entry.nodeId"
-          />
-        </template>
-      </AncestorLanguageResultsAccordion>
-
-      <div ref="infiniteScrollSentinel" class="min-h-1" aria-hidden="true"></div>
-      <div
-        v-if="resultsQuery.isFetchingNextPage.value"
-        class="grid gap-3"
-        role="status"
-        aria-busy="true"
-        aria-label="Loading more matches"
-      >
-        <Skeleton
-          v-for="item in 3"
-          :key="item"
-          variant="block"
-          tone="raised"
-          class="h-22 rounded-[3px] shadow-paper"
-        />
       </div>
     </section>
   </PageMain>

@@ -83,8 +83,8 @@ const sectionNavItems = computed<SectionNavItem[]>(() => [
     active: isDoubletsRoute.value
   },
   {
-    value: "source-languages",
-    label: "Source languages",
+    value: "word-lineages",
+    label: "Word lineages",
     to: { name: "ancestor-language-search" },
     active: isAncestorLanguageRoute.value
   },

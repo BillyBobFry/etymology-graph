@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useQueryClient } from "@tanstack/vue-query";
 import { usePreferredReducedMotion } from "@vueuse/core";
 import { computed, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -7,7 +8,9 @@ import {
   DEFAULT_ANCESTOR_MAX_DEPTH,
   type AncestorsQuery,
   type ChildTermsQuery,
+  type CognatesQuery,
   type EtymologyGraph,
+  type GraphNode,
   type GraphTraversalNode,
   type SimilarTermsQuery
 } from "@etymology-graph/graph";
@@ -15,9 +18,14 @@ import {
 import EntryChooser from "../features/terms/EntryChooser.vue";
 import GraphCanvas from "../features/graph/GraphCanvas.vue";
 import TermSearchForm from "../features/terms/TermSearchForm.vue";
-import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
+import {
+  ancestorGraphQueryKey,
+  fetchAncestorGraph,
+  useAncestorGraphQuery
+} from "../features/graph/composables/useAncestorGraphQuery";
 import { useChildTermsGraphQuery } from "../features/graph/composables/useChildTermsGraphQuery";
 import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
+import { useCognatesQuery } from "../features/terms/composables/useCognatesQuery";
 import { useSimilarTermsQuery } from "../features/terms/composables/useSimilarTermsQuery";
 import { useTermEntrySelection } from "../features/terms/composables/useTermEntrySelection";
 import { mergeEtymologyGraphs } from "../features/graph/mergeEtymologyGraphs";
@@ -37,11 +45,15 @@ const similarTermsSkeletonItems = [0, 1, 2, 3] as const;
 
 const route = useRoute();
 const router = useRouter();
+const queryClient = useQueryClient();
 const searchLanguageStore = useSearchLanguageStore();
 
 const langCode = computed(() => firstRouteParam(route.params.langCode));
 const term = computed(() => firstRouteParam(route.params.term));
 const childTermsGraphInput = ref<ChildTermsQuery | null>(null);
+const cognateExpansionError = ref<string | null>(null);
+const cognateExpansionGraphs = ref<Map<string, EtymologyGraph | null>>(new Map());
+const loadingCognateGraphIds = ref<Set<string>>(new Set());
 const expandedGraph = ref<EtymologyGraph | null>(null);
 const graphResultRef = ref<HTMLElement | null>(null);
 const shouldScrollToNextGraph = ref(Boolean(langCode.value && term.value));
@@ -78,12 +90,38 @@ const similarTermsInput = computed<SimilarTermsQuery | null>(() => {
   };
 });
 
+const cognatesInput = computed<CognatesQuery | null>(() => {
+  if (!langCode.value || !term.value) {
+    return null;
+  }
+
+  return {
+    langCode: langCode.value,
+    word: term.value,
+    limit: 12,
+    pos: entrySelection.selectedPos.value,
+    etymologyNumber: entrySelection.selectedEtymologyNumber.value
+  };
+});
+
 const ancestorGraphQuery = useAncestorGraphQuery(ancestorGraphInput);
 const childTermsGraphQuery = useChildTermsGraphQuery(childTermsGraphInput);
 const similarTermsQuery = useSimilarTermsQuery(similarTermsInput);
+const cognatesQuery = useCognatesQuery(cognatesInput);
 const languagesQuery = useLanguagesQuery();
 const languages = computed(() => languagesQuery.data.value?.languages ?? []);
 const similarTerms = computed(() => similarTermsQuery.data.value?.terms ?? []);
+const cognates = computed(() => cognatesQuery.data.value?.terms ?? []);
+const visibleCognates = computed(() =>
+  cognates.value.filter((cognate) => {
+    const graph = cognateExpansionGraphs.value.get(cognate.id);
+
+    return graph ? graphSharesCurrentGraphAncestor(graph) : false;
+  })
+);
+const isCheckingCognateGraphs = computed(() =>
+  cognates.value.some((cognate) => loadingCognateGraphIds.value.has(cognate.id))
+);
 const selectedGraph = computed(() => expandedGraph.value ?? ancestorGraphQuery.data.value?.graph ?? null);
 const selectedLanguageLabel = computed(() => {
   if (!langCode.value) {
@@ -188,6 +226,25 @@ function handleLoadChildren(node: GraphTraversalNode): void {
   };
 }
 
+/** Adds a cognate's ancestry into the current graph so comparisons stay in one visual context. */
+async function handleAddCognateToGraph(cognate: GraphNode): Promise<void> {
+  if (isCognateInSelectedGraph(cognate)) {
+    await scrollGraphResultIntoView();
+    return;
+  }
+
+  const graph = cognateExpansionGraphs.value.get(cognate.id);
+
+  if (!graph) {
+    cognateExpansionError.value = "No connected source trail is available for that cognate yet.";
+    return;
+  }
+
+  cognateExpansionError.value = null;
+  expandedGraph.value = expandedGraph.value ? mergeEtymologyGraphs(expandedGraph.value, graph) : graph;
+  await scrollGraphResultIntoView();
+}
+
 /** Moves a newly loaded route result into view without affecting in-graph exploration. */
 async function scrollGraphResultIntoView(): Promise<void> {
   await nextTick();
@@ -198,11 +255,89 @@ async function scrollGraphResultIntoView(): Promise<void> {
   });
 }
 
+/** Checks graph membership so already-added cognates behave like stable selections. */
+function isCognateInSelectedGraph(cognate: GraphNode): boolean {
+  return selectedGraph.value?.nodes.some((node) => node.id === cognate.id) ?? false;
+}
+
+/** Loads candidate cognate ancestries so the strip only offers graph-connected comparisons. */
+function ensureCognateExpansionGraphs(nextCognates: GraphNode[]): void {
+  for (const cognate of nextCognates) {
+    if (cognateExpansionGraphs.value.has(cognate.id) || loadingCognateGraphIds.value.has(cognate.id)) {
+      continue;
+    }
+
+    void loadCognateExpansionGraph(cognate);
+  }
+}
+
+/** Fetches one cognate ancestry through the shared graph cache used by normal etymology views. */
+async function loadCognateExpansionGraph(cognate: GraphNode): Promise<void> {
+  const query: AncestorsQuery = {
+    langCode: cognate.langCode,
+    word: cognate.word,
+    maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH
+  };
+
+  addLoadingCognateGraph(cognate.id);
+
+  try {
+    const result = await queryClient.fetchQuery({
+      queryKey: ancestorGraphQueryKey(query),
+      queryFn: ({ signal }) => fetchAncestorGraph(query, signal),
+      staleTime: 60_000
+    });
+
+    setCognateExpansionGraph(cognate.id, result.graph);
+  } catch {
+    setCognateExpansionGraph(cognate.id, null);
+  } finally {
+    removeLoadingCognateGraph(cognate.id);
+  }
+}
+
+/** Confirms the candidate graph will attach through an ancestor already visible in the graph. */
+function graphSharesCurrentGraphAncestor(candidateGraph: EtymologyGraph): boolean {
+  if (!selectedGraph.value) {
+    return false;
+  }
+
+  const currentNodeIds = new Set(selectedGraph.value.nodes.map((node) => node.id));
+
+  return candidateGraph.nodes.some((node) => node.id !== candidateGraph.rootNodeId && currentNodeIds.has(node.id));
+}
+
+/** Replaces the map so Vue sees candidate graph cache changes. */
+function setCognateExpansionGraph(nodeId: string, graph: EtymologyGraph | null): void {
+  const nextGraphs = new Map(cognateExpansionGraphs.value);
+  nextGraphs.set(nodeId, graph);
+  cognateExpansionGraphs.value = nextGraphs;
+}
+
+/** Replaces the loading set so Vue updates checking states. */
+function addLoadingCognateGraph(nodeId: string): void {
+  const nextLoadingIds = new Set(loadingCognateGraphIds.value);
+  nextLoadingIds.add(nodeId);
+  loadingCognateGraphIds.value = nextLoadingIds;
+}
+
+/** Replaces the loading set after a candidate graph check finishes. */
+function removeLoadingCognateGraph(nodeId: string): void {
+  const nextLoadingIds = new Set(loadingCognateGraphIds.value);
+  nextLoadingIds.delete(nodeId);
+  loadingCognateGraphIds.value = nextLoadingIds;
+}
+
 watch([langCode, term], () => {
   childTermsGraphInput.value = null;
+  cognateExpansionError.value = null;
+  cognateExpansionGraphs.value = new Map();
+  loadingCognateGraphIds.value = new Set();
   expandedGraph.value = null;
   shouldScrollToNextGraph.value = Boolean(langCode.value && term.value);
 });
+
+watch(cognates, ensureCognateExpansionGraphs, { immediate: true });
 
 watch(
   () => ancestorGraphQuery.data.value?.graph ?? null,
@@ -234,6 +369,7 @@ watch(
     expandedGraph.value = mergeEtymologyGraphs(expandedGraph.value, graph);
   }
 );
+
 </script>
 
 <template>
@@ -333,6 +469,65 @@ watch(
               {{ similarTerm.node.word }}
             </Button>
           </div>
+        </section>
+        <section
+          v-if="visibleCognates.length > 0 || cognatesQuery.isPending.value || isCheckingCognateGraphs || cognatesQuery.isError.value"
+          aria-labelledby="cognates-heading"
+        >
+          <div class="mb-3">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 id="cognates-heading" class="mb-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-text-muted">
+                  Cognates
+                </h3>
+                <p class="text-sm leading-6 text-text-muted">
+                  Explicitly linked relatives in other languages.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div
+            v-if="cognatesQuery.isPending.value || isCheckingCognateGraphs"
+            class="flex flex-nowrap gap-2 overflow-hidden"
+            role="status"
+            aria-live="polite"
+          >
+            <span class="sr-only">Finding connected cognates</span>
+            <span
+              v-for="item in similarTermsSkeletonItems"
+              :key="item"
+              class="min-w-0 h-[44px] w-[104px] shrink-0 rounded-md"
+              aria-hidden="true"
+            >
+              <Skeleton class="h-full" tone="raised" />
+            </span>
+          </div>
+          <p v-else-if="cognatesQuery.isError.value" class="text-sm leading-6 text-text-muted">
+            Cognates are unavailable right now.
+          </p>
+          <div v-else class="flex flex-wrap gap-2">
+            <Button
+              v-for="cognate in visibleCognates"
+              :key="cognate.id"
+              :variant="isCognateInSelectedGraph(cognate) ? 'primary' : 'secondary'"
+              size="sm"
+              :aria-pressed="isCognateInSelectedGraph(cognate)"
+              @click="handleAddCognateToGraph(cognate)"
+            >
+              <span class="grid gap-0.5 text-left">
+                <span>{{ cognate.word }}</span>
+                <span
+                  class="font-sans text-xs font-normal leading-4"
+                  :class="isCognateInSelectedGraph(cognate) ? 'text-accent-contrast/85' : 'text-text-muted'"
+                >
+                  {{ cognate.langName ?? cognate.langCode }}
+                </span>
+              </span>
+            </Button>
+          </div>
+          <p v-if="cognateExpansionError" class="mt-3 text-sm leading-6 text-danger">
+            {{ cognateExpansionError }}
+          </p>
         </section>
         <TermSearchForm
           id-prefix="etymology-term-search"

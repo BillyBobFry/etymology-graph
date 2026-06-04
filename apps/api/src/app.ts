@@ -65,10 +65,17 @@ const doubletsQuerySchema = z.object({
   ...entryAnchorShape
 });
 
+const cognatesQuerySchema = z.object({
+  langCode: z.string().trim().min(1),
+  word: z.string().trim().min(1),
+  limit: z.coerce.number().int().min(1).max(100).default(24),
+  ...entryAnchorShape
+});
+
 const doubletGroupsQuerySchema = z.object({
   langCode: z.string().trim().min(1),
   maxDepth: z.coerce.number().int().min(1).max(12).default(DEFAULT_ANCESTOR_MAX_DEPTH),
-  limit: z.coerce.number().int().min(1).max(100).default(24),
+  limit: z.coerce.number().int().min(1).max(5).default(5),
   entryLimit: z.coerce.number().int().min(2).max(25).default(12),
   cursor: z.string().trim().regex(/^\d+:.+$/).optional()
 });
@@ -377,6 +384,22 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
     }
 
     return graphRepository.findDoublets(parsedQuery.data);
+  });
+
+  server.get("/api/cognates", async (request, reply) => {
+    const parsedQuery = cognatesQuerySchema.safeParse(request.query);
+
+    if (!parsedQuery.success) {
+      return reply.code(400).send({
+        error: "Invalid cognates query",
+        issues: parsedQuery.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      });
+    }
+
+    return graphRepository.findCognates(parsedQuery.data);
   });
 
   server.get("/api/doublet-groups", async (request, reply) => {

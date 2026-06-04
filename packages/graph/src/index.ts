@@ -304,10 +304,25 @@ export const doubletsResultSchema = z.object({
 
 export type DoubletsResult = z.infer<typeof doubletsResultSchema>;
 
+export const cognatesQuerySchema = z.object({
+  langCode: z.string().trim().min(1),
+  word: z.string().trim().min(1),
+  limit: z.number().int().min(1).max(100),
+  ...entryAnchorShape
+});
+
+export type CognatesQuery = z.infer<typeof cognatesQuerySchema>;
+
+export const cognatesResultSchema = z.object({
+  terms: z.array(graphNodeSchema)
+});
+
+export type CognatesResult = z.infer<typeof cognatesResultSchema>;
+
 export const doubletGroupsQuerySchema = z.object({
   langCode: z.string().trim().min(1),
   maxDepth: z.number().int().min(1).max(12),
-  limit: z.number().int().min(1).max(100),
+  limit: z.number().int().min(1).max(5),
   entryLimit: z.number().int().min(2).max(25),
   cursor: z.string().trim().regex(/^\d+:.+$/).optional()
 });
@@ -434,9 +449,9 @@ export const CURATED_SOURCE_LANGUAGE_ATLAS: CuratedSourceLanguageAtlasLanguage[]
       { ancestorLangCode: "ang", description: "The inherited Germanic core behind most everyday words." },
       { ancestorLangCode: "non", description: "Viking-age contact reshaped basic vocabulary and pronouns." },
       { ancestorLangCode: "la", description: "Centuries of learned, legal, and church vocabulary entered through Latin." },
-      { ancestorLangCode: "fr", description: "Norman rule layered thousands of French words onto English." },
+      { ancestorLangCode: "fro", description: "Norman rule layered Old French words onto English." },
       { ancestorLangCode: "grc", description: "Greek supplied scientific, medical, political, and literary vocabulary." },
-      { ancestorLangCode: "fa", description: "Persian words reached English through trade, empire, food, and literary exchange." },
+      { ancestorLangCode: "dum", description: "Low Countries trade and seafaring carried Dutch words into English." },
       { ancestorLangCode: "sa", description: "Sanskrit terms entered through scholarship, religion, yoga, and South Asian contact." },
       { ancestorLangCode: "ar", description: "Arabic loan paths carry science, trade, astronomy, and Mediterranean vocabulary." },
       { ancestorLangCode: "gem-pro", description: "The reconstructed root shared with German and Norse." },

@@ -90,7 +90,7 @@ Start small and only add projections when a query needs them:
 - `node_entry_summary_mv`: one row per node with entry counts and available entry ids.
 - `ancestor_edge_candidates_mv`: prefiltered ancestor-walkable edge types, if `graph_edge_walk_mv` is still too broad.
 
-For source-language atlas work, a separate promoted-pair result cache may be more useful than a global reachability table. The product only needs curated pairs to be fast, not every possible language pair.
+For word-lineage atlas work, a separate promoted-pair result cache may be more useful than a global reachability table. The product only needs curated pairs to be fast, not every possible language pair.
 
 ## API Usage
 

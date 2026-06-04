@@ -138,6 +138,17 @@
       }
     },
     {
+      "id": "ace",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "ace"
+        ]
+      }
+    },
+    {
       "id": "acetes",
       "categories": [
         "foods/shellfish"
@@ -491,6 +502,17 @@
       }
     },
     {
+      "id": "ale",
+      "categories": [
+        "foods/condiments"
+      ],
+      "languages": {
+        "en": [
+          "ale"
+        ]
+      }
+    },
+    {
       "id": "alexandrite",
       "categories": [
         "materials/gemstones"
@@ -778,6 +800,17 @@
         ],
         "tr": [
           "alpaka"
+        ]
+      }
+    },
+    {
+      "id": "altar",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "altar"
         ]
       }
     },
@@ -1230,6 +1263,17 @@
       }
     },
     {
+      "id": "angel",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "angel"
+        ]
+      }
+    },
+    {
       "id": "angelica",
       "categories": [
         "foods/herbs-and-spices"
@@ -1451,6 +1495,17 @@
       "languages": {
         "en": [
           "annabergite"
+        ]
+      }
+    },
+    {
+      "id": "ant",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "ant"
         ]
       }
     },
@@ -2557,6 +2612,18 @@
       }
     },
     {
+      "id": "aunt",
+      "categories": [
+        "core/kinship-and-people",
+        "humans/family-relations"
+      ],
+      "languages": {
+        "en": [
+          "aunt"
+        ]
+      }
+    },
+    {
       "id": "aurichalcite",
       "categories": [
         "materials/gemstones"
@@ -2575,6 +2642,18 @@
       "languages": {
         "en": [
           "austinite"
+        ]
+      }
+    },
+    {
+      "id": "autumn",
+      "categories": [
+        "core/natural-world",
+        "words/units-of-time"
+      ],
+      "languages": {
+        "en": [
+          "autumn"
         ]
       }
     },
@@ -3286,6 +3365,17 @@
       }
     },
     {
+      "id": "bait",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "bait"
+        ]
+      }
+    },
+    {
       "id": "baize",
       "categories": [
         "materials/fabrics"
@@ -3293,6 +3383,17 @@
       "languages": {
         "en": [
           "baize"
+        ]
+      }
+    },
+    {
+      "id": "bake",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "bake"
         ]
       }
     },
@@ -3432,6 +3533,17 @@
         ],
         "tr": [
           "balon"
+        ]
+      }
+    },
+    {
+      "id": "balm",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "balm"
         ]
       }
     },
@@ -3663,6 +3775,17 @@
       "languages": {
         "en": [
           "barathea"
+        ]
+      }
+    },
+    {
+      "id": "barge",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "barge"
         ]
       }
     },
@@ -4409,6 +4532,18 @@
       "languages": {
         "en": [
           "bearberry"
+        ]
+      }
+    },
+    {
+      "id": "beard",
+      "categories": [
+        "core/body-and-senses",
+        "humans/body-parts"
+      ],
+      "languages": {
+        "en": [
+          "beard"
         ]
       }
     },
@@ -6903,6 +7038,28 @@
       }
     },
     {
+      "id": "brake",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "brake"
+        ]
+      }
+    },
+    {
+      "id": "brass",
+      "categories": [
+        "materials/metals"
+      ],
+      "languages": {
+        "en": [
+          "brass"
+        ]
+      }
+    },
+    {
       "id": "brazilianite",
       "categories": [
         "materials/gemstones"
@@ -7090,6 +7247,17 @@
           "胸",
           "胸部",
           "胸甲"
+        ]
+      }
+    },
+    {
+      "id": "brew",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "brew"
         ]
       }
     },
@@ -7316,6 +7484,17 @@
       }
     },
     {
+      "id": "brim",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "brim"
+        ]
+      }
+    },
+    {
       "id": "brioche",
       "categories": [
         "foods/breads-and-pastries"
@@ -7528,6 +7707,17 @@
       "languages": {
         "en": [
           "brookite"
+        ]
+      }
+    },
+    {
+      "id": "broom",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "broom"
         ]
       }
     },
@@ -7849,6 +8039,17 @@
       }
     },
     {
+      "id": "bug",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "bug"
+        ]
+      }
+    },
+    {
       "id": "bull",
       "categories": [
         "animals/common"
@@ -7942,6 +8143,17 @@
       }
     },
     {
+      "id": "bun",
+      "categories": [
+        "foods/breads-and-pastries"
+      ],
+      "languages": {
+        "en": [
+          "bun"
+        ]
+      }
+    },
+    {
       "id": "bunting",
       "categories": [
         "materials/fabrics"
@@ -7949,6 +8161,17 @@
       "languages": {
         "en": [
           "bunting"
+        ]
+      }
+    },
+    {
+      "id": "burden",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "burden"
         ]
       }
     },
@@ -8948,6 +9171,17 @@
       }
     },
     {
+      "id": "candle",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "candle"
+        ]
+      }
+    },
+    {
       "id": "canelé",
       "categories": [
         "foods/breads-and-pastries"
@@ -9222,6 +9456,17 @@
           "帽子",
           "太陽帽 /太阳帽",
           "鴨舌帽 /鸭舌帽"
+        ]
+      }
+    },
+    {
+      "id": "cape",
+      "categories": [
+        "objects/clothing"
+      ],
+      "languages": {
+        "en": [
+          "cape"
         ]
       }
     },
@@ -10068,6 +10313,17 @@
       }
     },
     {
+      "id": "castle",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "castle"
+        ]
+      }
+    },
+    {
       "id": "castorite",
       "categories": [
         "materials/gemstones"
@@ -10895,6 +11151,17 @@
       }
     },
     {
+      "id": "chapel",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "chapel"
+        ]
+      }
+    },
+    {
       "id": "chard",
       "categories": [
         "foods/vegetables"
@@ -11014,6 +11281,17 @@
       "languages": {
         "en": [
           "chayote"
+        ]
+      }
+    },
+    {
+      "id": "cheat",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "cheat"
         ]
       }
     },
@@ -12165,17 +12443,6 @@
       }
     },
     {
-      "id": "chiné",
-      "categories": [
-        "materials/fabrics"
-      ],
-      "languages": {
-        "en": [
-          "chiné"
-        ]
-      }
-    },
-    {
       "id": "chino",
       "categories": [
         "materials/fabrics"
@@ -12194,6 +12461,17 @@
       "languages": {
         "en": [
           "chintz"
+        ]
+      }
+    },
+    {
+      "id": "chiné",
+      "categories": [
+        "materials/fabrics"
+      ],
+      "languages": {
+        "en": [
+          "chiné"
         ]
       }
     },
@@ -12851,6 +13129,18 @@
       }
     },
     {
+      "id": "claw",
+      "categories": [
+        "core/body-and-senses",
+        "humans/body-parts"
+      ],
+      "languages": {
+        "en": [
+          "claw"
+        ]
+      }
+    },
+    {
       "id": "clay",
       "categories": [
         "materials/building"
@@ -12974,6 +13264,17 @@
       "languages": {
         "en": [
           "clintonite"
+        ]
+      }
+    },
+    {
+      "id": "cloak",
+      "categories": [
+        "objects/clothing"
+      ],
+      "languages": {
+        "en": [
+          "cloak"
         ]
       }
     },
@@ -13222,6 +13523,17 @@
       }
     },
     {
+      "id": "clown",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "en": [
+          "clown"
+        ]
+      }
+    },
+    {
       "id": "clutch",
       "categories": [
         "objects/containers"
@@ -13373,6 +13685,17 @@
         ],
         "tr": [
           "palto"
+        ]
+      }
+    },
+    {
+      "id": "cob",
+      "categories": [
+        "foods/vegetables"
+      ],
+      "languages": {
+        "en": [
+          "cob"
         ]
       }
     },
@@ -13582,6 +13905,17 @@
       "languages": {
         "en": [
           "codilla"
+        ]
+      }
+    },
+    {
+      "id": "coin",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "coin"
         ]
       }
     },
@@ -14037,6 +14371,17 @@
         ],
         "ru": [
           "поле́нья"
+        ]
+      }
+    },
+    {
+      "id": "cork",
+      "categories": [
+        "materials/natural"
+      ],
+      "languages": {
+        "en": [
+          "cork"
         ]
       }
     },
@@ -14812,6 +15157,17 @@
       }
     },
     {
+      "id": "crane",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "crane"
+        ]
+      }
+    },
+    {
       "id": "crape",
       "categories": [
         "materials/fabrics"
@@ -14819,6 +15175,17 @@
       "languages": {
         "en": [
           "crape"
+        ]
+      }
+    },
+    {
+      "id": "crate",
+      "categories": [
+        "objects/containers"
+      ],
+      "languages": {
+        "en": [
+          "crate"
         ]
       }
     },
@@ -14923,20 +15290,6 @@
       "languages": {
         "en": [
           "creedite"
-        ]
-      }
-    },
-    {
-      "id": "crêpe",
-      "categories": [
-        "materials/fabrics"
-      ],
-      "languages": {
-        "en": [
-          "crêpe"
-        ],
-        "es": [
-          "crêpe"
         ]
       }
     },
@@ -15376,6 +15729,17 @@
       }
     },
     {
+      "id": "cruise",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "cruise"
+        ]
+      }
+    },
+    {
       "id": "crumpet",
       "categories": [
         "foods/breads-and-pastries"
@@ -15396,6 +15760,20 @@
         ],
         "sv": [
           "tekaka"
+        ]
+      }
+    },
+    {
+      "id": "crêpe",
+      "categories": [
+        "materials/fabrics"
+      ],
+      "languages": {
+        "en": [
+          "crêpe"
+        ],
+        "es": [
+          "crêpe"
         ]
       }
     },
@@ -15472,6 +15850,17 @@
         "tr": [
           "hıyar",
           "salatalık"
+        ]
+      }
+    },
+    {
+      "id": "cue",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "cue"
         ]
       }
     },
@@ -15858,6 +16247,17 @@
       }
     },
     {
+      "id": "curtain",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "curtain"
+        ]
+      }
+    },
+    {
       "id": "cusk",
       "categories": [
         "foods/fish"
@@ -16097,6 +16497,17 @@
         ],
         "tr": [
           "nergis"
+        ]
+      }
+    },
+    {
+      "id": "dagger",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "dagger"
         ]
       }
     },
@@ -16621,6 +17032,18 @@
       }
     },
     {
+      "id": "dawn",
+      "categories": [
+        "core/natural-world",
+        "words/units-of-time"
+      ],
+      "languages": {
+        "en": [
+          "dawn"
+        ]
+      }
+    },
+    {
       "id": "day",
       "categories": [
         "core/culture-common",
@@ -16764,6 +17187,17 @@
         ],
         "sv": [
           "död"
+        ]
+      }
+    },
+    {
+      "id": "debt",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "debt"
         ]
       }
     },
@@ -17028,6 +17462,17 @@
       "languages": {
         "en": [
           "desizing"
+        ]
+      }
+    },
+    {
+      "id": "dew",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "dew"
         ]
       }
     },
@@ -17703,6 +18148,17 @@
       }
     },
     {
+      "id": "dome",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "dome"
+        ]
+      }
+    },
+    {
       "id": "donkey",
       "categories": [
         "animals/common"
@@ -17837,6 +18293,17 @@
       }
     },
     {
+      "id": "dot",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "dot"
+        ]
+      }
+    },
+    {
       "id": "doughnut",
       "categories": [
         "foods/breads-and-pastries"
@@ -17944,6 +18411,17 @@
       "languages": {
         "en": [
           "dragonfruit"
+        ]
+      }
+    },
+    {
+      "id": "drainage",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "drainage"
         ]
       }
     },
@@ -18343,6 +18821,17 @@
         "tr": [
           "hecin",
           "tek hörgüçlü deve"
+        ]
+      }
+    },
+    {
+      "id": "drone",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "drone"
         ]
       }
     },
@@ -18804,13 +19293,13 @@
       }
     },
     {
-      "id": "éclair",
+      "id": "echo",
       "categories": [
-        "foods/breads-and-pastries"
+        "core/natural-world"
       ],
       "languages": {
         "en": [
-          "éclair"
+          "echo"
         ]
       }
     },
@@ -19294,6 +19783,17 @@
       }
     },
     {
+      "id": "emu",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "emu"
+        ]
+      }
+    },
+    {
       "id": "endive",
       "categories": [
         "foods/vegetables"
@@ -19426,6 +19926,17 @@
       }
     },
     {
+      "id": "escape",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "escape"
+        ]
+      }
+    },
+    {
       "id": "escargots",
       "categories": [
         "foods/shellfish"
@@ -19455,6 +19966,17 @@
       "languages": {
         "en": [
           "esperite"
+        ]
+      }
+    },
+    {
+      "id": "ether",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "ether"
         ]
       }
     },
@@ -19858,6 +20380,17 @@
       }
     },
     {
+      "id": "fairy",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "fairy"
+        ]
+      }
+    },
+    {
       "id": "fall",
       "categories": [
         "core/basic-verbs"
@@ -19886,6 +20419,17 @@
         ],
         "sv": [
           "falla"
+        ]
+      }
+    },
+    {
+      "id": "fan",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "fan"
         ]
       }
     },
@@ -20830,6 +21374,17 @@
       }
     },
     {
+      "id": "flare",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "flare"
+        ]
+      }
+    },
+    {
       "id": "flask",
       "categories": [
         "objects/containers"
@@ -21116,6 +21671,17 @@
       }
     },
     {
+      "id": "flock",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "flock"
+        ]
+      }
+    },
+    {
       "id": "floor",
       "categories": [
         "core/home-tools"
@@ -21307,6 +21873,17 @@
         ],
         "ru": [
           "фока́чча"
+        ]
+      }
+    },
+    {
+      "id": "fog",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "fog"
         ]
       }
     },
@@ -21582,6 +22159,17 @@
       "languages": {
         "en": [
           "forestgreen"
+        ]
+      }
+    },
+    {
+      "id": "forge",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "forge"
         ]
       }
     },
@@ -21869,6 +22457,28 @@
       }
     },
     {
+      "id": "fraud",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "fraud"
+        ]
+      }
+    },
+    {
+      "id": "freckle",
+      "categories": [
+        "core/body-and-senses"
+      ],
+      "languages": {
+        "en": [
+          "freckle"
+        ]
+      }
+    },
+    {
       "id": "freesia",
       "categories": [
         "plants/flowers"
@@ -22091,6 +22701,28 @@
       }
     },
     {
+      "id": "fuel",
+      "categories": [
+        "materials/natural"
+      ],
+      "languages": {
+        "en": [
+          "fuel"
+        ]
+      }
+    },
+    {
+      "id": "fur",
+      "categories": [
+        "materials/natural"
+      ],
+      "languages": {
+        "en": [
+          "fur"
+        ]
+      }
+    },
+    {
       "id": "fustian",
       "categories": [
         "materials/fabrics"
@@ -22132,6 +22764,17 @@
       "languages": {
         "en": [
           "gainsboro"
+        ]
+      }
+    },
+    {
+      "id": "gall",
+      "categories": [
+        "core/body-and-senses"
+      ],
+      "languages": {
+        "en": [
+          "gall"
         ]
       }
     },
@@ -22692,6 +23335,29 @@
       }
     },
     {
+      "id": "glance",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "glance"
+        ]
+      }
+    },
+    {
+      "id": "gland",
+      "categories": [
+        "core/body-and-senses",
+        "humans/body-parts"
+      ],
+      "languages": {
+        "en": [
+          "gland"
+        ]
+      }
+    },
+    {
       "id": "glass",
       "categories": [
         "materials/building",
@@ -22901,6 +23567,28 @@
       "languages": {
         "en": [
           "gloves"
+        ]
+      }
+    },
+    {
+      "id": "glow",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "glow"
+        ]
+      }
+    },
+    {
+      "id": "glue",
+      "categories": [
+        "materials/natural"
+      ],
+      "languages": {
+        "en": [
+          "glue"
         ]
       }
     },
@@ -23872,6 +24560,17 @@
       }
     },
     {
+      "id": "graph",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "graph"
+        ]
+      }
+    },
+    {
       "id": "grass",
       "categories": [
         "core/natural-world"
@@ -24140,6 +24839,17 @@
       }
     },
     {
+      "id": "grocer",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "en": [
+          "grocer"
+        ]
+      }
+    },
+    {
       "id": "grosgrain",
       "categories": [
         "materials/fabrics"
@@ -24340,6 +25050,17 @@
       }
     },
     {
+      "id": "gum",
+      "categories": [
+        "materials/natural"
+      ],
+      "languages": {
+        "en": [
+          "gum"
+        ]
+      }
+    },
+    {
       "id": "gutweed",
       "categories": [
         "plants/common-names"
@@ -24347,6 +25068,17 @@
       "languages": {
         "en": [
           "gutweed"
+        ]
+      }
+    },
+    {
+      "id": "guy",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "en": [
+          "guy"
         ]
       }
     },
@@ -25808,6 +26540,18 @@
       }
     },
     {
+      "id": "hen",
+      "categories": [
+        "animals/common",
+        "foods/poultry"
+      ],
+      "languages": {
+        "en": [
+          "hen"
+        ]
+      }
+    },
+    {
       "id": "herring",
       "categories": [
         "foods/fish"
@@ -26065,6 +26809,17 @@
         "tr": [
           "hipopotam",
           "su aygırı"
+        ]
+      }
+    },
+    {
+      "id": "hive",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "hive"
         ]
       }
     },
@@ -26946,6 +27701,17 @@
         "tr": [
           "sırtlan",
           "yeleli kurt"
+        ]
+      }
+    },
+    {
+      "id": "hymn",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "hymn"
         ]
       }
     },
@@ -28302,6 +29068,17 @@
       }
     },
     {
+      "id": "jewel",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "jewel"
+        ]
+      }
+    },
+    {
       "id": "jicama",
       "categories": [
         "foods/vegetables"
@@ -28801,17 +29578,6 @@
       }
     },
     {
-      "id": "khādī",
-      "categories": [
-        "materials/fabrics"
-      ],
-      "languages": {
-        "en": [
-          "khādī"
-        ]
-      }
-    },
-    {
       "id": "khaki",
       "categories": [
         "colors/web"
@@ -28867,6 +29633,17 @@
       "languages": {
         "en": [
           "khrenovina"
+        ]
+      }
+    },
+    {
+      "id": "khādī",
+      "categories": [
+        "materials/fabrics"
+      ],
+      "languages": {
+        "en": [
+          "khādī"
         ]
       }
     },
@@ -29150,6 +29927,17 @@
         ],
         "sv": [
           "kniv"
+        ]
+      }
+    },
+    {
+      "id": "knob",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "knob"
         ]
       }
     },
@@ -29760,17 +30548,6 @@
       }
     },
     {
-      "id": "lamé",
-      "categories": [
-        "materials/fabrics"
-      ],
-      "languages": {
-        "en": [
-          "lamé"
-        ]
-      }
-    },
-    {
       "id": "lammerite",
       "categories": [
         "materials/gemstones"
@@ -29782,6 +30559,17 @@
       }
     },
     {
+      "id": "lamp",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "lamp"
+        ]
+      }
+    },
+    {
       "id": "lampas",
       "categories": [
         "materials/fabrics"
@@ -29789,6 +30577,17 @@
       "languages": {
         "en": [
           "lampas"
+        ]
+      }
+    },
+    {
+      "id": "lamé",
+      "categories": [
+        "materials/fabrics"
+      ],
+      "languages": {
+        "en": [
+          "lamé"
         ]
       }
     },
@@ -30221,6 +31020,17 @@
         ],
         "sv": [
           "blad"
+        ]
+      }
+    },
+    {
+      "id": "leather",
+      "categories": [
+        "materials/natural"
+      ],
+      "languages": {
+        "en": [
+          "leather"
         ]
       }
     },
@@ -30801,7 +31611,8 @@
           "Salat"
         ],
         "en": [
-          "lettuce"
+          "lettuce",
+          "salad"
         ],
         "es": [
           "lechuga"
@@ -31967,6 +32778,18 @@
       }
     },
     {
+      "id": "lobe",
+      "categories": [
+        "core/body-and-senses",
+        "humans/body-parts"
+      ],
+      "languages": {
+        "en": [
+          "lobe"
+        ]
+      }
+    },
+    {
       "id": "loden",
       "categories": [
         "materials/fabrics"
@@ -32007,6 +32830,17 @@
       "languages": {
         "en": [
           "loquat"
+        ]
+      }
+    },
+    {
+      "id": "lore",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "lore"
         ]
       }
     },
@@ -32935,6 +33769,17 @@
       }
     },
     {
+      "id": "marble",
+      "categories": [
+        "materials/building"
+      ],
+      "languages": {
+        "en": [
+          "marble"
+        ]
+      }
+    },
+    {
       "id": "marigold",
       "categories": [
         "plants/flowers"
@@ -33075,6 +33920,28 @@
       }
     },
     {
+      "id": "marsh",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "marsh"
+        ]
+      }
+    },
+    {
+      "id": "mask",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "mask"
+        ]
+      }
+    },
+    {
       "id": "mastic",
       "categories": [
         "foods/herbs-and-spices"
@@ -33093,6 +33960,17 @@
       "languages": {
         "en": [
           "matzoh"
+        ]
+      }
+    },
+    {
+      "id": "mayo",
+      "categories": [
+        "foods/condiments"
+      ],
+      "languages": {
+        "en": [
+          "mayo"
         ]
       }
     },
@@ -33841,6 +34719,17 @@
       }
     },
     {
+      "id": "mire",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "mire"
+        ]
+      }
+    },
+    {
       "id": "mistyrose",
       "categories": [
         "colors/web"
@@ -34301,6 +35190,17 @@
       "languages": {
         "en": [
           "moonstone"
+        ]
+      }
+    },
+    {
+      "id": "moor",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "moor"
         ]
       }
     },
@@ -35182,6 +36082,17 @@
       }
     },
     {
+      "id": "murder",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "murder"
+        ]
+      }
+    },
+    {
       "id": "murri",
       "categories": [
         "foods/condiments"
@@ -35527,6 +36438,17 @@
         "tr": [
           "hardal",
           "hardal rengi"
+        ]
+      }
+    },
+    {
+      "id": "muzzle",
+      "categories": [
+        "core/body-and-senses"
+      ],
+      "languages": {
+        "en": [
+          "muzzle"
         ]
       }
     },
@@ -36147,6 +37069,18 @@
       "languages": {
         "en": [
           "nepheline"
+        ]
+      }
+    },
+    {
+      "id": "nephew",
+      "categories": [
+        "core/kinship-and-people",
+        "humans/family-relations"
+      ],
+      "languages": {
+        "en": [
+          "nephew"
         ]
       }
     },
@@ -36832,6 +37766,17 @@
       }
     },
     {
+      "id": "nun",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "en": [
+          "nun"
+        ]
+      }
+    },
+    {
       "id": "nut",
       "categories": [
         "foods/fruits"
@@ -37130,6 +38075,28 @@
         ],
         "tr": [
           "naylon"
+        ]
+      }
+    },
+    {
+      "id": "oak",
+      "categories": [
+        "plants/common-names"
+      ],
+      "languages": {
+        "en": [
+          "oak"
+        ]
+      }
+    },
+    {
+      "id": "oat",
+      "categories": [
+        "foods/vegetables"
+      ],
+      "languages": {
+        "en": [
+          "oat"
         ]
       }
     },
@@ -37724,6 +38691,17 @@
         ],
         "tr": [
           "opal"
+        ]
+      }
+    },
+    {
+      "id": "opium",
+      "categories": [
+        "plants/common-names"
+      ],
+      "languages": {
+        "en": [
+          "opium"
         ]
       }
     },
@@ -38325,6 +39303,17 @@
       "languages": {
         "en": [
           "ottoman"
+        ]
+      }
+    },
+    {
+      "id": "owl",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "owl"
         ]
       }
     },
@@ -39646,6 +40635,17 @@
       }
     },
     {
+      "id": "paw",
+      "categories": [
+        "core/body-and-senses"
+      ],
+      "languages": {
+        "en": [
+          "paw"
+        ]
+      }
+    },
+    {
       "id": "pea",
       "categories": [
         "foods/vegetables",
@@ -40089,6 +41089,17 @@
       "languages": {
         "en": [
           "pectolite"
+        ]
+      }
+    },
+    {
+      "id": "peg",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "peg"
         ]
       }
     },
@@ -40680,6 +41691,17 @@
       }
     },
     {
+      "id": "pier",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "pier"
+        ]
+      }
+    },
+    {
       "id": "pietersite",
       "categories": [
         "materials/gemstones"
@@ -40946,24 +41968,13 @@
       }
     },
     {
-      "id": "piña",
+      "id": "pincer",
       "categories": [
-        "materials/fabrics"
+        "core/body-and-senses"
       ],
       "languages": {
         "en": [
-          "piña"
-        ]
-      }
-    },
-    {
-      "id": "pinđur",
-      "categories": [
-        "foods/condiments"
-      ],
-      "languages": {
-        "en": [
-          "pinđur"
+          "pincer"
         ]
       }
     },
@@ -41190,6 +42201,17 @@
       }
     },
     {
+      "id": "pinđur",
+      "categories": [
+        "foods/condiments"
+      ],
+      "languages": {
+        "en": [
+          "pinđur"
+        ]
+      }
+    },
+    {
       "id": "pistachio",
       "categories": [
         "plants/common-names"
@@ -41409,6 +42431,17 @@
       }
     },
     {
+      "id": "piña",
+      "categories": [
+        "materials/fabrics"
+      ],
+      "languages": {
+        "en": [
+          "piña"
+        ]
+      }
+    },
+    {
       "id": "place",
       "categories": [
         "core/culture-common"
@@ -41448,6 +42481,17 @@
       "languages": {
         "en": [
           "plancheite"
+        ]
+      }
+    },
+    {
+      "id": "plank",
+      "categories": [
+        "materials/building"
+      ],
+      "languages": {
+        "en": [
+          "plank"
         ]
       }
     },
@@ -42715,6 +43759,17 @@
       }
     },
     {
+      "id": "portal",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "portal"
+        ]
+      }
+    },
+    {
       "id": "posnjakite",
       "categories": [
         "materials/gemstones"
@@ -43029,6 +44084,17 @@
       "languages": {
         "en": [
           "prasiolite"
+        ]
+      }
+    },
+    {
+      "id": "prawn",
+      "categories": [
+        "foods/shellfish"
+      ],
+      "languages": {
+        "en": [
+          "prawn"
         ]
       }
     },
@@ -43591,6 +44657,17 @@
       }
     },
     {
+      "id": "quarry",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "quarry"
+        ]
+      }
+    },
+    {
       "id": "quarter",
       "categories": [
         "words/units-of-time"
@@ -43774,6 +44851,17 @@
         ],
         "tr": [
           "kuvars"
+        ]
+      }
+    },
+    {
+      "id": "quay",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "quay"
         ]
       }
     },
@@ -44415,6 +45503,17 @@
       }
     },
     {
+      "id": "ranch",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "ranch"
+        ]
+      }
+    },
+    {
       "id": "rantipole",
       "categories": [
         "plants/common-names"
@@ -44481,6 +45580,17 @@
         "tr": [
           "kanola",
           "kolza"
+        ]
+      }
+    },
+    {
+      "id": "rash",
+      "categories": [
+        "core/body-and-senses"
+      ],
+      "languages": {
+        "en": [
+          "rash"
         ]
       }
     },
@@ -44899,6 +46009,17 @@
       "languages": {
         "en": [
           "redweed"
+        ]
+      }
+    },
+    {
+      "id": "reed",
+      "categories": [
+        "plants/common-names"
+      ],
+      "languages": {
+        "en": [
+          "reed"
         ]
       }
     },
@@ -45368,6 +46489,17 @@
       }
     },
     {
+      "id": "rinse",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "rinse"
+        ]
+      }
+    },
+    {
       "id": "rinzu",
       "categories": [
         "materials/fabrics"
@@ -45546,6 +46678,17 @@
         ],
         "tr": [
           "bornoz"
+        ]
+      }
+    },
+    {
+      "id": "robin",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "robin"
         ]
       }
     },
@@ -46481,6 +47624,17 @@
       }
     },
     {
+      "id": "rum",
+      "categories": [
+        "foods/condiments"
+      ],
+      "languages": {
+        "en": [
+          "rum"
+        ]
+      }
+    },
+    {
       "id": "run",
       "categories": [
         "core/basic-verbs"
@@ -47209,6 +48363,17 @@
       }
     },
     {
+      "id": "sap",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "sap"
+        ]
+      }
+    },
+    {
       "id": "sapphire",
       "categories": [
         "materials/gemstones"
@@ -47742,6 +48907,17 @@
       "languages": {
         "en": [
           "scallion"
+        ]
+      }
+    },
+    {
+      "id": "scallop",
+      "categories": [
+        "foods/shellfish"
+      ],
+      "languages": {
+        "en": [
+          "scallop"
         ]
       }
     },
@@ -48413,17 +49589,6 @@
       }
     },
     {
-      "id": "sérandite",
-      "categories": [
-        "materials/gemstones"
-      ],
-      "languages": {
-        "en": [
-          "sérandite"
-        ]
-      }
-    },
-    {
       "id": "seraphinite",
       "categories": [
         "materials/gemstones"
@@ -48442,6 +49607,17 @@
       "languages": {
         "en": [
           "serendibite"
+        ]
+      }
+    },
+    {
+      "id": "serfdom",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "serfdom"
         ]
       }
     },
@@ -48649,6 +49825,17 @@
         "tr": [
           "arpacık soğanı",
           "kıska"
+        ]
+      }
+    },
+    {
+      "id": "shanty",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "shanty"
         ]
       }
     },
@@ -48927,6 +50114,17 @@
       "languages": {
         "en": [
           "shiso"
+        ]
+      }
+    },
+    {
+      "id": "shoelace",
+      "categories": [
+        "objects/clothing"
+      ],
+      "languages": {
+        "en": [
+          "shoelace"
         ]
       }
     },
@@ -49461,6 +50659,28 @@
       }
     },
     {
+      "id": "sin",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "sin"
+        ]
+      }
+    },
+    {
+      "id": "siren",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "siren"
+        ]
+      }
+    },
+    {
       "id": "sisal",
       "categories": [
         "materials/fabrics"
@@ -49901,6 +51121,17 @@
       }
     },
     {
+      "id": "sleigh",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "sleigh"
+        ]
+      }
+    },
+    {
       "id": "slippers",
       "categories": [
         "objects/clothing"
@@ -50044,6 +51275,17 @@
       "languages": {
         "en": [
           "smithsonite"
+        ]
+      }
+    },
+    {
+      "id": "smithy",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "smithy"
         ]
       }
     },
@@ -50433,6 +51675,17 @@
       }
     },
     {
+      "id": "sofa",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "sofa"
+        ]
+      }
+    },
+    {
       "id": "son",
       "categories": [
         "core/kinship-and-people"
@@ -50637,6 +51890,17 @@
       }
     },
     {
+      "id": "spark",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "spark"
+        ]
+      }
+    },
+    {
       "id": "speak",
       "categories": [
         "core/basic-verbs"
@@ -50709,6 +51973,17 @@
       "languages": {
         "en": [
           "spherocobaltite"
+        ]
+      }
+    },
+    {
+      "id": "spider",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "spider"
         ]
       }
     },
@@ -50810,6 +52085,17 @@
         ],
         "sv": [
           "ande"
+        ]
+      }
+    },
+    {
+      "id": "splash",
+      "categories": [
+        "core/natural-world"
+      ],
+      "languages": {
+        "en": [
+          "splash"
         ]
       }
     },
@@ -51229,6 +52515,17 @@
       "languages": {
         "en": [
           "stishovite"
+        ]
+      }
+    },
+    {
+      "id": "stocking",
+      "categories": [
+        "objects/clothing"
+      ],
+      "languages": {
+        "en": [
+          "stocking"
         ]
       }
     },
@@ -51688,6 +52985,17 @@
       }
     },
     {
+      "id": "stroke",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "stroke"
+        ]
+      }
+    },
+    {
       "id": "strontium",
       "categories": [
         "materials/metals",
@@ -52075,6 +53383,17 @@
       }
     },
     {
+      "id": "sultan",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "en": [
+          "sultan"
+        ]
+      }
+    },
+    {
       "id": "sumac",
       "categories": [
         "foods/herbs-and-spices"
@@ -52280,6 +53599,17 @@
       "languages": {
         "en": [
           "susannite"
+        ]
+      }
+    },
+    {
+      "id": "swan",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "swan"
         ]
       }
     },
@@ -52615,6 +53945,17 @@
         "tr": [
           "pekmez",
           "şurup"
+        ]
+      }
+    },
+    {
+      "id": "sérandite",
+      "categories": [
+        "materials/gemstones"
+      ],
+      "languages": {
+        "en": [
+          "sérandite"
         ]
       }
     },
@@ -53353,6 +54694,17 @@
       }
     },
     {
+      "id": "tax",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "tax"
+        ]
+      }
+    },
+    {
       "id": "tea",
       "categories": [
         "plants/common-names"
@@ -53438,6 +54790,17 @@
           "ördekbaşı",
           "petrol yeşili",
           "teal"
+        ]
+      }
+    },
+    {
+      "id": "teapot",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "teapot"
         ]
       }
     },
@@ -53578,6 +54941,17 @@
         ],
         "sv": [
           "halm"
+        ]
+      }
+    },
+    {
+      "id": "thief",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "en": [
+          "thief"
         ]
       }
     },
@@ -53871,6 +55245,18 @@
       "languages": {
         "en": [
           "thorium"
+        ]
+      }
+    },
+    {
+      "id": "throat",
+      "categories": [
+        "core/body-and-senses",
+        "humans/body-parts"
+      ],
+      "languages": {
+        "en": [
+          "throat"
         ]
       }
     },
@@ -54530,6 +55916,17 @@
       }
     },
     {
+      "id": "tinker",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "tinker"
+        ]
+      }
+    },
+    {
       "id": "tinzenite",
       "categories": [
         "materials/gemstones"
@@ -54635,6 +56032,17 @@
         "tr": [
           "kara kurbağası",
           "kurbağa"
+        ]
+      }
+    },
+    {
+      "id": "toast",
+      "categories": [
+        "foods/breads-and-pastries"
+      ],
+      "languages": {
+        "en": [
+          "toast"
         ]
       }
     },
@@ -55356,6 +56764,17 @@
       "languages": {
         "en": [
           "trainers"
+        ]
+      }
+    },
+    {
+      "id": "trawl",
+      "categories": [
+        "core/basic-verbs"
+      ],
+      "languages": {
+        "en": [
+          "trawl"
         ]
       }
     },
@@ -56589,6 +58008,18 @@
       }
     },
     {
+      "id": "twin",
+      "categories": [
+        "core/kinship-and-people",
+        "humans/family-relations"
+      ],
+      "languages": {
+        "en": [
+          "twin"
+        ]
+      }
+    },
+    {
       "id": "twine",
       "categories": [
         "materials/fibers"
@@ -57106,6 +58537,17 @@
         ],
         "sv": [
           "dal"
+        ]
+      }
+    },
+    {
+      "id": "van",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "van"
         ]
       }
     },
@@ -58238,6 +59680,28 @@
       }
     },
     {
+      "id": "warbler",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "warbler"
+        ]
+      }
+    },
+    {
+      "id": "wart",
+      "categories": [
+        "core/body-and-senses"
+      ],
+      "languages": {
+        "en": [
+          "wart"
+        ]
+      }
+    },
+    {
       "id": "warthog",
       "categories": [
         "animals/common"
@@ -58625,6 +60089,17 @@
       }
     },
     {
+      "id": "weaver",
+      "categories": [
+        "core/kinship-and-people"
+      ],
+      "languages": {
+        "en": [
+          "weaver"
+        ]
+      }
+    },
+    {
       "id": "week",
       "categories": [
         "words/units-of-time"
@@ -58773,6 +60248,17 @@
       }
     },
     {
+      "id": "wharf",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "wharf"
+        ]
+      }
+    },
+    {
       "id": "wheat",
       "categories": [
         "colors/web",
@@ -58905,6 +60391,17 @@
       }
     },
     {
+      "id": "whey",
+      "categories": [
+        "foods/condiments"
+      ],
+      "languages": {
+        "en": [
+          "whey"
+        ]
+      }
+    },
+    {
       "id": "whipcord",
       "categories": [
         "materials/fabrics"
@@ -58912,6 +60409,17 @@
       "languages": {
         "en": [
           "whipcord"
+        ]
+      }
+    },
+    {
+      "id": "whisk",
+      "categories": [
+        "core/home-tools"
+      ],
+      "languages": {
+        "en": [
+          "whisk"
         ]
       }
     },
@@ -59456,6 +60964,18 @@
       }
     },
     {
+      "id": "womb",
+      "categories": [
+        "core/body-and-senses",
+        "humans/body-parts"
+      ],
+      "languages": {
+        "en": [
+          "womb"
+        ]
+      }
+    },
+    {
       "id": "wombat",
       "categories": [
         "animals/common"
@@ -59902,6 +61422,17 @@
         ],
         "sv": [
           "emballage"
+        ]
+      }
+    },
+    {
+      "id": "wren",
+      "categories": [
+        "animals/common"
+      ],
+      "languages": {
+        "en": [
+          "wren"
         ]
       }
     },
@@ -60436,6 +61967,17 @@
       }
     },
     {
+      "id": "yolk",
+      "categories": [
+        "foods/poultry"
+      ],
+      "languages": {
+        "en": [
+          "yolk"
+        ]
+      }
+    },
+    {
       "id": "ytterbium",
       "categories": [
         "materials/metals",
@@ -60890,6 +62432,17 @@
       }
     },
     {
+      "id": "zoo",
+      "categories": [
+        "core/culture-common"
+      ],
+      "languages": {
+        "en": [
+          "zoo"
+        ]
+      }
+    },
+    {
       "id": "zorbeez",
       "categories": [
         "materials/fabrics"
@@ -60908,6 +62461,17 @@
       "languages": {
         "en": [
           "zucchini"
+        ]
+      }
+    },
+    {
+      "id": "éclair",
+      "categories": [
+        "foods/breads-and-pastries"
+      ],
+      "languages": {
+        "en": [
+          "éclair"
         ]
       }
     }

@@ -1,8 +1,11 @@
 node_modules/
 dist/
+tmp/
 .env
 .env.local
 .env.prod
 
 wikidata_downloads/*
 !wikidata_downloads/.gitkeep
+
+backups/

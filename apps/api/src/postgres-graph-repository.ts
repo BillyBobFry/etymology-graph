@@ -1,4 +1,4 @@
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 
 import {
   canonicalGraphWord,
@@ -10,6 +10,8 @@ import {
   type AncestorsResult,
   type ChildTermsQuery,
   type ChildTermsResult,
+  type CognatesQuery,
+  type CognatesResult,
   type ComparisonSetQuery,
   type ComparisonSetResult,
   type DoubletGroup,
@@ -73,9 +75,13 @@ const DOUBLET_TRAVERSAL_EDGE_TYPES = [
 
 const SIMILAR_TERMS_MIN_SIMILARITY = 0.55;
 const SIMILAR_TERMS_MAX_SIMILARITY = 0.78;
-const SIMILAR_TERMS_CANDIDATE_MULTIPLIER = 4;
-const SIMILAR_TERMS_LENGTH_PENALTY = 0.015;
+const SIMILAR_TERMS_VECTOR_CANDIDATE_LIMIT = 200;
+const SIMILAR_TERMS_HNSW_EF_SEARCH = 200;
+const SIMILAR_TERMS_TARGET_LENGTH = 6;
+const SIMILAR_TERMS_LENGTH_DISTANCE_PENALTY = 0.02;
 const SIMILAR_TERMS_JITTER_WEIGHT = 0.025;
+const SIMILAR_TERMS_CONTAINED_WORD_MIN_LENGTH = 4;
+const SIMILAR_TERMS_CONTAINED_WORD_BOOST = 0.08;
 
 type BaseNodeRow = {
   id: string;
@@ -199,6 +205,13 @@ type DoubletGroupRow = BaseNodeRow & {
   member_count: number;
   min_depth: number;
   entry_summaries: unknown;
+  cursor_id: string;
+  cursor_member_count: number;
+};
+
+type DoubletGroupCandidateComponentRow = {
+  component_id: string;
+  member_count: number;
 };
 
 const ancestorLanguageRootPageSize = 250;
@@ -829,134 +842,38 @@ export class PostgresGraphRepository implements GraphRepository {
   /** Finds same-language terms nearest to the selected term's pgvector embedding. */
   public async findSimilarTerms(query: SimilarTermsQuery): Promise<SimilarTermsResult> {
     const normalizedWord = normalizeCanonicalGraphWord(query.langCode, query.word);
-    const candidateLimit = Math.max(query.limit * SIMILAR_TERMS_CANDIDATE_MULTIPLIER, query.limit);
-    const anchorResult = await this.pool.query<BaseNodeRow>(
-      `
-        SELECT
-          graph_nodes.id,
-          graph_nodes.lang_code,
-          languages.canonical_name AS lang_name,
-          graph_nodes.word,
-          graph_nodes.normalized_word,
-          lexical_summary.primary_ipa,
-          lexical_summary.primary_ipa_label,
-          lexical_summary.primary_gloss,
-          lexical_summary.primary_pos,
-          lexical_summary.entry_count
-        FROM graph_nodes
-        LEFT JOIN languages
-          ON languages.code = graph_nodes.lang_code
-        ${LEXICAL_SUMMARY_LATERAL_SQL}
-        WHERE graph_nodes.lang_code = $1
-          AND graph_nodes.normalized_word = $2
-        ORDER BY graph_nodes.id
-        LIMIT 1
-      `,
-      [query.langCode, normalizedWord]
-    );
-    const anchor = anchorResult.rows[0] ? mapBaseNodeRow(anchorResult.rows[0]) : null;
+    const client = await this.pool.connect();
 
-    if (!anchor) {
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('hnsw.ef_search', $1, true)", [String(SIMILAR_TERMS_HNSW_EF_SEARCH)]);
+
+      const anchorRows = await findSimilarTermsAnchor(client, query.langCode, normalizedWord);
+      const anchor = anchorRows[0] ? mapBaseNodeRow(anchorRows[0]) : null;
+
+      if (!anchor) {
+        await client.query("COMMIT");
+
+        return {
+          anchor: null,
+          terms: []
+        };
+      }
+
+      const rows = await findSimilarTermRows(client, query, normalizedWord);
+
+      await client.query("COMMIT");
+
       return {
-        anchor: null,
-        terms: []
+        anchor,
+        terms: rows.map(mapSimilarTermRow)
       };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
     }
-
-    const result = await this.pool.query<SimilarTermRow>(
-      `
-        WITH anchor_embedding AS (
-          SELECT model, embedding
-          FROM term_embeddings
-          WHERE lang_code = $1
-            AND normalized_word = $2
-          ORDER BY embedded_at DESC
-          LIMIT 1
-        ),
-        ranked_candidates AS (
-          SELECT
-            graph_nodes.id,
-            graph_nodes.lang_code,
-            languages.canonical_name AS lang_name,
-            graph_nodes.word,
-            graph_nodes.normalized_word,
-            lexical_summary.primary_ipa,
-            lexical_summary.primary_ipa_label,
-            lexical_summary.primary_gloss,
-            lexical_summary.primary_pos,
-            lexical_summary.entry_count,
-            term_embeddings.embedding <=> anchor_embedding.embedding AS distance,
-            GREATEST(
-              0,
-              LEAST(1, 1 - (term_embeddings.embedding <=> anchor_embedding.embedding))
-            )::DOUBLE PRECISION AS similarity,
-            (
-              GREATEST(0, LEAST(1, 1 - (term_embeddings.embedding <=> anchor_embedding.embedding)))
-              + (CHAR_LENGTH(graph_nodes.normalized_word) * $8::DOUBLE PRECISION)
-              + (
-                (
-                  ('x' || SUBSTR(MD5($1 || ':' || $2 || ':' || graph_nodes.id), 1, 8))::BIT(32)::BIGINT
-                  / 4294967295.0
-                ) * $9::DOUBLE PRECISION
-              )
-            )::DOUBLE PRECISION AS interesting_score
-          FROM anchor_embedding
-          JOIN term_embeddings
-            ON term_embeddings.lang_code = $1
-            AND term_embeddings.normalized_word <> $2
-            AND position($2 IN term_embeddings.normalized_word) = 0
-            AND term_embeddings.model = anchor_embedding.model
-          JOIN graph_nodes
-            ON graph_nodes.lang_code = term_embeddings.lang_code
-            AND graph_nodes.normalized_word = term_embeddings.normalized_word
-          LEFT JOIN languages
-            ON languages.code = graph_nodes.lang_code
-          ${LEXICAL_SUMMARY_LATERAL_SQL}
-          WHERE EXISTS (
-            SELECT 1
-            FROM graph_edge_walk_mv candidate_ancestor_edge
-            WHERE candidate_ancestor_edge.from_node_id = graph_nodes.id
-              AND candidate_ancestor_edge.edge_type = ANY($4::TEXT[])
-              AND candidate_ancestor_edge.default_ancestor_walk_candidate
-          )
-          ORDER BY distance, graph_nodes.normalized_word, graph_nodes.id
-          LIMIT $5
-        )
-        SELECT
-          ranked_candidates.id,
-          ranked_candidates.lang_code,
-          ranked_candidates.lang_name,
-          ranked_candidates.word,
-          ranked_candidates.normalized_word,
-          ranked_candidates.primary_ipa,
-          ranked_candidates.primary_ipa_label,
-          ranked_candidates.primary_gloss,
-          ranked_candidates.primary_pos,
-          ranked_candidates.entry_count,
-          ranked_candidates.similarity
-        FROM ranked_candidates
-        WHERE ranked_candidates.similarity >= $6
-          AND ranked_candidates.similarity <= $7
-        ORDER BY ranked_candidates.interesting_score ASC, ranked_candidates.similarity ASC, ranked_candidates.normalized_word, ranked_candidates.id
-        LIMIT $3
-      `,
-      [
-        query.langCode,
-        normalizedWord,
-        query.limit,
-        [...ANCESTOR_TRAVERSAL_EDGE_TYPES],
-        candidateLimit,
-        SIMILAR_TERMS_MIN_SIMILARITY,
-        SIMILAR_TERMS_MAX_SIMILARITY,
-        SIMILAR_TERMS_LENGTH_PENALTY,
-        SIMILAR_TERMS_JITTER_WEIGHT
-      ]
-    );
-
-    return {
-      anchor,
-      terms: result.rows.map(mapSimilarTermRow)
-    };
   }
 
   /** Lists every lexical entry homed at a term so the frontend can pick which etymological story to follow. */
@@ -988,6 +905,88 @@ export class PostgresGraphRepository implements GraphRepository {
 
     return {
       entries: result.rows.map(mapTermEntryRow)
+    };
+  }
+
+  /** Lists explicit Wiktionary cognate links for a term without running ancestry traversal. */
+  public async findCognates(query: CognatesQuery): Promise<CognatesResult> {
+    const normalizedWord = normalizeCanonicalGraphWord(query.langCode, query.word);
+    const result = await this.pool.query<BaseNodeRow>(
+      `
+        WITH anchor_entries AS (
+          SELECT
+            lexical_entries.id,
+            lexical_entries.node_id
+          FROM lexical_entries
+          WHERE lexical_entries.lang_code = $1
+            AND lexical_entries.normalized_word = $2
+            AND ($3::TEXT IS NULL OR lexical_entries.pos = $3)
+            AND ($4::INTEGER IS NULL OR lexical_entries.etymology_number = $4)
+          ORDER BY
+            lexical_entries.etymology_number ASC NULLS FIRST,
+            lexical_entries.pos ASC NULLS FIRST,
+            lexical_entries.id ASC
+          LIMIT 1
+        ),
+        anchor_node AS (
+          SELECT graph_nodes.id
+          FROM graph_nodes
+          WHERE graph_nodes.lang_code = $1
+            AND graph_nodes.normalized_word = $2
+          ORDER BY graph_nodes.id
+          LIMIT 1
+        ),
+        cognate_node_ids AS (
+          SELECT DISTINCT
+            CASE
+              WHEN graph_edges.from_node_id = anchor.node_id THEN graph_edges.to_node_id
+              ELSE graph_edges.from_node_id
+            END AS node_id
+          FROM (
+            SELECT
+              COALESCE(anchor_entries.node_id, anchor_node.id) AS node_id,
+              anchor_entries.id AS entry_id
+            FROM anchor_node
+            LEFT JOIN anchor_entries ON TRUE
+          ) anchor
+          JOIN graph_edge_walk_mv graph_edges
+            ON graph_edges.edge_type = 'cognate_with'
+            AND (
+              graph_edges.from_node_id = anchor.node_id
+              OR graph_edges.to_node_id = anchor.node_id
+            )
+          WHERE anchor.node_id IS NOT NULL
+            AND (
+              anchor.entry_id IS NULL
+              OR graph_edges.declaring_entry_id = anchor.entry_id
+            )
+          ORDER BY node_id
+          LIMIT $5
+        )
+        SELECT
+          graph_nodes.id,
+          graph_nodes.lang_code,
+          languages.canonical_name AS lang_name,
+          graph_nodes.word,
+          graph_nodes.normalized_word,
+          lexical_summary.primary_ipa,
+          lexical_summary.primary_ipa_label,
+          lexical_summary.primary_gloss,
+          lexical_summary.primary_pos,
+          lexical_summary.entry_count
+        FROM cognate_node_ids
+        JOIN graph_nodes
+          ON graph_nodes.id = cognate_node_ids.node_id
+        LEFT JOIN languages
+          ON languages.code = graph_nodes.lang_code
+        ${LEXICAL_SUMMARY_LATERAL_SQL}
+        ORDER BY graph_nodes.lang_code, graph_nodes.normalized_word, graph_nodes.id
+      `,
+      [query.langCode, normalizedWord, query.pos ?? null, query.etymologyNumber ?? null, query.limit]
+    );
+
+    return {
+      terms: result.rows.map(mapBaseNodeRow)
     };
   }
 
@@ -1294,7 +1293,7 @@ export class PostgresGraphRepository implements GraphRepository {
             ${EDGE_COLUMN_LIST}
           FROM traversed_edges
           JOIN graph_edge_walk_mv graph_edges
-            ON graph_edges.id = traversed_edges.edge_id
+            ON graph_edges.edge_id = traversed_edges.edge_id
           ORDER BY graph_edges.edge_type, graph_edges.id
         `,
         params
@@ -1385,7 +1384,7 @@ export class PostgresGraphRepository implements GraphRepository {
               ${EDGE_COLUMN_LIST}
             FROM path_edges
             JOIN graph_edge_walk_mv graph_edges
-              ON graph_edges.id = path_edges.edge_id
+              ON graph_edges.edge_id = path_edges.edge_id
           )
         SELECT
           (SELECT node_rows.id FROM node_rows WHERE node_rows.depth = 0 LIMIT 1) AS root_node_id,
@@ -1556,7 +1555,7 @@ export class PostgresGraphRepository implements GraphRepository {
             ${EDGE_COLUMN_LIST}
           FROM child_edges
           JOIN graph_edge_walk_mv graph_edges
-            ON graph_edges.id = child_edges.id
+            ON graph_edges.edge_id = child_edges.id
           ORDER BY graph_edges.edge_type, graph_edges.id
         `,
         params
@@ -1589,184 +1588,64 @@ export class PostgresGraphRepository implements GraphRepository {
    * the payload before the UI asks for a focused graph.
    */
   public async findDoubletGroups(query: DoubletGroupsQuery): Promise<DoubletGroupsResult> {
-    const resultLimit = query.limit + 1;
-    const cursor = parseDoubletGroupsCursor(query.cursor);
-    const result = await this.pool.query<DoubletGroupRow>(
-      `
-        WITH RECURSIVE
-          root_entries AS (
-            SELECT
-              lexical_entries.id,
-              lexical_entries.node_id
-            FROM lexical_entries
-            WHERE lexical_entries.lang_code = $1
-          ),
-          ancestor_walk AS (
-            SELECT
-              root_entries.id AS root_entry_id,
-              root_entries.node_id AS node_id,
-              0 AS depth,
-              ARRAY[root_entries.node_id] AS path,
-              ARRAY[root_entries.id]::TEXT[] AS allowed_entry_ids
-            FROM root_entries
+    let candidateCursor = parseDoubletGroupsCursor(query.cursor);
+    const candidateLimit = query.limit + 3;
+    const maxCandidateChecks = Math.max(query.limit * 8, 20);
+    const maxVerificationMs = 8_000;
+    const startedAt = Date.now();
+    const visibleRows: DoubletGroupRow[] = [];
+    let lastProcessedCandidate: DoubletGroupCandidateComponentRow | undefined;
+    let checkedCandidateCount = 0;
+    let hasMoreCandidates = false;
 
-            UNION ALL
+    while (visibleRows.length < query.limit && checkedCandidateCount < maxCandidateChecks) {
+      if (Date.now() - startedAt >= maxVerificationMs) {
+        hasMoreCandidates = lastProcessedCandidate !== undefined;
+        break;
+      }
 
-            SELECT
-              ancestor_walk.root_entry_id,
-              next_edge.to_node_id AS node_id,
-              ancestor_walk.depth + 1 AS depth,
-              ancestor_walk.path || next_edge.to_node_id AS path,
-              current_allowed.allowed_entry_ids AS allowed_entry_ids
-            FROM ancestor_walk
-            CROSS JOIN LATERAL (
-              SELECT ancestor_walk.allowed_entry_ids || COALESCE((
-                SELECT ARRAY_AGG(candidate.id)
-                FROM lexical_entries candidate
-                WHERE candidate.node_id = ancestor_walk.node_id
-                  AND NOT candidate.id = ANY(ancestor_walk.allowed_entry_ids)
-                  AND (
-                    (
-                      SELECT COUNT(*) FROM lexical_entries
-                      WHERE lexical_entries.node_id = ancestor_walk.node_id
-                    ) = 1
-                    OR EXISTS (
-                      SELECT 1
-                      FROM graph_edge_walk_mv adopt_edge
-                      JOIN graph_edge_walk_mv seed_edge
-                        ON seed_edge.from_node_id = adopt_edge.from_node_id
-                        AND seed_edge.to_node_id = adopt_edge.to_node_id
-                        AND seed_edge.edge_type = ANY($3::TEXT[])
-                        AND seed_edge.declaring_entry_id = ANY(ancestor_walk.allowed_entry_ids)
-                        AND seed_edge.default_ancestor_walk_candidate
-                      WHERE adopt_edge.declaring_entry_id = candidate.id
-                        AND adopt_edge.from_node_id = ancestor_walk.node_id
-                        AND adopt_edge.edge_type = ANY($3::TEXT[])
-                        AND adopt_edge.default_ancestor_walk_candidate
-                    )
-                  )
-              ), ARRAY[]::TEXT[]) AS allowed_entry_ids
-            ) current_allowed
-            JOIN graph_edge_walk_mv next_edge
-              ON next_edge.from_node_id = ancestor_walk.node_id
-            WHERE ancestor_walk.depth < $2
-              AND next_edge.edge_type = ANY($3::TEXT[])
-              AND next_edge.default_ancestor_walk_candidate
-              AND next_edge.declaring_entry_id = ANY(current_allowed.allowed_entry_ids)
-              AND NOT next_edge.to_node_id = ANY(ancestor_walk.path)
-          ),
-          reachable_ancestors AS (
-            SELECT
-              ancestor_walk.root_entry_id,
-              ancestor_walk.node_id AS ancestor_node_id,
-              MIN(ancestor_walk.depth)::INTEGER AS min_depth
-            FROM ancestor_walk
-            WHERE ancestor_walk.depth > 0
-            GROUP BY ancestor_walk.root_entry_id, ancestor_walk.node_id
-          ),
-          candidate_groups AS (
-            SELECT
-              reachable_ancestors.ancestor_node_id,
-              COUNT(DISTINCT reachable_ancestors.root_entry_id)::INTEGER AS member_count,
-              MIN(reachable_ancestors.min_depth)::INTEGER AS min_depth
-            FROM reachable_ancestors
-            JOIN root_entries
-              ON root_entries.id = reachable_ancestors.root_entry_id
-            GROUP BY reachable_ancestors.ancestor_node_id
-            HAVING COUNT(DISTINCT root_entries.node_id) >= 2
-          ),
-          paged_groups AS (
-            SELECT *
-            FROM candidate_groups
-            WHERE (
-              $5::INTEGER IS NULL
-              OR candidate_groups.member_count < $5
-              OR (
-                candidate_groups.member_count = $5
-                AND candidate_groups.ancestor_node_id > $6::TEXT
-              )
-            )
-            ORDER BY candidate_groups.member_count DESC, candidate_groups.ancestor_node_id ASC
-            LIMIT $4
-          )
-        SELECT
-          graph_nodes.id,
-          graph_nodes.lang_code,
-          languages.canonical_name AS lang_name,
-          graph_nodes.word,
-          graph_nodes.normalized_word,
-          lexical_summary.primary_ipa,
-          lexical_summary.primary_ipa_label,
-          lexical_summary.primary_gloss,
-          lexical_summary.primary_pos,
-          lexical_summary.entry_count,
-          paged_groups.member_count,
-          paged_groups.min_depth,
-          member_entries.entry_summaries
-        FROM paged_groups
-        JOIN graph_nodes
-          ON graph_nodes.id = paged_groups.ancestor_node_id
-        LEFT JOIN languages
-          ON languages.code = graph_nodes.lang_code
-        ${LEXICAL_SUMMARY_LATERAL_SQL}
-        CROSS JOIN LATERAL (
-          SELECT COALESCE(
-            JSONB_AGG(
-              JSONB_STRIP_NULLS(JSONB_BUILD_OBJECT(
-                'id', ranked_entries.id,
-                'nodeId', ranked_entries.node_id,
-                'langCode', ranked_entries.lang_code,
-                'word', ranked_entries.word,
-                'normalizedWord', ranked_entries.normalized_word,
-                'pos', ranked_entries.pos,
-                'etymologyNumber', ranked_entries.etymology_number,
-                'primaryIpa', ranked_entries.primary_ipa,
-                'primaryIpaLabel', ranked_entries.primary_ipa_label,
-                'primaryGloss', ranked_entries.primary_gloss
-              ))
-              ORDER BY ranked_entries.normalized_word, ranked_entries.etymology_number NULLS FIRST, ranked_entries.pos NULLS FIRST, ranked_entries.id
-            ),
-            '[]'::JSONB
-          ) AS entry_summaries
-          FROM (
-            SELECT
-              lexical_entries.id,
-              lexical_entries.node_id,
-              lexical_entries.lang_code,
-              lexical_entries.word,
-              lexical_entries.normalized_word,
-              lexical_entries.pos,
-              lexical_entries.etymology_number,
-              lexical_entries.primary_ipa,
-              lexical_entries.primary_ipa_label,
-              lexical_entries.primary_gloss
-            FROM reachable_ancestors
-            JOIN lexical_entries
-              ON lexical_entries.id = reachable_ancestors.root_entry_id
-            WHERE reachable_ancestors.ancestor_node_id = paged_groups.ancestor_node_id
-            ORDER BY
-              lexical_entries.normalized_word ASC,
-              lexical_entries.etymology_number ASC NULLS FIRST,
-              lexical_entries.pos ASC NULLS FIRST,
-              lexical_entries.id ASC
-            LIMIT $7
-          ) ranked_entries
-        ) member_entries
-        ORDER BY paged_groups.member_count DESC, paged_groups.ancestor_node_id ASC
-      `,
-      [
-        query.langCode,
-        query.maxDepth,
-        [...DOUBLET_TRAVERSAL_EDGE_TYPES],
-        resultLimit,
-        cursor?.entryCount ?? null,
-        cursor?.ancestorId ?? null,
-        query.entryLimit
-      ]
-    );
-    const visibleRows = result.rows.slice(0, query.limit);
-    const nextCursor =
-      result.rows.length > query.limit ? formatDoubletGroupsCursor(visibleRows[visibleRows.length - 1]) : undefined;
+      const candidates = await findDoubletGroupCandidateRows(this.pool, query, candidateCursor, candidateLimit);
+      if (candidates.length === 0) {
+        hasMoreCandidates = false;
+        break;
+      }
+
+      for (const candidate of candidates) {
+        if (
+          visibleRows.length === query.limit ||
+          checkedCandidateCount >= maxCandidateChecks ||
+          Date.now() - startedAt >= maxVerificationMs
+        ) {
+          break;
+        }
+
+        lastProcessedCandidate = candidate;
+        checkedCandidateCount += 1;
+        const verifiedRow = await findVerifiedDoubletGroupRow(this.pool, query, candidate);
+
+        if (verifiedRow) {
+          visibleRows.push(verifiedRow);
+        }
+      }
+
+      const processedCandidateIndex = lastProcessedCandidate ? candidates.indexOf(lastProcessedCandidate) : -1;
+      hasMoreCandidates = candidates.length === candidateLimit || processedCandidateIndex < candidates.length - 1;
+
+      if (!hasMoreCandidates || visibleRows.length === query.limit) {
+        break;
+      }
+
+      if (!lastProcessedCandidate) {
+        break;
+      }
+
+      candidateCursor = {
+        entryCount: lastProcessedCandidate.member_count,
+        ancestorId: lastProcessedCandidate.component_id
+      };
+    }
+
+    const nextCursor = hasMoreCandidates ? formatDoubletGroupsCursor(lastProcessedCandidate) : undefined;
 
     return {
       groups: visibleRows.map(mapDoubletGroupRow),
@@ -1912,7 +1791,7 @@ export class PostgresGraphRepository implements GraphRepository {
           SELECT
             ${EDGE_COLUMN_LIST}
           FROM selected_edge_ids
-          JOIN graph_edge_walk_mv graph_edges ON graph_edges.id = selected_edge_ids.edge_id
+          JOIN graph_edge_walk_mv graph_edges ON graph_edges.edge_id = selected_edge_ids.edge_id
           ORDER BY graph_edges.edge_type, graph_edges.id
         `,
         params
@@ -2058,6 +1937,187 @@ function buildAnchorParams(
 /** Normalizes query terms through the same canonical graph identity rule used by imports. */
 const normalizeCanonicalGraphWord = (langCode: string, word: string): string =>
   normalizeWord(canonicalGraphWord(langCode, word));
+
+/** Resolves the current term through the ancestor read model so suggestions only show for terms with paths. */
+async function findSimilarTermsAnchor(
+  client: PoolClient,
+  langCode: string,
+  normalizedWord: string
+): Promise<BaseNodeRow[]> {
+  const result = await client.query<BaseNodeRow>(
+    `
+      SELECT
+        graph_edge_walk_mv.from_node_id AS id,
+        graph_edge_walk_mv.from_lang_code AS lang_code,
+        languages.canonical_name AS lang_name,
+        graph_edge_walk_mv.from_word AS word,
+        graph_edge_walk_mv.from_normalized_word AS normalized_word,
+        NULL::TEXT AS primary_ipa,
+        NULL::TEXT AS primary_ipa_label,
+        NULL::TEXT AS primary_gloss,
+        NULL::TEXT AS primary_pos,
+        NULL::INTEGER AS entry_count
+      FROM graph_edge_walk_mv
+      LEFT JOIN languages
+        ON languages.code = graph_edge_walk_mv.from_lang_code
+      WHERE graph_edge_walk_mv.from_lang_code = $1
+        AND graph_edge_walk_mv.from_normalized_word = $2
+        AND graph_edge_walk_mv.edge_type = ANY($3::TEXT[])
+        AND graph_edge_walk_mv.default_ancestor_walk_candidate
+      ORDER BY graph_edge_walk_mv.from_node_id
+      LIMIT 1
+    `,
+    [langCode, normalizedWord, [...ANCESTOR_TRAVERSAL_EDGE_TYPES]]
+  );
+
+  return result.rows;
+}
+
+/** Pulls a deeper ANN vector pool, then applies graph-read-model filters and product ranking. */
+async function findSimilarTermRows(
+  client: PoolClient,
+  query: SimilarTermsQuery,
+  normalizedWord: string
+): Promise<SimilarTermRow[]> {
+  const result = await client.query<SimilarTermRow>(
+    `
+      WITH anchor_embedding AS (
+        SELECT embedding
+        FROM term_embeddings
+        WHERE lang_code = $1
+          AND normalized_word = $2
+        ORDER BY embedded_at DESC
+        LIMIT 1
+      ),
+      vector_candidates AS (
+        SELECT
+          term_embeddings.lang_code,
+          term_embeddings.normalized_word,
+          GREATEST(
+            0,
+            LEAST(1, 1 - (term_embeddings.embedding <=> (SELECT embedding FROM anchor_embedding)))
+          )::DOUBLE PRECISION AS similarity
+        FROM term_embeddings
+        ORDER BY term_embeddings.embedding <=> (SELECT embedding FROM anchor_embedding)
+        LIMIT $5
+      ),
+      ancestor_candidates AS (
+        SELECT DISTINCT ON (
+          graph_edge_walk_mv.from_lang_code,
+          graph_edge_walk_mv.from_normalized_word
+        )
+          graph_edge_walk_mv.from_node_id AS id,
+          graph_edge_walk_mv.from_lang_code AS lang_code,
+          graph_edge_walk_mv.from_word AS word,
+          graph_edge_walk_mv.from_normalized_word AS normalized_word
+        FROM graph_edge_walk_mv
+        JOIN vector_candidates
+          ON vector_candidates.lang_code = graph_edge_walk_mv.from_lang_code
+          AND vector_candidates.normalized_word = graph_edge_walk_mv.from_normalized_word
+        WHERE graph_edge_walk_mv.from_lang_code = $1
+          AND graph_edge_walk_mv.from_normalized_word <> $2
+          AND position($2 IN graph_edge_walk_mv.from_normalized_word) = 0
+          AND graph_edge_walk_mv.edge_type = ANY($4::TEXT[])
+          AND graph_edge_walk_mv.default_ancestor_walk_candidate
+        ORDER BY
+          graph_edge_walk_mv.from_lang_code,
+          graph_edge_walk_mv.from_normalized_word,
+          graph_edge_walk_mv.from_node_id
+      ),
+      ranked_candidates AS (
+        SELECT
+          ancestor_candidates.id,
+          ancestor_candidates.lang_code,
+          languages.canonical_name AS lang_name,
+          ancestor_candidates.word,
+          ancestor_candidates.normalized_word,
+          NULL::TEXT AS primary_ipa,
+          NULL::TEXT AS primary_ipa_label,
+          NULL::TEXT AS primary_gloss,
+          NULL::TEXT AS primary_pos,
+          NULL::INTEGER AS entry_count,
+          vector_candidates.similarity,
+          EXISTS (
+            SELECT 1
+            FROM ancestor_candidates contained_candidate
+            WHERE contained_candidate.id <> ancestor_candidates.id
+              AND CHAR_LENGTH(contained_candidate.normalized_word) >= $11::INTEGER
+              AND position(contained_candidate.normalized_word IN ancestor_candidates.normalized_word) > 0
+          ) AS contains_candidate_word,
+          EXISTS (
+            SELECT 1
+            FROM ancestor_candidates containing_candidate
+            WHERE containing_candidate.id <> ancestor_candidates.id
+              AND CHAR_LENGTH(ancestor_candidates.normalized_word) >= $11::INTEGER
+              AND position(ancestor_candidates.normalized_word IN containing_candidate.normalized_word) > 0
+          ) AS is_contained_candidate_word,
+          (
+            vector_candidates.similarity
+            + (
+              ABS(CHAR_LENGTH(ancestor_candidates.normalized_word) - $8::INTEGER)
+              * $9::DOUBLE PRECISION
+            )
+            + (
+              (
+                ('x' || SUBSTR(MD5($1 || ':' || $2 || ':' || ancestor_candidates.id), 1, 8))::BIT(32)::BIGINT
+                / 4294967295.0
+              ) * $10::DOUBLE PRECISION
+            )
+          )::DOUBLE PRECISION AS interesting_score
+        FROM ancestor_candidates
+        JOIN vector_candidates
+          ON vector_candidates.lang_code = ancestor_candidates.lang_code
+          AND vector_candidates.normalized_word = ancestor_candidates.normalized_word
+        LEFT JOIN languages
+          ON languages.code = ancestor_candidates.lang_code
+      )
+      SELECT
+        ranked_candidates.id,
+        ranked_candidates.lang_code,
+        ranked_candidates.lang_name,
+        ranked_candidates.word,
+        ranked_candidates.normalized_word,
+        ranked_candidates.primary_ipa,
+        ranked_candidates.primary_ipa_label,
+        ranked_candidates.primary_gloss,
+        ranked_candidates.primary_pos,
+        ranked_candidates.entry_count,
+        ranked_candidates.similarity
+      FROM ranked_candidates
+      WHERE ranked_candidates.similarity >= $6
+        AND ranked_candidates.similarity <= $7
+        AND NOT ranked_candidates.contains_candidate_word
+      ORDER BY
+        (
+          ranked_candidates.interesting_score
+          - CASE
+              WHEN ranked_candidates.is_contained_candidate_word THEN $12::DOUBLE PRECISION
+              ELSE 0
+            END
+        ) ASC,
+        ranked_candidates.similarity ASC,
+        ranked_candidates.normalized_word,
+        ranked_candidates.id
+      LIMIT $3
+    `,
+    [
+      query.langCode,
+      normalizedWord,
+      query.limit,
+      [...ANCESTOR_TRAVERSAL_EDGE_TYPES],
+      SIMILAR_TERMS_VECTOR_CANDIDATE_LIMIT,
+      SIMILAR_TERMS_MIN_SIMILARITY,
+      SIMILAR_TERMS_MAX_SIMILARITY,
+      SIMILAR_TERMS_TARGET_LENGTH,
+      SIMILAR_TERMS_LENGTH_DISTANCE_PENALTY,
+      SIMILAR_TERMS_JITTER_WEIGHT,
+      SIMILAR_TERMS_CONTAINED_WORD_MIN_LENGTH,
+      SIMILAR_TERMS_CONTAINED_WORD_BOOST
+    ]
+  );
+
+  return result.rows;
+}
 
 /** Maps language rows into the shared DTO used by language-scoped search controls. */
 function mapLanguageRow(row: LanguageRow): Language {
@@ -2394,6 +2454,366 @@ function mapDoubletGroupRow(row: DoubletGroupRow): DoubletGroup {
   };
 }
 
+/** Finds explicit same-language doublet components before any recursive ancestry verification. */
+async function findDoubletGroupCandidateRows(
+  pool: Pool,
+  query: DoubletGroupsQuery,
+  cursor: DoubletGroupsCursor | undefined,
+  limit: number
+): Promise<DoubletGroupCandidateComponentRow[]> {
+  const result = await pool.query<DoubletGroupCandidateComponentRow>(
+    `
+      WITH RECURSIVE
+        explicit_doublet_edges AS (
+          SELECT DISTINCT
+            declaring_entry.id AS from_entry_id,
+            declaring_entry.node_id AS from_node_id,
+            linked_entry.id AS to_entry_id,
+            linked_entry.node_id AS to_node_id
+          FROM graph_edge_walk_mv doublet_edges
+          JOIN lexical_entries declaring_entry
+            ON declaring_entry.id = doublet_edges.declaring_entry_id
+          JOIN lexical_entries linked_entry
+            ON linked_entry.node_id = doublet_edges.to_node_id
+            AND linked_entry.lang_code = $1
+          WHERE doublet_edges.edge_type = 'doublet_of'
+            AND doublet_edges.from_lang_code = $1
+            AND doublet_edges.to_lang_code = $1
+            AND declaring_entry.lang_code = $1
+            AND declaring_entry.node_id <> linked_entry.node_id
+        ),
+        doublet_entry_links AS (
+          SELECT from_entry_id AS from_entry_id, to_entry_id AS to_entry_id
+          FROM explicit_doublet_edges
+
+          UNION
+
+          SELECT to_entry_id AS from_entry_id, from_entry_id AS to_entry_id
+          FROM explicit_doublet_edges
+        ),
+        explicit_entries AS (
+          SELECT from_entry_id AS id, from_node_id AS node_id
+          FROM explicit_doublet_edges
+
+          UNION
+
+          SELECT to_entry_id AS id, to_node_id AS node_id
+          FROM explicit_doublet_edges
+        ),
+        component_walk AS (
+          SELECT
+            explicit_entries.id AS root_entry_id,
+            explicit_entries.id AS entry_id
+          FROM explicit_entries
+
+          UNION
+
+          SELECT
+            component_walk.root_entry_id,
+            doublet_entry_links.to_entry_id AS entry_id
+          FROM component_walk
+          JOIN doublet_entry_links
+            ON doublet_entry_links.from_entry_id = component_walk.entry_id
+        ),
+        component_entries AS (
+          SELECT
+            MIN(component_walk.root_entry_id) AS component_id,
+            component_walk.entry_id
+          FROM component_walk
+          GROUP BY component_walk.entry_id
+        ),
+        candidate_components AS (
+          SELECT
+            component_entries.component_id,
+            COUNT(DISTINCT component_entries.entry_id)::INTEGER AS member_count
+          FROM component_entries
+          JOIN explicit_entries
+            ON explicit_entries.id = component_entries.entry_id
+          GROUP BY component_entries.component_id
+          HAVING COUNT(DISTINCT explicit_entries.node_id) >= 2
+        )
+      SELECT
+        candidate_components.component_id,
+        candidate_components.member_count
+      FROM candidate_components
+      WHERE (
+        $2::INTEGER IS NULL
+        OR candidate_components.member_count < $2
+        OR (
+          candidate_components.member_count = $2
+          AND candidate_components.component_id > $3::TEXT
+        )
+      )
+      ORDER BY candidate_components.member_count DESC, candidate_components.component_id ASC
+      LIMIT $4
+    `,
+    [query.langCode, cursor?.entryCount ?? null, cursor?.ancestorId ?? null, limit]
+  );
+
+  return result.rows;
+}
+
+/** Verifies one explicit doublet component with the entry-aware ancestor rule and a bounded statement time. */
+async function findVerifiedDoubletGroupRow(
+  pool: Pool,
+  query: DoubletGroupsQuery,
+  candidate: DoubletGroupCandidateComponentRow
+): Promise<DoubletGroupRow | undefined> {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+    await client.query("SET LOCAL statement_timeout = '2500ms'");
+    const result = await client.query<DoubletGroupRow>(
+      `
+        WITH RECURSIVE
+          explicit_doublet_edges AS (
+            SELECT DISTINCT
+              declaring_entry.id AS from_entry_id,
+              declaring_entry.node_id AS from_node_id,
+              linked_entry.id AS to_entry_id,
+              linked_entry.node_id AS to_node_id
+            FROM graph_edge_walk_mv doublet_edges
+            JOIN lexical_entries declaring_entry
+              ON declaring_entry.id = doublet_edges.declaring_entry_id
+            JOIN lexical_entries linked_entry
+              ON linked_entry.node_id = doublet_edges.to_node_id
+              AND linked_entry.lang_code = $1
+            WHERE doublet_edges.edge_type = 'doublet_of'
+              AND doublet_edges.from_lang_code = $1
+              AND doublet_edges.to_lang_code = $1
+              AND declaring_entry.lang_code = $1
+              AND declaring_entry.node_id <> linked_entry.node_id
+          ),
+          doublet_entry_links AS (
+            SELECT from_entry_id AS from_entry_id, to_entry_id AS to_entry_id
+            FROM explicit_doublet_edges
+
+            UNION
+
+            SELECT to_entry_id AS from_entry_id, from_entry_id AS to_entry_id
+            FROM explicit_doublet_edges
+          ),
+          explicit_entries AS (
+            SELECT from_entry_id AS id, from_node_id AS node_id
+            FROM explicit_doublet_edges
+
+            UNION
+
+            SELECT to_entry_id AS id, to_node_id AS node_id
+            FROM explicit_doublet_edges
+          ),
+          component_walk AS (
+            SELECT
+              explicit_entries.id AS root_entry_id,
+              explicit_entries.id AS entry_id
+            FROM explicit_entries
+
+            UNION
+
+            SELECT
+              component_walk.root_entry_id,
+              doublet_entry_links.to_entry_id AS entry_id
+            FROM component_walk
+            JOIN doublet_entry_links
+              ON doublet_entry_links.from_entry_id = component_walk.entry_id
+          ),
+          component_entries AS (
+            SELECT
+              MIN(component_walk.root_entry_id) AS component_id,
+              component_walk.entry_id
+            FROM component_walk
+            GROUP BY component_walk.entry_id
+          ),
+          root_entries AS (
+            SELECT
+              lexical_entries.id,
+              lexical_entries.node_id
+            FROM component_entries
+            JOIN lexical_entries
+              ON lexical_entries.id = component_entries.entry_id
+            WHERE component_entries.component_id = $2
+          ),
+          ancestor_walk AS (
+            SELECT
+              root_entries.id AS root_entry_id,
+              root_entries.node_id AS node_id,
+              0 AS depth,
+              ARRAY[root_entries.node_id] AS path,
+              ARRAY[root_entries.id]::TEXT[] AS allowed_entry_ids
+            FROM root_entries
+
+            UNION ALL
+
+            SELECT
+              ancestor_walk.root_entry_id,
+              next_edge.to_node_id AS node_id,
+              ancestor_walk.depth + 1 AS depth,
+              ancestor_walk.path || next_edge.to_node_id AS path,
+              current_allowed.allowed_entry_ids AS allowed_entry_ids
+            FROM ancestor_walk
+            CROSS JOIN LATERAL (
+              SELECT ancestor_walk.allowed_entry_ids || COALESCE((
+                SELECT ARRAY_AGG(candidate_entry.id)
+                FROM lexical_entries candidate_entry
+                WHERE candidate_entry.node_id = ancestor_walk.node_id
+                  AND NOT candidate_entry.id = ANY(ancestor_walk.allowed_entry_ids)
+                  AND (
+                    (
+                      SELECT COUNT(*) FROM lexical_entries
+                      WHERE lexical_entries.node_id = ancestor_walk.node_id
+                    ) = 1
+                    OR EXISTS (
+                      SELECT 1
+                      FROM graph_edge_walk_mv adopt_edge
+                      JOIN graph_edge_walk_mv seed_edge
+                        ON seed_edge.from_node_id = adopt_edge.from_node_id
+                        AND seed_edge.to_node_id = adopt_edge.to_node_id
+                        AND seed_edge.edge_type = ANY($4::TEXT[])
+                        AND seed_edge.declaring_entry_id = ANY(ancestor_walk.allowed_entry_ids)
+                        AND seed_edge.default_ancestor_walk_candidate
+                      WHERE adopt_edge.declaring_entry_id = candidate_entry.id
+                        AND adopt_edge.from_node_id = ancestor_walk.node_id
+                        AND adopt_edge.edge_type = ANY($4::TEXT[])
+                        AND adopt_edge.default_ancestor_walk_candidate
+                    )
+                  )
+              ), ARRAY[]::TEXT[]) AS allowed_entry_ids
+            ) current_allowed
+            JOIN graph_edge_walk_mv next_edge
+              ON next_edge.from_node_id = ancestor_walk.node_id
+            WHERE ancestor_walk.depth < $3
+              AND next_edge.edge_type = ANY($4::TEXT[])
+              AND next_edge.default_ancestor_walk_candidate
+              AND next_edge.declaring_entry_id = ANY(current_allowed.allowed_entry_ids)
+              AND NOT next_edge.to_node_id = ANY(ancestor_walk.path)
+          ),
+          reachable_ancestors AS (
+            SELECT
+              ancestor_walk.root_entry_id,
+              ancestor_walk.node_id AS ancestor_node_id,
+              MIN(ancestor_walk.depth)::INTEGER AS min_depth
+            FROM ancestor_walk
+            WHERE ancestor_walk.depth > 0
+            GROUP BY ancestor_walk.root_entry_id, ancestor_walk.node_id
+          ),
+          shared_ancestors AS (
+            SELECT
+              reachable_ancestors.ancestor_node_id,
+              COUNT(DISTINCT reachable_ancestors.root_entry_id)::INTEGER AS member_count,
+              MIN(reachable_ancestors.min_depth)::INTEGER AS min_depth
+            FROM reachable_ancestors
+            JOIN root_entries
+              ON root_entries.id = reachable_ancestors.root_entry_id
+            GROUP BY reachable_ancestors.ancestor_node_id
+            HAVING COUNT(DISTINCT root_entries.node_id) >= 2
+          ),
+          verified_group AS (
+            SELECT
+              shared_ancestors.ancestor_node_id,
+              shared_ancestors.member_count,
+              shared_ancestors.min_depth,
+              member_entries.entry_summaries
+            FROM shared_ancestors
+            CROSS JOIN LATERAL (
+              SELECT COALESCE(
+                JSONB_AGG(
+                  JSONB_STRIP_NULLS(JSONB_BUILD_OBJECT(
+                    'id', ranked_entries.id,
+                    'nodeId', ranked_entries.node_id,
+                    'langCode', ranked_entries.lang_code,
+                    'word', ranked_entries.word,
+                    'normalizedWord', ranked_entries.normalized_word,
+                    'pos', ranked_entries.pos,
+                    'etymologyNumber', ranked_entries.etymology_number,
+                    'primaryIpa', ranked_entries.primary_ipa,
+                    'primaryIpaLabel', ranked_entries.primary_ipa_label,
+                    'primaryGloss', ranked_entries.primary_gloss
+                  ))
+                  ORDER BY ranked_entries.normalized_word, ranked_entries.etymology_number NULLS FIRST, ranked_entries.pos NULLS FIRST, ranked_entries.id
+                ),
+                '[]'::JSONB
+              ) AS entry_summaries
+              FROM (
+                SELECT
+                  lexical_entries.id,
+                  lexical_entries.node_id,
+                  lexical_entries.lang_code,
+                  lexical_entries.word,
+                  lexical_entries.normalized_word,
+                  lexical_entries.pos,
+                  lexical_entries.etymology_number,
+                  lexical_entries.primary_ipa,
+                  lexical_entries.primary_ipa_label,
+                  lexical_entries.primary_gloss
+                FROM reachable_ancestors
+                JOIN lexical_entries
+                  ON lexical_entries.id = reachable_ancestors.root_entry_id
+                WHERE reachable_ancestors.ancestor_node_id = shared_ancestors.ancestor_node_id
+                ORDER BY
+                  lexical_entries.normalized_word ASC,
+                  lexical_entries.etymology_number ASC NULLS FIRST,
+                  lexical_entries.pos ASC NULLS FIRST,
+                  lexical_entries.id ASC
+                LIMIT $5
+              ) ranked_entries
+            ) member_entries
+            ORDER BY shared_ancestors.member_count DESC, shared_ancestors.min_depth ASC, shared_ancestors.ancestor_node_id ASC
+            LIMIT 1
+          )
+        SELECT
+          graph_nodes.id,
+          graph_nodes.lang_code,
+          languages.canonical_name AS lang_name,
+          graph_nodes.word,
+          graph_nodes.normalized_word,
+          lexical_summary.primary_ipa,
+          lexical_summary.primary_ipa_label,
+          lexical_summary.primary_gloss,
+          lexical_summary.primary_pos,
+          lexical_summary.entry_count,
+          verified_group.member_count,
+          verified_group.min_depth,
+          verified_group.entry_summaries,
+          $2::TEXT AS cursor_id,
+          $6::INTEGER AS cursor_member_count
+        FROM verified_group
+        JOIN graph_nodes
+          ON graph_nodes.id = verified_group.ancestor_node_id
+        LEFT JOIN languages
+          ON languages.code = graph_nodes.lang_code
+        ${LEXICAL_SUMMARY_LATERAL_SQL}
+      `,
+      [
+        query.langCode,
+        candidate.component_id,
+        query.maxDepth,
+        [...DOUBLET_TRAVERSAL_EDGE_TYPES],
+        query.entryLimit,
+        candidate.member_count
+      ]
+    );
+    await client.query("COMMIT");
+
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    if (isQueryCanceledError(error)) {
+      return undefined;
+    }
+
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/** Detects statement timeouts so one pathological doublet component can be skipped. */
+function isQueryCanceledError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "57014";
+}
+
 /** Parses the opaque group cursor used for keyset pagination over ranked doublet groups. */
 function parseDoubletGroupsCursor(cursor: string | undefined): DoubletGroupsCursor | undefined {
   if (!cursor) {
@@ -2415,12 +2835,17 @@ function parseDoubletGroupsCursor(cursor: string | undefined): DoubletGroupsCurs
 }
 
 /** Encodes the last visible group so the next request can continue the same ranking order. */
-function formatDoubletGroupsCursor(row: DoubletGroupRow | undefined): string | undefined {
+function formatDoubletGroupsCursor(
+  row: DoubletGroupRow | DoubletGroupCandidateComponentRow | undefined
+): string | undefined {
   if (!row) {
     return undefined;
   }
 
-  return `${row.member_count}:${row.id}`;
+  const entryCount = "cursor_member_count" in row ? row.cursor_member_count : row.member_count;
+  const cursorId = "cursor_id" in row ? row.cursor_id : row.component_id;
+
+  return entryCount && cursorId ? `${entryCount}:${cursorId}` : undefined;
 }
 
 type LexicalSummaryFields = {

@@ -195,7 +195,7 @@ const featuredDoubletExamples: FeaturedDoubletExample[] = [
 
 const featuredAncestorLanguageExamples: FeaturedAncestorLanguageExample[] = [
   {
-    heading: "A source language can explain a whole set of words.",
+    heading: "Word lineages can explain a whole set of words.",
     concept:
       "Instead of starting from one word, choose a modern language and an older source language. The app finds entries whose lineage reaches that source.",
     exampleTitle: "English words with Latin ancestors",
@@ -215,7 +215,7 @@ const featuredAncestorLanguageExamples: FeaturedAncestorLanguageExample[] = [
   {
     heading: "Older scholarly sources leave clusters in modern languages.",
     concept:
-      "A source-language search shows where one older language feeds many modern entries, even when each word has its own route.",
+      "Word lineages show where one older language feeds many modern entries, even when each word has its own route.",
     exampleTitle: "English words with Ancient Greek ancestors",
     exampleText:
       "Ancient Greek appears in school, science, literature, and technical vocabulary. The result list lets you open each path.",
@@ -231,9 +231,9 @@ const featuredAncestorLanguageExamples: FeaturedAncestorLanguageExample[] = [
     ]
   },
   {
-    heading: "Contact between cultures becomes visible at language scale.",
+    heading: "Contact between cultures becomes visible across word lineages.",
     concept:
-      "Source-language search is useful for contact history. It asks which entries in one language trace back through another.",
+      "Word lineages are useful for contact history. They show which entries in one language trace back through another.",
     exampleTitle: "Spanish words with Arabic ancestors",
     exampleText:
       "Arabic influence on Spanish is visible across food, trade, science, and everyday vocabulary.",
@@ -249,7 +249,7 @@ const featuredAncestorLanguageExamples: FeaturedAncestorLanguageExample[] = [
     ]
   },
   {
-    heading: "A source language can reveal inherited everyday vocabulary.",
+    heading: "Word lineages can reveal inherited everyday vocabulary.",
     concept:
       "The same query can find old inherited words, not only recent borrowings. It turns a language pair into a map of ancestry.",
     exampleTitle: "English words with Old Norse ancestors",
@@ -505,14 +505,14 @@ function graphEvidenceStatus(query: {
       </div>
     </section>
 
-    <section class="grid gap-5" aria-labelledby="home-source-languages-heading">
+    <section class="grid gap-5" aria-labelledby="home-word-lineages-heading">
       <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.45fr)] lg:items-start">
         <div class="grid gap-6 lg:order-2">
           <div>
             <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-              Source languages
+              Word lineages
             </p>
-            <h2 id="home-source-languages-heading" class="text-3xl font-black leading-tight tracking-[-0.04em]">
+            <h2 id="home-word-lineages-heading" class="text-3xl font-black leading-tight tracking-[-0.04em]">
               {{ featuredAncestorLanguageExample.heading }}
             </h2>
             <p class="mt-4 leading-7 text-text-page-muted">
@@ -574,7 +574,7 @@ function graphEvidenceStatus(query: {
             size="sm"
             class="mt-5"
           >
-            Choose another language pair
+            Explore more word lineages
           </Button>
         </div>
       </div>

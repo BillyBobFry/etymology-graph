@@ -105,6 +105,8 @@ type EmbeddingNodeRow = {
   word: string;
   normalized_word: string;
   canonical_name: string | null;
+  primary_pos: string | null;
+  primary_gloss: string | null;
   embedding_model: string | null;
   content_hash: string | null;
 };
@@ -150,11 +152,22 @@ async function loadEnglishNodePage(pool: Pool, cursorNodeId: string | undefined)
         graph_nodes.word,
         graph_nodes.normalized_word,
         languages.canonical_name,
+        lexical_summary.primary_pos,
+        lexical_summary.primary_gloss,
         term_embeddings.model AS embedding_model,
         term_embeddings.content_hash
       FROM graph_nodes
       LEFT JOIN languages
         ON languages.code = graph_nodes.lang_code
+      LEFT JOIN LATERAL (
+        SELECT
+          (ARRAY_AGG(pos ORDER BY etymology_number NULLS LAST, pos NULLS LAST)
+            FILTER (WHERE pos IS NOT NULL AND pos <> ''))[1] AS primary_pos,
+          (ARRAY_AGG(primary_gloss ORDER BY etymology_number NULLS LAST, pos NULLS LAST)
+            FILTER (WHERE primary_gloss IS NOT NULL AND primary_gloss <> ''))[1] AS primary_gloss
+        FROM lexical_entries
+        WHERE lexical_entries.node_id = graph_nodes.id
+      ) lexical_summary ON TRUE
       LEFT JOIN term_embeddings
         ON term_embeddings.lang_code = graph_nodes.lang_code
         AND term_embeddings.normalized_word = graph_nodes.normalized_word
@@ -173,8 +186,17 @@ async function loadEnglishNodePage(pool: Pool, cursorNodeId: string | undefined)
 /** Builds a compact, language-aware text input for multilingual embedding models. */
 function buildEmbeddingContent(row: EmbeddingNodeRow): string {
   const languageName = row.canonical_name ?? row.lang_code;
+  const parts = [`Language: ${languageName}`, `Language code: ${row.lang_code}`, `Term: ${row.word}`];
 
-  return [`Language: ${languageName}`, `Language code: ${row.lang_code}`, `Term: ${row.word}`].join("\n");
+  if (row.primary_pos) {
+    parts.push(`Part of speech: ${row.primary_pos}`);
+  }
+
+  if (row.primary_gloss) {
+    parts.push(`Definition: ${row.primary_gloss}`);
+  }
+
+  return parts.join("\n");
 }
 
 /** Hashes embedding input so refreshes only pay for changed content or changed models. */

@@ -137,7 +137,7 @@ function sourceLabelForUrl(url: string): string {
             <div v-if="language.ancestors.length > 0" class="grid gap-4">
               <ol
                 class="grid justify-items-center gap-5"
-                aria-label="Ancestor languages ordered from earliest source to this language"
+                aria-label="Language lineage ordered from earliest source to this language"
               >
                 <li
                   v-for="ancestor in language.ancestors"

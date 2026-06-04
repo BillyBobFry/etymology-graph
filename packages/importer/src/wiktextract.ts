@@ -148,6 +148,12 @@ const descendantTagEdgeTypes = [
   { tagIncludes: "inherited", edgeType: "inherited_from" }
 ] as const;
 
+const relationshipTemplateEdgeTypes = {
+  cog: "cognate_with",
+  cognate: "cognate_with",
+  doublet: "doublet_of"
+} as const satisfies Record<string, GraphEdge["type"]>;
+
 const sourceDirectedAncestryEdgeTypes = new Set<GraphEdge["type"]>([
   "borrowed_from",
   "derived_from",
@@ -487,7 +493,7 @@ export function previewStructuredEntry(entry: WiktextractEntry, sourceMetadata?:
   const treeEdges = extractTreeAncestryEdges(entry, currentNode, nodesById, declaringEntryId);
   const fallbackTemplateEdges = hasOutgoingAncestryEdge(treeEdges, currentNode.id)
     ? []
-    : extractSingleTemplateAncestryFallbackEdge(entry, currentNode, nodesById, declaringEntryId);
+    : extractTemplateAncestryFallbackEdges(entry, currentNode, nodesById, declaringEntryId);
   const sourceEdges = [...treeEdges, ...fallbackTemplateEdges];
   const affixBaseEdges = hasOutgoingAncestryEdge(sourceEdges, currentNode.id)
     ? []
@@ -500,6 +506,7 @@ export function previewStructuredEntry(entry: WiktextractEntry, sourceMetadata?:
     ...sourceEdges,
     ...affixBaseEdges,
     ...compoundEdges,
+    ...extractRelationshipTemplateEdges(entry, currentNode, nodesById, declaringEntryId),
     ...extractDescendantEdges(entry, currentNode, nodesById, declaringEntryId),
     ...extractDerivedEdges(entry, currentNode, nodesById, declaringEntryId)
   ];
@@ -512,8 +519,8 @@ export function previewStructuredEntry(entry: WiktextractEntry, sourceMetadata?:
   };
 }
 
-/** Uses flat ancestry only when Wiktextract exposes one unambiguous source-template edge. */
-function extractSingleTemplateAncestryFallbackEdge(
+/** Uses flat ancestry only when Wiktextract exposes a narrow, unambiguous source-template edge. */
+function extractTemplateAncestryFallbackEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
   nodesById: Map<string, GraphNode>,
@@ -521,7 +528,48 @@ function extractSingleTemplateAncestryFallbackEdge(
 ): GraphEdge[] {
   const templateEdges = extractTemplateAncestryEdges(entry, currentNode, nodesById, declaringEntryId);
 
-  return templateEdges.length === 1 ? templateEdges : [];
+  if (templateEdges.length === 1) {
+    return templateEdges;
+  }
+
+  return extractImmediateSourceFallbackEdges(entry, currentNode.id, templateEdges);
+}
+
+/** Recovers only the immediate source when a hint-only entry lacks an etymon tree. */
+function extractImmediateSourceFallbackEdges(
+  entry: WiktextractEntry,
+  currentNodeId: string,
+  templateEdges: GraphEdge[]
+): GraphEdge[] {
+  if (!hasImmediateSourceFallbackHint(entry)) {
+    return [];
+  }
+
+  const firstCurrentSourceEdge = templateEdges.find((edge) => edge.fromNodeId === currentNodeId);
+
+  return firstCurrentSourceEdge ? [firstCurrentSourceEdge] : [];
+}
+
+/** Detects entries whose flat template list can safely yield only the first source edge. */
+function hasImmediateSourceFallbackHint(entry: WiktextractEntry): boolean {
+  return (
+    hasPieWordHeader(entry) ||
+    startsWithImmediateSourceProse(entry) ||
+    (entry.etymology_templates ?? []).some((template) => template.name === "root")
+  );
+}
+
+/** Detects Wiktextract entries whose ancestry prose starts with a generated PIE word header. */
+function hasPieWordHeader(entry: WiktextractEntry): boolean {
+  return (
+    entry.etymology_text?.startsWith("PIE word\n") === true &&
+    (entry.etymology_templates ?? []).some((template) => template.name === "PIE word")
+  );
+}
+
+/** Detects prose whose first clause declares the immediate source before any freeform explanation. */
+function startsWithImmediateSourceProse(entry: WiktextractEntry): boolean {
+  return /^\s*(?:borrowed from|derived from|from|inherited from)\s+\S/iu.test(entry.etymology_text ?? "");
 }
 
 /** Checks whether tree or flat templates already connect the current entry to a source term. */
@@ -1122,6 +1170,7 @@ function extractTreeAncestryEdges(
 
     const metadataEdges = extractStructuredTreeAncestryEdges(
       template.expansion,
+      currentNode,
       nodesById,
       entry.etymology_number,
       template.name,
@@ -1180,13 +1229,14 @@ function uniqueGraphEdges(edges: GraphEdge[]): GraphEdge[] {
 /** Extracts tree edges from Wiktextract's nested term metadata so affix branches do not flatten. */
 function extractStructuredTreeAncestryEdges(
   expansion: string,
+  currentNode: GraphNode,
   nodesById: Map<string, GraphNode>,
   etymologyNumber: number | undefined,
   templateName: string | undefined,
   declaringEntryId: string
 ): GraphEdge[] {
   const metadata = parseEtymologyTreeMetadata(expansion);
-  if (!metadata) {
+  if (!metadata || !treeMetadataContainsNode(metadata, currentNode.id)) {
     return [];
   }
 
@@ -1196,6 +1246,23 @@ function extractStructuredTreeAncestryEdges(
   }
 
   return edges;
+}
+
+/** Avoids importing orphaned metadata fragments that start inside a hidden affix group. */
+function treeMetadataContainsNode(metadata: EtymologyTreeMetadata, nodeId: string): boolean {
+  return metadata.terms.some((term) => treeMetadataTermContainsNode(term, nodeId));
+}
+
+/** Recursively checks whether a parsed metadata term tree contains a specific graph node. */
+function treeMetadataTermContainsNode(term: EtymologyTreeMetadataTerm, nodeId: string): boolean {
+  const termNode = treeMetadataNode(term);
+  if (termNode?.id === nodeId) {
+    return true;
+  }
+
+  return term.children.some((relation) =>
+    relation.terms.some((parentTerm) => treeMetadataTermContainsNode(parentTerm, nodeId))
+  );
 }
 
 /** Recursively appends source-directed edges for each parent relation under a tree term. */
@@ -1359,6 +1426,126 @@ function templateTerm(template: WiktextractTemplate): { langCode: string; term: 
   }
 
   return { langCode, term };
+}
+
+/** Captures explicit side-link templates without letting them influence ancestry traversal. */
+function extractRelationshipTemplateEdges(
+  entry: WiktextractEntry,
+  currentNode: GraphNode,
+  nodesById: Map<string, GraphNode>,
+  declaringEntryId: string
+): GraphEdge[] {
+  const edges: GraphEdge[] = [];
+
+  for (const template of entry.etymology_templates ?? []) {
+    const edgeType = relationshipTemplateEdgeType(template.name);
+    if (!edgeType) {
+      continue;
+    }
+
+    for (const linkedTerm of relationshipTemplateTerms(template, currentNode.langCode)) {
+      appendTemplateRelationshipEdge(
+        edges,
+        nodesById,
+        currentNode,
+        makeNode(linkedTerm.langCode, linkedTerm.term),
+        edgeType,
+        entry.etymology_number,
+        template.name,
+        templateIsUncertain(template),
+        declaringEntryId
+      );
+    }
+  }
+
+  return edges;
+}
+
+/** Maps Wiktionary side-link template names to graph relationship edge types. */
+function relationshipTemplateEdgeType(templateName: string | undefined): GraphEdge["type"] | undefined {
+  if (!templateName) {
+    return undefined;
+  }
+
+  return relationshipTemplateEdgeTypes[templateName as keyof typeof relationshipTemplateEdgeTypes];
+}
+
+/** Parses relationship template arguments, whose shape differs from ancestry templates. */
+function relationshipTemplateTerms(
+  template: WiktextractTemplate,
+  fallbackLangCode: string
+): Array<{ langCode: string; term: string }> {
+  if (template.name === "doublet") {
+    const langCode = trimOptional(template.args?.["1"]) ?? fallbackLangCode;
+    if (!isSingleLanguageCode(langCode)) {
+      return [];
+    }
+
+    return numericTemplateArgsFrom(template.args ?? {}, 2).map((term) => ({ langCode, term }));
+  }
+
+  if (template.name === "cog" || template.name === "cognate") {
+    const langCode = trimOptional(template.args?.["1"]);
+    const term = trimOptional(template.args?.["2"]);
+    if (!langCode || !term || term === "-" || !isSingleLanguageCode(langCode)) {
+      return [];
+    }
+
+    return [{ langCode, term }];
+  }
+
+  return [];
+}
+
+/** Returns positional template arguments from a start index while skipping gloss metadata keys. */
+function numericTemplateArgsFrom(args: Record<string, string>, startIndex: number): string[] {
+  return Object.entries(args)
+    .map(([key, value]) => ({
+      argumentIndex: Number.parseInt(key, 10),
+      value
+    }))
+    .filter(({ argumentIndex }) => Number.isInteger(argumentIndex) && argumentIndex >= startIndex)
+    .sort((left, right) => left.argumentIndex - right.argumentIndex)
+    .flatMap(({ value }) => {
+      const term = trimOptional(value);
+      return term && term !== "-" ? [term] : [];
+    });
+}
+
+/** Keeps combined language lists from becoming impossible graph language codes. */
+function isSingleLanguageCode(langCode: string): boolean {
+  return !langCode.includes(",");
+}
+
+/** Appends one explicit side-link edge while preserving declaring-entry provenance. */
+function appendTemplateRelationshipEdge(
+  edges: GraphEdge[],
+  nodesById: Map<string, GraphNode>,
+  fromNode: GraphNode,
+  toNode: GraphNode,
+  edgeType: GraphEdge["type"],
+  etymologyNumber: number | undefined,
+  templateName: string | undefined,
+  uncertain: boolean,
+  declaringEntryId: string
+): void {
+  if (fromNode.id === toNode.id) {
+    return;
+  }
+
+  nodesById.set(fromNode.id, fromNode);
+  nodesById.set(toNode.id, toNode);
+  edges.push({
+    id: makeGraphEdgeId(fromNode.id, edgeType, toNode.id, declaringEntryId),
+    fromNodeId: fromNode.id,
+    toNodeId: toNode.id,
+    type: edgeType,
+    source: "wiktextract",
+    etymologyNumber,
+    templateName,
+    uncertain,
+    declaringEntryId
+  });
 }
 
 /** Keeps Wiktionary display variants such as Latin macrons when they match the linked source term. */
@@ -1661,15 +1848,18 @@ function parseEtymologyTreeTerms(expansion: string): EtymologyTreeTerm[] {
     }
   }
 
-  return prependMissingTreeHeaderParent(expansion, terms);
+  return prependMissingTreeHeaderAncestors(
+    expansion,
+    terms.filter((term) => treeTermCanAnchorAncestry(term))
+  );
 }
 
 /**
- * Wiktextract sometimes prints the top PIE row in the visible "Etymology tree" header but omits it
- * from the embedded term metadata. Only adopt the immediate missing parent above the first metadata
- * term, avoiding component rows such as roots/suffixes that are not a simple linear ancestry chain.
+ * Wiktextract sometimes prints source rows in the visible "Etymology tree" header but omits them
+ * from embedded term metadata. Adopt missing non-component ancestors above the first metadata term
+ * while avoiding root and suffix rows that are not a simple linear ancestry chain.
  */
-function prependMissingTreeHeaderParent(expansion: string, metadataTerms: EtymologyTreeTerm[]): EtymologyTreeTerm[] {
+function prependMissingTreeHeaderAncestors(expansion: string, metadataTerms: EtymologyTreeTerm[]): EtymologyTreeTerm[] {
   if (metadataTerms.length === 0) {
     return metadataTerms;
   }
@@ -1684,12 +1874,25 @@ function prependMissingTreeHeaderParent(expansion: string, metadataTerms: Etymol
     return metadataTerms;
   }
 
-  const missingParent = {
-    ...headerTerms[metadataRootIndex - 1],
-    edgeTypeToParent: metadataTerms[0].edgeTypeToParent
-  };
+  const missingAncestors = headerTerms
+    .slice(0, metadataRootIndex)
+    .filter((headerTerm) => treeHeaderTermCanAnchorAncestry(headerTerm))
+    .map((headerTerm) => ({
+      ...headerTerm,
+      edgeTypeToParent: metadataTerms[0].edgeTypeToParent
+    }));
 
-  return [missingParent, ...metadataTerms];
+  return [...missingAncestors, ...metadataTerms];
+}
+
+/** Filters out affix component terms that should not become ancestry anchors. */
+function treeTermCanAnchorAncestry(term: EtymologyTreeTerm): boolean {
+  return !term.term.startsWith("-") && !term.term.startsWith("*-");
+}
+
+/** Filters out visible tree component rows such as PIE roots and suffixes. */
+function treeHeaderTermCanAnchorAncestry(term: EtymologyTreeTerm): boolean {
+  return treeTermCanAnchorAncestry(term) && !term.term.endsWith("-");
 }
 
 /** Reads the visible Etymology tree rows before Wiktextract's embedded template metadata starts. */

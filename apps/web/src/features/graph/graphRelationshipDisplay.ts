@@ -17,11 +17,6 @@ export const edgeLegendItems = (
     "inherited_from",
     "derived_from",
     "borrowed_from",
-    "cognate_with",
-    "doublet_of",
-    "descendant_of",
-    "related_to",
-    "see_also"
   ] as const
 ).map((type) => ({ type, label: edgeLabel(type) }));
 

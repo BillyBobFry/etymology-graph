@@ -85,20 +85,31 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: "/ancestor-languages",
+    path: "/word-lineages",
     name: "ancestor-language-search",
     component: AncestorLanguageSearchView,
     meta: {
-      title: "Source Languages"
+      title: "Word Lineages"
     }
   },
   {
-    path: "/ancestor-languages/:langCode/:ancestorLangCode",
+    path: "/word-lineages/:langCode/:ancestorLangCode",
     name: "ancestor-language-results",
     component: AncestorLanguageSearchView,
     meta: {
       title: ancestorLanguageResultsRouteTitle
     }
+  },
+  {
+    path: "/ancestor-languages",
+    redirect: { name: "ancestor-language-search" }
+  },
+  {
+    path: "/ancestor-languages/:langCode/:ancestorLangCode",
+    redirect: (to) => ({
+      name: "ancestor-language-results",
+      params: to.params
+    })
   },
   {
     path: "/languages/:langCode",
@@ -146,9 +157,20 @@ const routes: RouteRecordRaw[] = [
 export const router = createRouter({
   history: createWebHistory(),
   routes,
-  /** Restores browser history positions while starting fresh route clicks at the top. */
-  scrollBehavior: (_to, _from, savedPosition) => savedPosition ?? { left: 0, top: 0 }
+  /** Restores browser history positions and only resets scroll when changing atlas sections. */
+  scrollBehavior: (to, from, savedPosition) => {
+    if (savedPosition) {
+      return savedPosition;
+    }
+
+    return routeTopLevelPath(to.path) === routeTopLevelPath(from.path) ? false : { left: 0, top: 0 };
+  }
 });
+
+/** Groups path-param changes under the same top-level route so in-page selections do not jump. */
+function routeTopLevelPath(path: string): string {
+  return path.split("/").find(Boolean) ?? "/";
+}
 
 /** Names etymology detail tabs after the selected term. */
 function etymologyRouteTitle(route: RouteLocationNormalizedLoaded, context: RouteDocumentTitleContext): string {
@@ -167,7 +189,7 @@ function doubletGroupsRouteTitle(route: RouteLocationNormalizedLoaded, context: 
   return langCode ? `${context.languageNameForCode(langCode)} Doublets` : "Doublets";
 }
 
-/** Names source-language result tabs after the selected language pair. */
+/** Names word-lineage result tabs after the selected language pair. */
 function ancestorLanguageResultsRouteTitle(
   route: RouteLocationNormalizedLoaded,
   context: RouteDocumentTitleContext
@@ -177,7 +199,7 @@ function ancestorLanguageResultsRouteTitle(
 
   return langCode && ancestorLangCode
     ? `${context.languageNameForCode(langCode)} from ${context.languageNameForCode(ancestorLangCode)}`
-    : "Source Languages";
+    : "Word Lineages";
 }
 
 /** Names language detail tabs after the selected language code. */

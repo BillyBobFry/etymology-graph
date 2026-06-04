@@ -14,10 +14,15 @@ import {
 } from "@etymology-graph/graph";
 
 import {
+  prioritizeStructuredDescendantTargets,
+  structuredAncestryDiscoveredTargets
+} from "./structured-ancestry-targets.js";
+import {
   buildSeedTargetIndex,
   findMatchingSeedTargetIndex,
   previewEntry,
   previewStructuredEntry,
+  seedTargetKey,
   type WiktextractEntry
 } from "./wiktextract.js";
 
@@ -54,10 +59,102 @@ const mergeNeighborhood = (entries: WiktextractEntry[]): MergedNeighborhood => {
   };
 };
 
+/** Merges structured previews into the combined graph a structured DB import would store. */
+const mergeStructuredNeighborhood = (entries: WiktextractEntry[]): MergedNeighborhood => {
+  const edgesById = new Map<string, GraphEdge>();
+  const entriesById = new Map<string, LexicalEntry>();
+  for (const entry of entries) {
+    const preview = previewStructuredEntry(entry);
+    for (const edge of preview.edges) {
+      edgesById.set(edge.id, edge);
+    }
+    for (const lexicalEntry of preview.lexicalEntries) {
+      entriesById.set(lexicalEntry.id, lexicalEntry);
+    }
+  }
+
+  return {
+    edges: [...edgesById.values()],
+    lexicalEntries: [...entriesById.values()]
+  };
+};
+
 /** Resolves the lexical entry id for a (lang, word, pos, etymN) anchor used by ancestor traversals. */
 const expectEntryId = (langCode: string, word: string, pos: string, etymN: number): string => {
   return makeLexicalEntryId(makeNodeId(langCode, word), pos, etymN);
 };
+
+/** Builds stable target keys for comparing seed-expansion output. */
+const discoveredTargetKeys = (entry: WiktextractEntry): string[] =>
+  structuredAncestryDiscoveredTargets(entry).map(({ target }) => seedTargetKey(target));
+
+/** Provides the trimmed real neighborhood needed for canal/channel ancestry expansion. */
+const canalNeighborhoodEntries = (): WiktextractEntry[] => [
+  {
+    word: "canal",
+    lang: "English",
+    lang_code: "en",
+    pos: "noun",
+    etymology_text:
+      "Borrowed from Middle French canal, from Old French canal, from Latin canālis (“channel; canal”).",
+    etymology_templates: [
+      template("bor", "en", "frm", "canal", "Middle French canal"),
+      template("der", "en", "fro", "canal", "Old French canal"),
+      template("der", "en", "la", "canālis", "Latin canālis")
+    ],
+    descendants: [
+      {
+        lang: "Scottish Gaelic",
+        lang_code: "gd",
+        word: "canàl",
+        raw_tags: ["borrowed"]
+      }
+    ]
+  },
+  {
+    word: "canalis",
+    lang: "Latin",
+    lang_code: "la",
+    pos: "noun",
+    etymology_text: "For *cannālis, from canna (“reed, cane”), from Ancient Greek κάννα (kánna, “reed”).",
+    etymology_templates: [
+      template("der", "la", "grc", "κάννα", "Ancient Greek κάννα")
+    ],
+    descendants: [
+      {
+        lang: "Old French",
+        lang_code: "fro",
+        word: "canel",
+        raw_tags: ["borrowed"]
+      }
+    ]
+  },
+  {
+    word: "canel",
+    lang: "Old French",
+    lang_code: "fro",
+    pos: "noun",
+    etymology_text: "Borrowed from Latin canalis. Doublet of chanel.",
+    etymology_templates: [
+      template("bor", "fro", "la", "canalis", "Latin canalis")
+    ],
+    descendants: [
+      {
+        lang: "Middle English",
+        lang_code: "enm",
+        word: "canal",
+        raw_tags: ["borrowed"],
+        descendants: [
+          {
+            lang: "English",
+            lang_code: "en",
+            word: "canal"
+          }
+        ]
+      }
+    ]
+  }
+];
 
 /** Loads trimmed real Wiktextract entries used to lock down broken graph reports. */
 const loadFixtureEntry = (filename: string): WiktextractEntry => {
@@ -129,7 +226,7 @@ describe("previewEntry", () => {
     `);
   });
 
-  it("ignores flat ancestry chains because they can skip intermediate levels", () => {
+  it("uses only the immediate source from opening source prose plus a flat ancestry chain", () => {
     const entry: WiktextractEntry = {
       word: "sample",
       lang: "English",
@@ -143,7 +240,10 @@ describe("previewEntry", () => {
       ]
     };
 
-    expect(previewStructuredEdgeIds(entry)).toEqual([]);
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toEqual(["en:sample:derived_from:enm:sample:from:en:sample:entry:noun:0"]);
+    expect(edgeIds).not.toContain("enm:sample:derived_from:fro:sample:from:en:sample:entry:noun:0");
   });
 
   it("uses a single flat ancestry template when no structured source edge exists", () => {
@@ -163,7 +263,58 @@ describe("previewEntry", () => {
     ]);
   });
 
-  it("does not infer a direct source when flat templates include an upstream chain", () => {
+  it("uses only the immediate source from a PIE header plus flat ancestry chain", () => {
+    const entry: WiktextractEntry = {
+      word: "salt",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_number: 1,
+      etymology_text:
+        "PIE word\n *sḗh₂l\nFrom Middle English salt, from Old English sealt, from Proto-West Germanic *salt.",
+      etymology_templates: [
+        template("PIE word", "en", "sḗh₂l", undefined, "PIE word\n *sḗh₂l"),
+        template("inh", "en", "enm", "salt", "Middle English salt"),
+        template("inh", "en", "ang", "sealt", "Old English sealt"),
+        template("inh", "en", "gmw-pro", "*salt", "Proto-West Germanic *salt")
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toEqual([
+      "en:salt:inherited_from:enm:salt:from:en:salt:entry:noun:1"
+    ]);
+    expect(edgeIds).not.toContain("enm:salt:inherited_from:ang:sealt:from:en:salt:entry:noun:1");
+  });
+
+  it("uses only the immediate source from a root hint plus flat ancestry chain", () => {
+    const entry: WiktextractEntry = {
+      word: "flower",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_number: 1,
+      etymology_text:
+        "From Middle English flour, from Anglo-Norman flur, from Latin flōrem, from Proto-Italic *flōs.",
+      etymology_templates: [
+        template("root", "en", "ine-pro", "*bʰleh₃-", ""),
+        template("inh", "en", "enm", "flour", "Middle English flour"),
+        template("der", "en", "xno", "flur", "Anglo-Norman flur"),
+        template("der", "en", "la", "flōrem", "Latin flōrem"),
+        template("der", "en", "itc-pro", "*flōs", "Proto-Italic *flōs")
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toEqual([
+      "en:flower:inherited_from:enm:flour:from:en:flower:entry:noun:1"
+    ]);
+    expect(edgeIds).not.toContain("enm:flour:derived_from:xno:flur:from:en:flower:entry:noun:1");
+  });
+
+  it("uses only the immediate source from inherited opening prose plus a flat ancestry chain", () => {
     const entry: WiktextractEntry = {
       word: "tre",
       lang: "Italian",
@@ -175,6 +326,26 @@ describe("previewEntry", () => {
         template("inh+", "it", "la", "trēs", "Inherited from Latin trēs"),
         template("inh", "it", "itc-pro", "*trēs", "Proto-Italic *trēs"),
         template("inh", "it", "ine-pro", "*tréyes", "Proto-Indo-European *tréyes")
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toEqual(["it:tre:inherited_from:la:trēs:from:it:tre:entry:num:0"]);
+    expect(edgeIds).not.toContain("la:trēs:inherited_from:itc-pro:*trēs:from:it:tre:entry:num:0");
+  });
+
+  it("does not use source prose fallback when the source phrase is not at the start", () => {
+    const entry: WiktextractEntry = {
+      word: "wait",
+      lang: "English",
+      lang_code: "en",
+      pos: "verb",
+      etymology_text:
+        "In some senses, merged or influenced by Middle English waiten, from Old Norse veita.",
+      etymology_templates: [
+        template("der", "en", "enm", "waiten", "Middle English waiten"),
+        template("der", "en", "non", "veita", "Old Norse veita")
       ]
     };
 
@@ -231,6 +402,37 @@ describe("previewEntry", () => {
       "enm:cicle:derived_from:la-lat:cyclus:from:en:cycle:entry:noun:1",
       "la-lat:cyclus:derived_from:grc:κύκλος:from:en:cycle:entry:noun:1"
     ]);
+  });
+
+  it("uses visible etymon rows when embedded metadata starts inside an affix group", () => {
+    const entry: WiktextractEntry = {
+      word: "sweet",
+      lang: "English",
+      lang_code: "en",
+      pos: "adj",
+      etymology_templates: [
+        template(
+          "etymon",
+          "en",
+          ":inh",
+          "enm:swete<id:sweet>",
+          'Etymology tree\nProto-Indo-European *sweh₂d-\nProto-Indo-European *-us\nProto-Indo-European *swéh₂dus\nProto-Germanic *swōtuz\nProto-Germanic *-jaz\nProto-West Germanic *-ī\nProto-West Germanic *swōtī\nOld English swēte\nMiddle English swete\nEnglish sweet\n[Appendix:Glossary#inherited|Inherited]] from", "keyword" : "inherited" } ], "lang_name" : "Proto-Germanic", "term" : "*swōtuz", "status" : "ok", "lang" : "gem-pro" }, { "id" : "adjective", "children" : [ { "terms" : [ { "id" : "-ed", "children" : [ ], "status" : "ok", "lang_name" : "Proto-Germanic", "term" : "*-jaz", "lang" : "gem-pro" } ], "keyword_label" : "Inherited from", "keyword" : "inherited" } ], "status" : "ok", "lang_name" : "Proto-West Germanic", "term" : "*-ī", "lang" : "gmw-pro" } ], "keyword_label" : "From", "is_group" : true, "keyword" : "affix" } ], "lang_name" : "Proto-West Germanic", "term" : "*swōtī", "status" : "ok", "lang" : "gmw-pro" } ], "keyword_label" : "Inherited from", "keyword" : "inherited" } ], "lang_name" : "Old English", "term" : "swēte", "status" : "ok", "lang" : "ang" } ], "keyword_label" : "Inherited from", "keyword" : "inherited" } ], "status" : "ok", "lang_name" : "Middle English", "term" : "swete", "lang" : "enm" } ], "keyword_label" : "Inherited from", "keyword" : "inherited" } ], "lang_name" : "English", "term" : "sweet", "status" : "ok", "lang" : "en" }" data-lang="en" data-title="sweet">',
+          { tree: "1" }
+        )
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toEqual([
+      "gem-pro:*swōtuz:inherited_from:ine-pro:*swéh₂dus:from:en:sweet:entry:adj:0",
+      "gmw-pro:*swōtī:inherited_from:gem-pro:*swōtuz:from:en:sweet:entry:adj:0",
+      "ang:swēte:inherited_from:gmw-pro:*swōtī:from:en:sweet:entry:adj:0",
+      "enm:swete:inherited_from:ang:swēte:from:en:sweet:entry:adj:0",
+      "en:sweet:inherited_from:enm:swete:from:en:sweet:entry:adj:0"
+    ]);
+    expect(edgeIds).not.toContain("gem-pro:*-jaz:inherited_from:gem-pro:*swōtuz:from:en:sweet:entry:adj:0");
+    expect(edgeIds).not.toContain("gmw-pro:*-ī:inherited_from:gem-pro:*-jaz:from:en:sweet:entry:adj:0");
   });
 
   it("uses embedded etymology metadata from ety templates", () => {
@@ -1050,6 +1252,70 @@ describe("previewEntry", () => {
     );
   });
 
+  it("captures explicit doublet template links as entry-owned side edges", () => {
+    const entry: WiktextractEntry = {
+      word: "character",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_number: 1,
+      etymology_text: "Borrowed from Latin character. Doublet of charakter.",
+      etymology_templates: [
+        template("bor", "en", "la", "character", "Latin character"),
+        {
+          name: "doublet",
+          args: {
+            "1": "en",
+            "2": "charakter"
+          },
+          expansion: "Doublet of charakter"
+        }
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toContain("en:character:doublet_of:en:charakter:from:en:character:entry:noun:1");
+  });
+
+  it("captures explicit cognate template links as entry-owned side edges", () => {
+    const entry: WiktextractEntry = {
+      word: "is",
+      lang: "English",
+      lang_code: "en",
+      pos: "verb",
+      etymology_number: 1,
+      etymology_text: "Cognate with Dutch is and German ist.",
+      etymology_templates: [
+        {
+          name: "cog",
+          args: {
+            "1": "nl",
+            "2": "is"
+          },
+          expansion: "Dutch is"
+        },
+        {
+          name: "cog",
+          args: {
+            "1": "de",
+            "2": "ist"
+          },
+          expansion: "German ist"
+        }
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toEqual(
+      expect.arrayContaining([
+        "en:is:cognate_with:nl:is:from:en:is:entry:verb:1",
+        "en:is:cognate_with:de:ist:from:en:is:entry:verb:1"
+      ])
+    );
+  });
+
   it("connects affixed entries to their lexical base when tree metadata omits the current form", () => {
     const entry: WiktextractEntry = {
       word: "armadillo",
@@ -1160,6 +1426,118 @@ describe("previewEntry merged neighborhoods", () => {
 });
 
 describe("traverseAncestors against merged neighborhoods", () => {
+  it("reaches canal ancestry through ancestor-page descendant records", () => {
+    const neighborhood = mergeStructuredNeighborhood(canalNeighborhoodEntries());
+    const reached = traverseAncestors({
+      ...neighborhood,
+      rootEntryId: expectEntryId("en", "canal", "noun", 0),
+      edgeTypes: ANCESTOR_EDGE_TYPES,
+      maxDepth: 8
+    });
+
+    const reachedNodeIds = [...reached.nodeDepthsById.keys()].sort();
+    expect(reachedNodeIds).toEqual([
+      "en:canal",
+      "enm:canal",
+      "frm:canal",
+      "fro:canel",
+      "grc:κάννα",
+      "la:canalis"
+    ]);
+    expect(neighborhood.edges.map((edge) => edge.id)).toContain(
+      "fro:canel:borrowed_from:la:canalis:from:la:canalis:entry:noun:0"
+    );
+    expect([...reached.reachedEdgeIds].sort()).toEqual([
+      "en:canal:borrowed_from:frm:canal:from:en:canal:entry:noun:0",
+      "en:canal:inherited_from:enm:canal:from:fro:canel:entry:noun:0",
+      "enm:canal:borrowed_from:fro:canel:from:fro:canel:entry:noun:0",
+      "fro:canel:borrowed_from:la:canalis:from:fro:canel:entry:noun:0",
+      "la:canalis:derived_from:grc:κάννα:from:la:canalis:entry:noun:0"
+    ]);
+  });
+
+  it("reaches tooth ancestry through a queued Middle English descendant variant", () => {
+    const englishTooth: WiktextractEntry = {
+      word: "tooth",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_text:
+        "From Middle English tothe, toth, tooth, from Old English tōþ, from Proto-West Germanic *tanþ, from Proto-Germanic *tanþs, from Proto-Indo-European *h₃dónts.",
+      etymology_templates: [
+        template("inh", "en", "enm", "tothe", "Middle English tothe"),
+        template("inh", "en", "ang", "tōþ", "Old English tōþ"),
+        template("inh", "en", "gmw-pro", "*tanþ", "Proto-West Germanic *tanþ"),
+        template("inh", "en", "gem-pro", "*tanþs", "Proto-Germanic *tanþs"),
+        template("inh", "en", "ine-pro", "*h₃dónts", "Proto-Indo-European *h₃dónts")
+      ]
+    };
+    const oldEnglishTooth = prioritizeStructuredDescendantTargets(
+      {
+        word: "toþ",
+        lang: "Old English",
+        lang_code: "ang",
+        pos: "noun",
+        etymology_text: "From Proto-West Germanic *tanþ.",
+        etymology_templates: [template("inh", "ang", "gmw-pro", "*tanþ", "Proto-West Germanic *tanþ")],
+        descendants: [
+          {
+            lang: "Middle English",
+            lang_code: "enm",
+            word: "toth",
+            descendants: [{ lang: "English", lang_code: "en", word: "tooth" }]
+          },
+          {
+            lang: "Middle English",
+            lang_code: "enm",
+            word: "tothe",
+            descendants: [{ lang: "English", lang_code: "en", word: "tooth" }]
+          }
+        ]
+      },
+      [{ langCode: "enm", word: "tothe" }]
+    );
+    const neighborhood = mergeStructuredNeighborhood([
+      englishTooth,
+      oldEnglishTooth,
+      { word: "tothe", lang: "Middle English", lang_code: "enm", pos: "noun" },
+      {
+        word: "tanþ",
+        lang: "Proto-West Germanic",
+        lang_code: "gmw-pro",
+        pos: "noun",
+        etymology_templates: [template("inh", "gmw-pro", "gem-pro", "*tanþs", "Proto-Germanic *tanþs")]
+      },
+      {
+        word: "tanþs",
+        lang: "Proto-Germanic",
+        lang_code: "gem-pro",
+        pos: "noun",
+        etymology_templates: [
+          template("inh", "gem-pro", "ine-pro", "*h₃dónts", "Proto-Indo-European *h₃dónts")
+        ]
+      }
+    ]);
+    const reached = traverseAncestors({
+      ...neighborhood,
+      rootEntryId: expectEntryId("en", "tooth", "noun", 0),
+      edgeTypes: ANCESTOR_EDGE_TYPES,
+      maxDepth: 8
+    });
+
+    expect(neighborhood.edges.map((edge) => edge.id)).toContain(
+      "enm:tothe:inherited_from:ang:toþ:from:ang:toþ:entry:noun:0"
+    );
+    expect([...reached.nodeDepthsById.keys()].sort()).toEqual([
+      "ang:toþ",
+      "en:tooth",
+      "enm:tothe",
+      "gem-pro:*tanþs",
+      "gmw-pro:*tanþ",
+      "ine-pro:*h₃dónts"
+    ]);
+  });
+
   it("continues from an English descendant through an unstarred proto page entry", () => {
     const entries: WiktextractEntry[] = [
       {
@@ -1484,6 +1862,26 @@ describe("traverseAncestors against merged neighborhoods", () => {
     expect(reachedNodeIds).not.toContain("gem-pro:*īsą");
     expect(reachedNodeIds).not.toContain("gmw-pro:*īs");
     expect(reachedNodeIds).not.toContain("ine-pro:*h₁eyh-");
+  });
+});
+
+describe("structured ancestry seed expansion", () => {
+  it("queues canal ancestor pages whose descendants provide the real ancestry chain", () => {
+    const [englishCanal, latinCanalis, oldFrenchCanel] = canalNeighborhoodEntries();
+
+    expect(discoveredTargetKeys(englishCanal)).toEqual(expect.arrayContaining([
+      "frm:canal",
+      "fro:canal",
+      "la:canālis"
+    ]));
+    expect(discoveredTargetKeys(latinCanalis)).toEqual(expect.arrayContaining([
+      "fro:canel"
+    ]));
+    expect(discoveredTargetKeys(oldFrenchCanel)).toEqual(expect.arrayContaining([
+      "la:canalis",
+      "enm:canal",
+      "en:canal"
+    ]));
   });
 });
 

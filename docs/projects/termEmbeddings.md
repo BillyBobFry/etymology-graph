@@ -22,9 +22,11 @@ The first refresh path embeds compact, language-aware text for English terms onl
 Language: English
 Language code: en
 Term: bread
+Part of speech: noun
+Definition: a foodstuff made by baking dough
 ```
 
-OpenAI embedding models do not take a separate language parameter. Include language context directly in the input text so short or ambiguous words are embedded with the intended language.
+OpenAI embedding models do not take a separate language parameter. Include language context directly in the input text so short or ambiguous words are embedded with the intended language. Include the deterministic lexical summary when available, especially primary part of speech and primary gloss, so short words such as `sun` are grounded by meaning rather than only by their surface form.
 
 ## Refresh Command
 
@@ -49,7 +51,7 @@ TERM_EMBEDDING_BATCH_SIZE=50 pnpm embeddings:refresh:english
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small pnpm embeddings:refresh:english
 ```
 
-The script scans current English `graph_nodes`, joins existing `term_embeddings` by `(lang_code, normalized_word, model)`, hashes the generated input text, skips unchanged rows, and upserts vectors. If the graph database is empty, the script exits with `scannedCount: 0` and `embeddedCount: 0`.
+The script scans current English `graph_nodes`, joins language and lexical summary data, joins existing `term_embeddings` by `(lang_code, normalized_word, model)`, hashes the generated input text, skips unchanged rows, and upserts vectors. If the graph database is empty, the script exits with `scannedCount: 0` and `embeddedCount: 0`.
 
 ## Query Direction
 

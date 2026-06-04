@@ -75,7 +75,7 @@ alwaysApply: false
 - Use proper Unicode symbols in user-facing copy. Prefer `→` over ASCII `->` for relationships, transformations, paths, and sound-change notation.
 - Keep implementation details out of user-facing copy. Do not mention imports, imported data, seed data, APIs, databases, edge types, metadata, backend/frontend code, or the data model unless the user is in an explicitly technical/admin context.
 - Describe the user-visible result instead: a word page, source trail, lineage, entry, relationship, graph, search, path, match, index, or atlas.
-- Frame the product as an archival language atlas. Prefer labels such as `Map the history of language`, `Word lineages`, `Doublets`, `Source languages`, and `Sound changes` over narrow tool labels such as `lookup`.
+- Frame the product as an archival language atlas. Prefer labels such as `Map the history of language`, `Word lineages`, `Doublets`, and `Sound changes` over narrow tool labels such as `lookup`.
 - In public empty states, describe coverage without exposing local development mechanics. Prefer `No paths in the index yet` or `This example is not in the index yet` over `No imported matches`, `not in the local dataset`, or `import a broader seed set`.
 - Use `step`, `link`, `relationship`, or `path` for user-facing traversal counts. Reserve `edge` and `node` for code, developer docs, and explicitly technical graph diagnostics.
 - Do not make headings and labels repeat the same noun. If an eyebrow says `Graph examples`, the heading should add meaning, such as `Compare related words`, not repeat `Examples`.

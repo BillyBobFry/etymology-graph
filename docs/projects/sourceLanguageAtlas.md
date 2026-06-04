@@ -1,8 +1,8 @@
-## Source Language Atlas
+## Word Lineages Atlas
 
-The current source-language search lets users choose any result language and any source language. That is too open-ended for the shape of the data and the cost of the query. With roughly 1,500 language codes, the UI appears to support millions of language pairs even though most pairs are empty, slow, or not useful as a first-run product experience.
+The current word-lineage search lets users choose any result language and any source language. That is too open-ended for the shape of the data and the cost of the query. With roughly 1,500 language codes, the UI appears to support millions of language pairs even though most pairs are empty, slow, or not useful as a first-run product experience.
 
-This project rethinks `/ancestor-languages/:langCode/:ancestorLangCode` as a curated source-language atlas. The primary path should help users explore meaningful historical layers for a chosen language, not ask them to construct arbitrary database queries.
+This project rethinks `/word-lineages/:langCode/:ancestorLangCode` as a curated word-lineage atlas. The primary path should help users explore meaningful historical layers for a chosen language, not ask them to construct arbitrary database queries.
 
 ## Problem Statement
 
@@ -62,7 +62,7 @@ The source-layer cards should eventually include coverage data, for example:
 - representative example words
 - maybe deepest/common path depth hints
 
-This turns the page from "try a source language and wait" into "these source layers are available in the index." It also prevents empty states caused by impossible or weakly covered choices.
+This turns the page from "try a source language and wait" into "these word lineages are available in the index." It also prevents empty states caused by impossible or weakly covered choices.
 
 ### Atlas Page Model
 
@@ -86,7 +86,7 @@ Power-user arbitrary pair search can come later behind an explicit advanced cont
 ### MS1: Curated Atlas UI
 
 - Replace the primary source-language selector with curated source-layer cards.
-- Keep route compatibility for existing `/ancestor-languages/:langCode/:ancestorLangCode` links.
+- Keep route compatibility for existing `/ancestor-languages/:langCode/:ancestorLangCode` links while making `/word-lineages/:langCode/:ancestorLangCode` the canonical route.
 - Use the selected route pair to mark the active source layer when it is curated.
 - Keep the current API as the data source.
 

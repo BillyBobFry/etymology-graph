@@ -38,7 +38,7 @@ This project imports Wiktionary-derived Wiktextract JSONL into a graph-shaped Po
 
 - Term embeddings live in `term_embeddings`, not as a child table of `graph_nodes`. Key them by `(lang_code, normalized_word, model)` so embeddings can survive graph node truncation and reimport.
 - The embeddings table uses pgvector and stores `word`, `content_hash`, `embedding`, and `embedded_at`. Keep `content_hash` tied to the exact embedding input text so refresh scripts can skip unchanged terms.
-- The current refresh path is English-only: `pnpm embeddings:refresh:english`. It scans current `graph_nodes`, builds language-aware text with language name, language code, and term, calls OpenAI embeddings, and upserts `term_embeddings`.
+- The current refresh path is English-only: `pnpm embeddings:refresh:english`. It scans current `graph_nodes`, builds language-aware text with language name, language code, term, and deterministic lexical summary fields when available, calls OpenAI embeddings, and upserts `term_embeddings`.
 - OpenAI embeddings do not take a separate language parameter. Include language name/code in the input text rather than embedding bare words.
 - Similar-term queries should join live `graph_nodes` to `term_embeddings` by `(lang_code, normalized_word)` and keep pgvector SQL behind the repository boundary.
 

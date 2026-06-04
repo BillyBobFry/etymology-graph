@@ -1,0 +1,30 @@
+---
+description: Postgres graph schema and performant query guidance
+globs: apps/api/src/**/*.ts, packages/importer/src/**/*.ts, db/migrations/**/*.sql
+alwaysApply: false
+---
+
+# Database Query Performance
+
+Use this rule when changing Postgres-backed graph reads, importer writes, or migrations.
+
+## Graph Read Shape
+
+- `graph_nodes` are coarse term records keyed by language plus normalized word. Multiple homograph histories can share one node.
+- `lexical_entries` own per-entry metadata and are the entry-aware traversal boundary.
+- `graph_edges` store raw attributed relationships. Every edge is owned by `graph_edges.declaring_entry_id`.
+- API graph reads should use `graph_edge_walk_mv` for traversal and edge hydration unless a query genuinely needs raw `graph_edges`.
+- `graph_edge_walk_mv.edge_id` is the indexed edge identity. If a CTE has selected edge IDs, join back with `graph_edge_walk_mv.edge_id`, not the duplicate `id` column.
+
+## Query Habits
+
+- Before adding or changing a graph query, identify the expected driving index and write predicates in that index order where practical.
+- For ancestor-style walks, filter on `default_ancestor_walk_candidate` and use the materialized-view indexes for `(from_node_id, edge_type, declaring_entry_id)`.
+- Avoid broad joins back to `graph_edge_walk_mv` after a small CTE has selected IDs. The final join should be a nested loop or index lookup, not a sequential scan of the whole materialized view.
+- Keep request handlers database-agnostic. Put SQL in repository/importer modules and keep graph response types in `@etymology-graph/graph` when shared.
+
+## Verification
+
+- For any performance-sensitive SQL change, run `EXPLAIN (ANALYZE, BUFFERS)` against a representative local term such as `en:bread`.
+- Check the plan for full scans of `graph_edge_walk_mv`, `graph_edges`, or `lexical_entries` that are not intentional.
+- If a materialized view or index is added, include the migration and verify the local database has the expected index before judging API performance.

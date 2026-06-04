@@ -8,6 +8,10 @@ import { canonicalGraphWord } from "@etymology-graph/graph";
 
 import { loadPopularWordTargets } from "./popular-word-lists.js";
 import {
+  prioritizeStructuredDescendantTargets,
+  structuredAncestryDiscoveredTargets
+} from "./structured-ancestry-targets.js";
+import {
   buildSeedTargetIndex,
   findMatchingSeedTargetIndex,
   parseSeedTargets,
@@ -64,9 +68,6 @@ type SoundChangeExampleLike = {
 type SoundChangeArticleLike = {
   examples?: unknown;
 };
-
-type WiktextractTemplate = NonNullable<WiktextractEntry["etymology_templates"]>[number];
-type WiktextractDescendant = NonNullable<WiktextractEntry["descendants"]>[number];
 
 type ExtractionPassSummary = {
   pass: number;
@@ -349,13 +350,14 @@ async function runExtractionPass(options: ExtractionPassOptions): Promise<Extrac
       continue;
     }
 
-    await writeJsonlLine(options.output, record.rawLine);
+    const outputEntry = prioritizeStructuredDescendantTargets(record.entry, targets);
+    await writeJsonlLine(options.output, JSON.stringify(outputEntry));
     frontierTarget.status = "matched";
     matchedTargetKeys.add(matchedKey);
     writtenRecords += 1;
 
     if (options.depth < maxDepth) {
-      discoveredTargets += enqueueDiscoveredTargets(options.frontier, record.entry, frontierTarget);
+      discoveredTargets += enqueueDiscoveredTargets(options.frontier, outputEntry, frontierTarget);
     }
   }
 
@@ -384,28 +386,14 @@ function enqueueDiscoveredTargets(
 ): number {
   let enqueuedCount = 0;
 
-  for (const target of ancestorTemplateTargets(entry)) {
+  for (const discoveredTarget of structuredAncestryDiscoveredTargets(entry)) {
     if (enqueuedCount >= maxDiscoveredTargetsPerMatch) {
       return enqueuedCount;
     }
 
-    if (enqueueTarget(frontier, target, {
+    if (enqueueTarget(frontier, discoveredTarget.target, {
       depth: discoveredBy.depth + 1,
-      reason: "ancestor_template",
-      discoveredBy: discoveredBy.key
-    })) {
-      enqueuedCount += 1;
-    }
-  }
-
-  for (const target of structuredChildTargets(entry)) {
-    if (enqueuedCount >= maxDiscoveredTargetsPerMatch) {
-      return enqueuedCount;
-    }
-
-    if (enqueueTarget(frontier, target.target, {
-      depth: discoveredBy.depth + 1,
-      reason: target.reason,
+      reason: discoveredTarget.reason,
       discoveredBy: discoveredBy.key
     })) {
       enqueuedCount += 1;
@@ -413,157 +401,6 @@ function enqueueDiscoveredTargets(
   }
 
   return enqueuedCount;
-}
-
-/** Reads flat ancestry templates as seed hints, not graph edges. */
-function ancestorTemplateTargets(entry: WiktextractEntry): SeedTarget[] {
-  const targets = (entry.etymology_templates ?? []).flatMap((template) => {
-    if (!isAncestorTemplate(template.name)) {
-      return [];
-    }
-
-    return seedTargetFromTemplate(template);
-  });
-
-  return uniqueSeedTargets(targets);
-}
-
-/** Recognizes templates that point at likely ancestor records. */
-function isAncestorTemplate(templateName: string | undefined): boolean {
-  const normalizedName = templateName?.replace(/\+$/, "");
-
-  return normalizedName
-    ? new Set([
-      "inh",
-      "inherited",
-      "der",
-      "derived",
-      "uder",
-      "from",
-      "bor",
-      "borrowed",
-      "lbor",
-      "root"
-    ]).has(normalizedName)
-    : false;
-}
-
-/** Converts a Wiktionary ancestry template argument pair to a seed target. */
-function seedTargetFromTemplate(template: WiktextractTemplate): SeedTarget[] {
-  const langCode = trimOptional(template.args?.["2"]);
-  const linkedTerm = trimOptional(template.args?.["3"]);
-  const displayedTerm = preferredDisplayedTemplateTerm(linkedTerm, template.args?.["4"]) ?? linkedTerm;
-
-  if (!langCode || !displayedTerm || displayedTerm === "-") {
-    return [];
-  }
-
-  return [{ langCode, word: displayedTerm }];
-}
-
-/** Keeps display variants such as Latin macrons when they correspond to a linked template target. */
-function preferredDisplayedTemplateTerm(
-  linkedTerm: string | undefined,
-  displayedTerm: string | undefined
-): string | undefined {
-  if (!linkedTerm) {
-    return undefined;
-  }
-
-  const linkedTermKey = stripDiacritics(linkedTerm);
-  const displayedTerms = trimOptional(displayedTerm)
-    ?.split(",")
-    .map((term) => trimOptional(term))
-    .filter((term): term is string => term !== undefined);
-
-  return displayedTerms?.find((term) => term !== linkedTerm && stripDiacritics(term) === linkedTermKey);
-}
-
-/** Compares displayed variants to plain Wiktionary links without losing graph spelling. */
-function stripDiacritics(value: string): string {
-  return value.normalize("NFD").replace(/\p{M}/gu, "").normalize("NFC");
-}
-
-/** Reads structured descendants and concise derived terms as records to process later. */
-function structuredChildTargets(entry: WiktextractEntry): Array<{ target: SeedTarget; reason: FrontierReason }> {
-  return [
-    ...descendantTargets(entry.descendants ?? [], "structured_descendant"),
-    ...derivedTargets(entry)
-  ];
-}
-
-/** Walks structured descendants while avoiding same-language spelling variant fan-out. */
-function descendantTargets(
-  descendants: WiktextractDescendant[],
-  reason: FrontierReason
-): Array<{ target: SeedTarget; reason: FrontierReason }> {
-  return firstDescendantPerLanguage(descendants).flatMap((descendant) => {
-    const target = seedTargetFromDescendant(descendant);
-    const childTargets = descendantTargets(descendant.descendants ?? [], reason);
-
-    return target ? [{ target, reason }, ...childTargets] : childTargets;
-  });
-}
-
-/** Converts one Wiktextract descendant node to a seed target. */
-function seedTargetFromDescendant(descendant: WiktextractDescendant): SeedTarget | undefined {
-  const langCode = descendant.lang_code;
-  const word = trimOptional(descendant.word);
-
-  if (!langCode || !word) {
-    return undefined;
-  }
-
-  return { langCode, word };
-}
-
-/** Enqueues concise derived terms, using the entry language when Wiktextract omits one. */
-function derivedTargets(entry: WiktextractEntry): Array<{ target: SeedTarget; reason: FrontierReason }> {
-  return uniqueSeedTargets(
-    (entry.derived ?? []).flatMap((derivedTerm) => {
-      const target = seedTargetFromDerivedTerm(derivedTerm, entry.lang_code);
-
-      return target ? [target] : [];
-    })
-  ).map((target) => ({ target, reason: "structured_derived" }));
-}
-
-/** Converts a derived list item to a seed target when it is a single lexical item. */
-function seedTargetFromDerivedTerm(
-  derivedTerm: WiktextractDescendant,
-  fallbackLangCode: string | undefined
-): SeedTarget | undefined {
-  const langCode = derivedTerm.lang_code ?? fallbackLangCode;
-  const word = trimOptional(derivedTerm.word);
-
-  if (!langCode || !word || !isSingleWordDerivedTerm(word)) {
-    return undefined;
-  }
-
-  return { langCode, word };
-}
-
-/** Avoids queueing sayings, compounds, and phrase-like derived entries from Wiktionary lists. */
-function isSingleWordDerivedTerm(word: string): boolean {
-  return !/[\s-]/u.test(word);
-}
-
-/** Keeps the first sibling descendant for each language so variants do not dominate the frontier. */
-function firstDescendantPerLanguage(descendants: WiktextractDescendant[]): WiktextractDescendant[] {
-  const seenLanguageCodes = new Set<string>();
-  const primaryDescendants: WiktextractDescendant[] = [];
-
-  for (const descendant of descendants) {
-    const languageCode = descendant.lang_code;
-    if (!languageCode || seenLanguageCodes.has(languageCode)) {
-      continue;
-    }
-
-    seenLanguageCodes.add(languageCode);
-    primaryDescendants.push(descendant);
-  }
-
-  return primaryDescendants;
 }
 
 /** Adds a target once, respecting the global cap for extraction runs. */
@@ -597,20 +434,6 @@ function canonicalSeedTarget(target: SeedTarget): SeedTarget {
     langCode: target.langCode,
     word: target.langCode ? canonicalGraphWord(target.langCode, target.word) : target.word
   };
-}
-
-/** Removes duplicate targets while preserving discovery order. */
-function uniqueSeedTargets(targets: SeedTarget[]): SeedTarget[] {
-  const uniqueTargets = new Map<string, SeedTarget>();
-
-  for (const target of targets) {
-    const canonicalTarget = canonicalSeedTarget(target);
-    if (!uniqueTargets.has(seedTargetKey(canonicalTarget))) {
-      uniqueTargets.set(seedTargetKey(canonicalTarget), canonicalTarget);
-    }
-  }
-
-  return [...uniqueTargets.values()];
 }
 
 /** Writes one JSONL record while respecting stream backpressure. */
@@ -678,9 +501,3 @@ function parseDelimitedList(value: string | undefined): string[] | undefined {
   return values && values.length > 0 ? values : undefined;
 }
 
-/** Trims optional strings so empty source values do not become seed targets. */
-function trimOptional(value: string | undefined): string | undefined {
-  const trimmedValue = value?.trim();
-
-  return trimmedValue ? trimmedValue : undefined;
-}

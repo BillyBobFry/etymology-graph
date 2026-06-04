@@ -53,6 +53,7 @@ type GraphViewportControls = {
   zoomPercentage: ComputedRef<number>;
   viewportTransform: ComputedRef<string>;
   isPanning: Ref<boolean>;
+  canUseNativeInlineTouchScroll: ComputedRef<boolean>;
   zoomIn: () => void;
   zoomOut: () => void;
   resetViewport: () => void;
@@ -114,6 +115,9 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
   }));
   const zoomPercentage = computed(() => Math.round(zoom.value * 100));
   const viewportTransform = computed(() => `translate(${panX.value}, ${panY.value}) scale(${zoom.value})`);
+  const canUseNativeInlineTouchScroll = computed(
+    () => isInlineScrollHandoffEnabled() && !hasInlineVerticalPanRoom()
+  );
 
   watch(
     () => [
@@ -231,7 +235,9 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
 
     if (event.pointerType === "touch" && isInlineScrollHandoffEnabled()) {
       updateTouchPanOrScrollGesture(point, clientDelta);
-      event.preventDefault();
+      if (!canUseNativeInlineTouchScroll.value) {
+        event.preventDefault();
+      }
     } else {
       updatePanGesture(point);
       event.preventDefault();
@@ -396,6 +402,12 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     const deltaX = point.x - lastSinglePointer.x;
     const deltaY = point.y - lastSinglePointer.y;
     const isVerticalScrollIntent = Math.abs(clientDelta.y) > Math.abs(clientDelta.x) * verticalTouchIntentRatio;
+
+    if (isVerticalScrollIntent && canUseNativeInlineTouchScroll.value) {
+      stopTrackingPointerGesture();
+      return;
+    }
+
     const didPan = isVerticalScrollIntent ? panInlineScrollBy(0, deltaY) : panBy(deltaX, deltaY);
 
     if (didPan) {
@@ -408,6 +420,35 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     } else {
       lastSinglePointer = point;
     }
+  }
+
+  /** Detects when native mobile scrolling can preserve momentum without losing graph pan affordance. */
+  function hasInlineVerticalPanRoom(): boolean {
+    const bounds = options.contentBounds?.value;
+
+    if (!hasUsableContentBounds(bounds)) {
+      return true;
+    }
+
+    const frame = viewportFrame.value;
+    const frameBottom = frame.y + frame.height;
+    const currentTop = bounds.minY * zoom.value + panY.value;
+    const currentBottom = bounds.maxY * zoom.value + panY.value;
+
+    return currentTop < frame.y - viewportChangeEpsilon || currentBottom > frameBottom + viewportChangeEpsilon;
+  }
+
+  /** Gives a native scroll gesture back to the browser once the graph has no vertical pan work. */
+  function stopTrackingPointerGesture(): void {
+    for (const pointerId of pointers.keys()) {
+      releasePointer(svgRef.value, pointerId);
+    }
+
+    pointers.clear();
+    clientPointers.clear();
+    lastSinglePointer = null;
+    lastPinch = null;
+    isPanning.value = false;
   }
 
   /** Keeps scroll gestures from pushing currently visible graph content past the canvas edge. */
@@ -523,6 +564,7 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     zoomPercentage,
     viewportTransform,
     isPanning,
+    canUseNativeInlineTouchScroll,
     zoomIn,
     zoomOut,
     resetViewport,
