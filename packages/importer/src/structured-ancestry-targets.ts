@@ -24,6 +24,8 @@ type DescendantWithIndex = {
   index: number;
 };
 
+export type StructuredDescendantTargetRanks = ReadonlyMap<string, number>;
+
 /** Reads every follow-up target a matched entry should add to the structured ancestry frontier. */
 export function structuredAncestryDiscoveredTargets(entry: WiktextractEntry): StructuredAncestryDiscoveredTarget[] {
   return [
@@ -44,9 +46,19 @@ export function prioritizeStructuredDescendantTargets(
   entry: WiktextractEntry,
   targets: readonly SeedTarget[]
 ): WiktextractEntry {
-  const targetRanks = new Map(
-    targets.map((target, index) => [seedTargetKey(canonicalSeedTarget(target)), index] as const)
-  );
+  return prioritizeStructuredDescendantTargetsWithRanks(entry, buildStructuredDescendantTargetRanks(targets));
+}
+
+/** Builds the target priority map once per extractor pass instead of once per matched record. */
+export function buildStructuredDescendantTargetRanks(targets: readonly SeedTarget[]): StructuredDescendantTargetRanks {
+  return new Map(targets.map((target, index) => [seedTargetKey(canonicalSeedTarget(target)), index] as const));
+}
+
+/** Reorders descendant variants using a precomputed target priority map. */
+export function prioritizeStructuredDescendantTargetsWithRanks(
+  entry: WiktextractEntry,
+  targetRanks: StructuredDescendantTargetRanks
+): WiktextractEntry {
   const descendants = prioritizeDescendantList(entry.descendants, targetRanks);
 
   return descendants === entry.descendants ? entry : { ...entry, descendants };

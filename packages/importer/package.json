@@ -14,6 +14,7 @@
     "seed:languages:import": "tsx src/import-languages.ts",
     "import:batch-preview:structured": "tsx src/batch-preview-structured.ts",
     "import:db:structured": "tsx src/import-db-structured.ts",
+    "graph:reset:structured": "tsx src/reset-structured-graph-data.ts",
     "atlas:refresh:source-languages": "tsx src/refresh-source-language-layers.ts",
     "embeddings:refresh:english": "tsx src/refresh-graph-node-embeddings.ts",
     "llm:etymology": "tsx src/llm-etymology.ts"

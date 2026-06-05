@@ -138,7 +138,6 @@ const childTermsStatus = computed<ChildTermsStatus>(() => {
   return childTermsGraphQuery.data.value?.graph ? "success" : "empty";
 });
 const childTermsError = computed(() => childTermsGraphQuery.error.value?.message ?? "Related terms could not load.");
-const graphTitle = computed(() => (term.value ? `${term.value} doublet partners` : "Doublets"));
 const doubletStarterSet = computed(() => starterQueriesForLanguage(langCode.value ?? undefined, "doublets"));
 const doubletStarterHelpText = computed(() =>
   doubletStarterSet.value.isFallback

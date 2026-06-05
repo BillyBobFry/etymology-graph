@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import * as popover from "@zag-js/popover";
 import { normalizeProps, useMachine, type PropTypes } from "@zag-js/vue";
-import type { ButtonHTMLAttributes, HTMLAttributes } from "vue";
+import type { ButtonHTMLAttributes } from "vue";
 import { computed, useId } from "vue";
 
 import FloatingSurface from "./FloatingSurface.vue";

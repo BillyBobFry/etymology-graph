@@ -10,7 +10,7 @@ import {
   type SimulationLinkDatum,
   type SimulationNodeDatum
 } from "d3-force";
-import { computed, onBeforeUnmount, ref, type ComputedRef, type Ref } from "vue";
+import { computed, onBeforeUnmount, shallowRef, triggerRef, type ComputedRef, type Ref } from "vue";
 
 import { normalizeWord, type EdgeType, type EtymologyGraph, type GraphTraversalNode } from "@etymology-graph/graph";
 import { graphCanvasHeight, graphCanvasWidth, graphNodeRadius } from "../graphCanvasConstants";
@@ -47,6 +47,7 @@ const expansionFanAngleStep = Math.PI / 10;
 const graphFitPadding = 64;
 const graphFitMaxZoom = 2.4;
 const graphFitTextHalfWidthPerCharacter = 4.2;
+const nodeDragPullStrengthByDepth = [0.52, 0.22, 0.08] as const;
 export const graphAnnotationCalloutWidth = 228;
 // Editorial callouts use short, curated copy, so a slightly taller fixed box keeps
 // layout math simple without paying for DOM measurement inside the SVG graph.
@@ -118,6 +119,11 @@ type GraphLayoutPoint = {
   y: number;
 };
 
+type PulledGraphNode = {
+  node: PositionedGraphNode;
+  delta: GraphLayoutPoint;
+};
+
 export type GraphBounds = {
   minX: number;
   minY: number;
@@ -173,33 +179,19 @@ type BuildSimulationOptions = {
 
 /** Coordinates graph positioning so GraphCanvas can focus on orchestration and rendering. */
 export function useGraphLayout(options: GraphLayoutOptions) {
-  const nodes = ref<PositionedGraphNode[]>([]);
-  const links = ref<PositionedGraphLink[]>([]);
-  const annotationLayoutNodesRef = ref<PositionedAnnotationNode[]>([]);
-  const tickVersion = ref(0);
+  const nodes = shallowRef<PositionedGraphNode[]>([]);
+  const links = shallowRef<PositionedGraphLink[]>([]);
+  const annotationLayoutNodesRef = shallowRef<PositionedAnnotationNode[]>([]);
   let simulation: Simulation<LayoutSimulationNode, LayoutSimulationLink> | null = null;
   let renderedLayoutOrientation: GraphLayoutOrientation | null = null;
   let renderedLayoutKey: string | null = null;
 
-  const renderedNodes = computed(() => {
-    tickVersion.value;
-    return nodes.value;
-  });
-
-  const renderedLinks = computed(() => {
-    tickVersion.value;
-    return links.value;
-  });
-
-  const renderedAnnotations = computed(() => {
-    tickVersion.value;
-    return annotationLayoutNodesRef.value.map(positionedAnnotationFromNode);
-  });
-  const renderedNodeBounds = computed<GraphBounds | null>(() => {
-    tickVersion.value;
-
-    return nodes.value.length > 0 ? nodes.value.map(nodeVisualBounds).reduce(mergeGraphBounds) : null;
-  });
+  const renderedNodes = computed(() => [...nodes.value]);
+  const renderedLinks = computed(() => [...links.value]);
+  const renderedAnnotations = computed(() => annotationLayoutNodesRef.value.map(positionedAnnotationFromNode));
+  const renderedNodeBounds = computed<GraphBounds | null>(() =>
+    nodes.value.length > 0 ? nodes.value.map(nodeVisualBounds).reduce(mergeGraphBounds) : null
+  );
 
   onBeforeUnmount(() => {
     stopSimulation();
@@ -339,7 +331,9 @@ export function useGraphLayout(options: GraphLayoutOptions) {
 
   /** Marks D3-mutated coordinates as ready for Vue to read. */
   function requestRenderTick(): void {
-    tickVersion.value += 1;
+    triggerRef(nodes);
+    triggerRef(links);
+    triggerRef(annotationLayoutNodesRef);
   }
 
   /** Moves callout layout nodes with a manually dragged anchor so labels stay visually attached. */
@@ -357,6 +351,43 @@ export function useGraphLayout(options: GraphLayoutOptions) {
       annotationNode.targetX = target.x;
       annotationNode.targetY = target.y;
     }
+  }
+
+  /** Lets unpinned linked nodes follow a manual drag without disturbing already placed nodes. */
+  function pullLinkedNodes(anchorNodeId: string, deltaX: number, deltaY: number): PulledGraphNode[] {
+    const graphNodesById = new Map(nodes.value.map((node) => [node.id, node]));
+    const linkedNodeIdsByNodeId = linkedNodeIdsBySourceId(links.value);
+    const pulledNodes: PulledGraphNode[] = [];
+    const visitedNodeIds = new Set([anchorNodeId]);
+    let frontierNodeIds = [anchorNodeId];
+
+    nodeDragPullStrengthByDepth.forEach((pullStrength) => {
+      const nextFrontierNodeIds: string[] = [];
+
+      for (const nodeId of frontierNodeIds) {
+        for (const linkedNodeId of linkedNodeIdsByNodeId.get(nodeId) ?? []) {
+          if (visitedNodeIds.has(linkedNodeId)) {
+            continue;
+          }
+
+          visitedNodeIds.add(linkedNodeId);
+          const linkedNode = graphNodesById.get(linkedNodeId);
+
+          if (!linkedNode || hasManualPosition(linkedNode)) {
+            continue;
+          }
+
+          const pulledDelta = { x: deltaX * pullStrength, y: deltaY * pullStrength };
+          moveUnpinnedNode(linkedNode, pulledDelta, renderedLayoutOrientation);
+          pulledNodes.push({ node: linkedNode, delta: pulledDelta });
+          nextFrontierNodeIds.push(linkedNodeId);
+        }
+      }
+
+      frontierNodeIds = nextFrontierNodeIds;
+    });
+
+    return pulledNodes;
   }
 
   /** Stops the old simulation so background ticks do not keep mutating stale nodes. */
@@ -381,6 +412,7 @@ export function useGraphLayout(options: GraphLayoutOptions) {
     fitLayoutToViewport,
     requestRenderTick,
     moveAnchoredAnnotations,
+    pullLinkedNodes,
     nodeX,
     nodeY,
     hasResolvedEndpoints,
@@ -479,6 +511,49 @@ function restoreNodePins(restoredPins: Array<{ node: PositionedGraphNode; fx: nu
     restoredPin.node.fx = restoredPin.fx;
     restoredPin.node.fy = restoredPin.fy;
   }
+}
+
+/** Builds undirected neighbor lookups so manual drag pull follows visible graph relationships. */
+function linkedNodeIdsBySourceId(links: PositionedGraphLink[]): Map<string, string[]> {
+  const linkedNodeIds = new Map<string, string[]>();
+
+  for (const link of links) {
+    appendLinkedNodeId(linkedNodeIds, link.sourceNodeId, link.targetNodeId);
+    appendLinkedNodeId(linkedNodeIds, link.targetNodeId, link.sourceNodeId);
+  }
+
+  return linkedNodeIds;
+}
+
+/** Appends a graph neighbor while keeping adjacency construction readable. */
+function appendLinkedNodeId(linkedNodeIds: Map<string, string[]>, sourceNodeId: string, targetNodeId: string): void {
+  const existingLinkedNodeIds = linkedNodeIds.get(sourceNodeId);
+
+  if (existingLinkedNodeIds) {
+    existingLinkedNodeIds.push(targetNodeId);
+    return;
+  }
+
+  linkedNodeIds.set(sourceNodeId, [targetNodeId]);
+}
+
+/** Treats fixed D3 coordinates as the user's signal that a node should no longer be pulled. */
+function hasManualPosition(node: PositionedGraphNode): boolean {
+  return typeof node.fx === "number" || typeof node.fy === "number";
+}
+
+/** Moves a generated-position node while preserving future expansion layout hints. */
+function moveUnpinnedNode(
+  node: PositionedGraphNode,
+  delta: GraphLayoutPoint,
+  orientation: GraphLayoutOrientation | null
+): void {
+  const nextX = nodeX(node) + delta.x;
+  const nextY = nodeY(node) + delta.y;
+
+  node.x = nextX;
+  node.y = nextY;
+  node.preferredSiblingPosition = orientation === "vertical" ? nextX : nextY;
 }
 
 /** Resolves editorial annotations into render-only layout nodes anchored to graph term nodes. */

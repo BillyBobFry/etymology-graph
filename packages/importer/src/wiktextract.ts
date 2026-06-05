@@ -532,22 +532,35 @@ function extractTemplateAncestryFallbackEdges(
     return templateEdges;
   }
 
-  return extractImmediateSourceFallbackEdges(entry, currentNode.id, templateEdges);
+  return extractImmediateSourceFallbackEdges(entry, currentNode.id, templateEdges, currentNode.langCode);
 }
 
 /** Recovers only the immediate source when a hint-only entry lacks an etymon tree. */
 function extractImmediateSourceFallbackEdges(
   entry: WiktextractEntry,
   currentNodeId: string,
-  templateEdges: GraphEdge[]
+  templateEdges: GraphEdge[],
+  currentLangCode: string
 ): GraphEdge[] {
-  if (!hasImmediateSourceFallbackHint(entry)) {
+  if (!hasImmediateSourceFallbackHint(entry) || hasAmbiguousCurrentInheritanceTemplates(entry, currentLangCode)) {
     return [];
   }
 
   const firstCurrentSourceEdge = templateEdges.find((edge) => edge.fromNodeId === currentNodeId);
 
   return firstCurrentSourceEdge ? [firstCurrentSourceEdge] : [];
+}
+
+/** Detects target-relative inheritance lists before chain parsing can hide their ambiguity. */
+function hasAmbiguousCurrentInheritanceTemplates(entry: WiktextractEntry, currentLangCode: string): boolean {
+  const currentInheritanceTemplates = (entry.etymology_templates ?? []).filter(
+    (template) =>
+      trimOptional(template.args?.["1"]) === currentLangCode &&
+      parseEtymologyKeywordEdgeType(template.name ?? "") === "inherited_from" &&
+      templateTerm(template) !== undefined
+  );
+
+  return currentInheritanceTemplates.length > 1;
 }
 
 /** Detects entries whose flat template list can safely yield only the first source edge. */
@@ -1179,6 +1192,10 @@ function extractTreeAncestryEdges(
     edges.push(...metadataEdges);
 
     const treeTerms = parseEtymologyTreeTerms(template.expansion);
+    if (templateHasMultipleSourceTerms(template) && treeTermsContainNode(treeTerms, currentNode.id)) {
+      continue;
+    }
+
     if (treeTerms.length < 2) {
       continue;
     }
@@ -1219,6 +1236,16 @@ function extractTreeAncestryEdges(
   }
 
   return uniqueGraphEdges(edges);
+}
+
+/** Prevents the legacy linear parser from turning sibling source branches into ancestry chains. */
+function templateHasMultipleSourceTerms(template: WiktextractTemplate): boolean {
+  return numericTemplateArgsFrom(template.args ?? {}, 3).length > 1;
+}
+
+/** Compares fallback tree terms to an imported graph node without duplicating node key rules. */
+function treeTermsContainNode(terms: EtymologyTreeTerm[], nodeId: string): boolean {
+  return terms.some((term) => makeNode(term.langCode, term.term).id === nodeId);
 }
 
 /** Removes duplicate edges that can appear when flat and structured etymon extraction agree. */
@@ -2296,17 +2323,20 @@ export function parseSeedTargets(value: string): SeedTarget[] {
     .split(",")
     .map((target) => target.trim())
     .filter((target) => target.length > 0)
-    .map((target) => {
-      const separatorIndex = target.indexOf(":");
-      if (separatorIndex === -1) {
-        return { word: target };
-      }
+    .map((target) => parseSeedTarget(target));
+}
 
-      return {
-        langCode: target.slice(0, separatorIndex),
-        word: target.slice(separatorIndex + 1)
-      };
-    });
+/** Parses one seed spec without treating commas inside terms as separators. */
+export function parseSeedTarget(target: string): SeedTarget {
+  const separatorIndex = target.indexOf(":");
+  if (separatorIndex === -1) {
+    return { word: target };
+  }
+
+  return {
+    langCode: target.slice(0, separatorIndex),
+    word: target.slice(separatorIndex + 1)
+  };
 }
 
 /** Builds a lookup that keeps large popular-word target lists cheap during a full dump scan. */

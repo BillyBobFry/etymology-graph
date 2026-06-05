@@ -46,7 +46,7 @@ alwaysApply: false
 
 - Prefer shared primitives from `apps/web/src/uiComponents/` before styling one-off low-level controls.
 - `Badge.vue`: use for compact, passive metadata labels such as statuses, relationship types, required markers, and non-interactive categories. Use `variant="custom"` with a caller-provided `--badge-color` when a badge should inherit a local semantic color.
-- `Button.vue`: use for text-labeled actions, form submits, destructive actions, loading states, full-width actions, and active popover/menu triggers.
+- `Button.vue`: use for compact, text-labeled actions, form submits, destructive actions, loading states, full-width actions, and active popover/menu triggers. Buttons work best for short single-line labels; when a choice needs explanatory copy, metadata, or multiple lines of text, prefer a purpose-built interactive row, slip, or card with native button/link semantics so the larger content does not feel like a button stuffed with prose.
 - `IconButton.vue`: use for compact icon-only actions. Always pass a clear `label`; use `active` when it controls an open or selected state.
 - `Link.vue`: use for prose, metadata, breadcrumb, and other text links that navigate to routes or external URLs. Use `variant="plain"` only when wrapping a child that already has clear link affordance, such as a linked badge.
 - `TextField.vue`: use for labeled text-like inputs with help text, required copy, validation copy, and `v-model`.

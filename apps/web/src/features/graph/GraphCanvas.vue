@@ -60,6 +60,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "load-children": [node: GraphTraversalNode];
+  "node-details-open-change": [open: boolean];
 }>();
 
 const router = useRouter();
@@ -117,6 +118,7 @@ const {
   fitLayoutToViewport,
   requestRenderTick,
   moveAnchoredAnnotations,
+  pullLinkedNodes,
   nodeX,
   nodeY,
   hasResolvedEndpoints,
@@ -151,6 +153,9 @@ const {
   requestRenderTick,
   onNodeDrag: (node, delta) => {
     moveAnchoredAnnotations(node.id, delta.x, delta.y);
+    for (const pulledNode of pullLinkedNodes(node.id, delta.x, delta.y)) {
+      moveAnchoredAnnotations(pulledNode.node.id, pulledNode.delta.x, pulledNode.delta.y);
+    }
   }
 });
 const selectedNode = computed(() => nodes.value.find((node) => node.id === selectedNodeId.value));
@@ -338,6 +343,7 @@ function selectedRelationshipForLink(
 /** Selects a node so dense lexical metadata can live outside the graph label. */
 function selectNode(node: PositionedGraphNode): void {
   selectedNodeId.value = node.id;
+  emit("node-details-open-change", true);
 }
 
 /** Separates click selection from drag release so repositioning a node does not reopen details. */
@@ -353,6 +359,7 @@ function handleNodeClick(node: PositionedGraphNode): void {
 /** Clears the detail card without rebuilding or disturbing the graph simulation. */
 function clearSelectedNode(): void {
   selectedNodeId.value = undefined;
+  emit("node-details-open-change", false);
 }
 
 /** Builds action copy from the clicked source language and current result language. */

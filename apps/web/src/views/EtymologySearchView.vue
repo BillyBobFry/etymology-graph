@@ -4,8 +4,8 @@ import { useRouter } from "vue-router";
 
 import { starterQueriesForLanguage } from "../features/terms/starterQueries";
 import { useSearchLanguageStore } from "../features/terms/searchLanguageStore";
+import EtymologyStarterQueries from "../features/terms/EtymologyStarterQueries.vue";
 import TermSearchForm from "../features/terms/TermSearchForm.vue";
-import Button from "../uiComponents/Button.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 
 const router = useRouter();
@@ -76,21 +76,7 @@ function openStarterTerm(term: string): void {
           {{ etymologyStarterHelpText }}
         </p>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
-        <Button
-          v-for="query in etymologyStarterSet.queries"
-          :key="query.term"
-          class="justify-start!"
-          variant="secondary"
-          full-width
-          @click="openStarterTerm(query.term)"
-        >
-          <span class="grid gap-1 text-left">
-            <span>{{ query.term }}</span>
-            <span class="font-sans text-sm font-normal leading-5 text-text-muted">{{ query.description }}</span>
-          </span>
-        </Button>
-      </div>
+      <EtymologyStarterQueries :queries="etymologyStarterSet.queries" @select="openStarterTerm" />
     </section>
   </PageMain>
 </template>

@@ -20,6 +20,7 @@ import {
 import {
   buildSeedTargetIndex,
   findMatchingSeedTargetIndex,
+  parseSeedTarget,
   previewEntry,
   previewStructuredEntry,
   seedTargetKey,
@@ -263,7 +264,29 @@ describe("previewEntry", () => {
     ]);
   });
 
-  it("uses only the immediate source from a PIE header plus flat ancestry chain", () => {
+  it("does not use one of several target-relative inheritance templates as a direct source edge", () => {
+    const entry: WiktextractEntry = {
+      word: "night",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_text:
+        "From Middle English nighte, from Old English niht, from Proto-West Germanic *naht, from Proto-Germanic *nahts, from Proto-Indo-European *nókʷts.",
+      etymology_templates: [
+        template("inh", "en", "enm", "nighte", "Middle English nighte"),
+        template("inh", "en", "ang", "niht", "Old English niht"),
+        template("inh", "en", "gmw-pro", "*naht", "Proto-West Germanic *naht"),
+        template("inh", "en", "gem-pro", "*nahts", "Proto-Germanic *nahts"),
+        template("inh", "en", "ine-pro", "*nókʷts", "Proto-Indo-European *nókʷts")
+      ]
+    };
+
+    expect(previewStructuredEdgeIds(entry)).not.toContain(
+      "en:night:inherited_from:enm:nighte:from:en:night:entry:noun:0"
+    );
+  });
+
+  it("does not use PIE header fallback for a multi-template flat ancestry chain", () => {
     const entry: WiktextractEntry = {
       word: "salt",
       lang: "English",
@@ -282,13 +305,11 @@ describe("previewEntry", () => {
 
     const edgeIds = previewStructuredEdgeIds(entry);
 
-    expect(edgeIds).toEqual([
-      "en:salt:inherited_from:enm:salt:from:en:salt:entry:noun:1"
-    ]);
+    expect(edgeIds).toEqual([]);
     expect(edgeIds).not.toContain("enm:salt:inherited_from:ang:sealt:from:en:salt:entry:noun:1");
   });
 
-  it("uses only the immediate source from a root hint plus flat ancestry chain", () => {
+  it("uses only the immediate source from a root hint plus a mixed flat ancestry chain", () => {
     const entry: WiktextractEntry = {
       word: "flower",
       lang: "English",
@@ -314,7 +335,7 @@ describe("previewEntry", () => {
     expect(edgeIds).not.toContain("enm:flour:derived_from:xno:flur:from:en:flower:entry:noun:1");
   });
 
-  it("uses only the immediate source from inherited opening prose plus a flat ancestry chain", () => {
+  it("does not use inherited opening prose fallback for a multi-template flat ancestry chain", () => {
     const entry: WiktextractEntry = {
       word: "tre",
       lang: "Italian",
@@ -331,7 +352,7 @@ describe("previewEntry", () => {
 
     const edgeIds = previewStructuredEdgeIds(entry);
 
-    expect(edgeIds).toEqual(["it:tre:inherited_from:la:trēs:from:it:tre:entry:num:0"]);
+    expect(edgeIds).toEqual([]);
     expect(edgeIds).not.toContain("la:trēs:inherited_from:itc-pro:*trēs:from:it:tre:entry:num:0");
   });
 
@@ -460,6 +481,50 @@ describe("previewEntry", () => {
       "en:truth:inherited_from:enm:trouthe:from:en:truth:entry:noun:0",
       "enm:trouthe:inherited_from:ang:trēowþ:from:en:truth:entry:noun:0"
     ]);
+  });
+
+  it("does not linearize compound ety source branches as ancestry", () => {
+    const entry: WiktextractEntry = {
+      word: "midjanahts",
+      lang: "Proto-Germanic",
+      lang_code: "gem-pro",
+      pos: "noun",
+      etymology_text: "From *midjaz (“middle”) + *nahts (“night”).",
+      etymology_templates: [
+        {
+          name: "ety",
+          args: {
+            "1": "gem-pro",
+            "2": ":from",
+            "3": "*midjaz",
+            "4": "*nahts"
+          },
+          expansion:
+            '[Appendix:Glossary#inherited|Inherited]] from", "keyword" : "inherited" } ], "lang_name" : "Proto-Germanic", "term" : "*midjaz", "status" : "ok", "lang" : "gem-pro" }, { "children" : [ { "terms" : [ { "id" : "night", "children" : [ { "terms" : [ { "id" : "naked", "children" : [ ], "status" : "ok", "lang_name" : "Proto-Indo-European", "term" : "*negʷ-", "lang" : "ine-pro" } ], "keyword" : "root", "is_invisible" : "all" } ], "status" : "ok", "lang_name" : "Proto-Indo-European", "term" : "*nókʷts", "lang" : "ine-pro" } ], "keyword_label" : "Inherited from", "keyword" : "inherited" } ], "lang_name" : "Proto-Germanic", "term" : "*nahts", "status" : "ok", "lang" : "gem-pro" } ], "keyword_label" : "From", "keyword" : "from" } ], "lang_name" : "Proto-Germanic", "term" : "*midjanahts", "status" : "ok", "lang" : "gem-pro" }" data-lang="gem-pro" data-title="*midjanahts">'
+        },
+        {
+          name: "compound",
+          args: {
+            "1": "gem-pro",
+            "2": "*midjaz",
+            "3": "*nahts",
+            t1: "middle",
+            t2: "night"
+          },
+          expansion: "*midjaz (“middle”) + *nahts (“night”)"
+        }
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toEqual([
+      "gem-pro:*midjanahts:compound_of:gem-pro:*midjaz:from:gem-pro:*midjanahts:entry:noun:0",
+      "gem-pro:*midjanahts:compound_of:gem-pro:*nahts:from:gem-pro:*midjanahts:entry:noun:0"
+    ]);
+    expect(edgeIds).not.toContain(
+      "ine-pro:*nókʷts:inherited_from:gem-pro:*midjaz:from:gem-pro:*midjanahts:entry:noun:0"
+    );
   });
 
   it("can preview derived arrays as structured child-to-source edges", () => {
@@ -1538,6 +1603,91 @@ describe("traverseAncestors against merged neighborhoods", () => {
     ]);
   });
 
+  it("reaches night ancestry through descendant records when flat templates are ambiguous", () => {
+    const entries: WiktextractEntry[] = [
+      {
+        word: "night",
+        lang: "English",
+        lang_code: "en",
+        pos: "noun",
+        etymology_text:
+          "From Middle English nighte, from Old English niht, from Proto-West Germanic *naht, from Proto-Germanic *nahts, from Proto-Indo-European *nókʷts.",
+        etymology_templates: [
+          template("inh", "en", "enm", "nighte", "Middle English nighte"),
+          template("inh", "en", "ang", "niht", "Old English niht"),
+          template("inh", "en", "gmw-pro", "*naht", "Proto-West Germanic *naht"),
+          template("inh", "en", "gem-pro", "*nahts", "Proto-Germanic *nahts"),
+          template("inh", "en", "ine-pro", "*nókʷts", "Proto-Indo-European *nókʷts")
+        ]
+      },
+      {
+        word: "nighte",
+        lang: "Middle English",
+        lang_code: "enm",
+        pos: "noun"
+      },
+      {
+        word: "nahts",
+        lang: "Proto-Germanic",
+        lang_code: "gem-pro",
+        pos: "noun",
+        etymology_templates: [
+          template("inh", "gem-pro", "ine-pro", "*nókʷts", "Proto-Indo-European *nókʷts")
+        ],
+        descendants: [
+          {
+            lang: "Proto-West Germanic",
+            lang_code: "gmw-pro",
+            word: "*naht",
+            descendants: [
+              {
+                lang: "Old English",
+                lang_code: "ang",
+                word: "niht",
+                descendants: [
+                  {
+                    lang: "Middle English",
+                    lang_code: "enm",
+                    word: "nyght",
+                    descendants: [{ lang: "English", lang_code: "en", word: "night" }]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const neighborhood = mergeStructuredNeighborhood(entries);
+    const reached = traverseAncestors({
+      ...neighborhood,
+      rootEntryId: expectEntryId("en", "night", "noun", 0),
+      edgeTypes: ANCESTOR_EDGE_TYPES,
+      maxDepth: 8
+    });
+
+    expect([...reached.nodeDepthsById.keys()].sort()).toEqual([
+      "ang:niht",
+      "en:night",
+      "enm:nyght",
+      "gem-pro:*nahts",
+      "gmw-pro:*naht",
+      "ine-pro:*nókʷts"
+    ]);
+    expect([...reached.reachedEdgeIds]).toEqual(
+      expect.arrayContaining([
+        "en:night:inherited_from:enm:nyght:from:gem-pro:*nahts:entry:noun:0",
+        "enm:nyght:inherited_from:ang:niht:from:gem-pro:*nahts:entry:noun:0",
+        "ang:niht:inherited_from:gmw-pro:*naht:from:gem-pro:*nahts:entry:noun:0",
+        "gmw-pro:*naht:inherited_from:gem-pro:*nahts:from:gem-pro:*nahts:entry:noun:0",
+        "gem-pro:*nahts:inherited_from:ine-pro:*nókʷts:from:gem-pro:*nahts:entry:noun:0"
+      ])
+    );
+    expect([...reached.reachedEdgeIds]).not.toContain(
+      "en:night:inherited_from:enm:nighte:from:en:night:entry:noun:0"
+    );
+  });
+
   it("continues from an English descendant through an unstarred proto page entry", () => {
     const entries: WiktextractEntry[] = [
       {
@@ -1886,6 +2036,10 @@ describe("structured ancestry seed expansion", () => {
 });
 
 describe("seed target matching", () => {
+  it("parses generated seed specs without splitting commas inside terms", () => {
+    expect(parseSeedTarget("bs:, rekao je")).toEqual({ langCode: "bs", word: ", rekao je" });
+  });
+
   it("matches reconstructed targets against raw Wiktextract proto entries without a leading star", () => {
     const targetIndex = buildSeedTargetIndex([{ langCode: "gem-pro", word: "*hundaz" }]);
     const entry: WiktextractEntry = {

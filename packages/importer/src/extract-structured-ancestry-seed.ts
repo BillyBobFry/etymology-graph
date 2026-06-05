@@ -8,13 +8,14 @@ import { canonicalGraphWord } from "@etymology-graph/graph";
 
 import { loadPopularWordTargets } from "./popular-word-lists.js";
 import {
-  prioritizeStructuredDescendantTargets,
+  buildStructuredDescendantTargetRanks,
+  prioritizeStructuredDescendantTargetsWithRanks,
   structuredAncestryDiscoveredTargets
 } from "./structured-ancestry-targets.js";
 import {
   buildSeedTargetIndex,
   findMatchingSeedTargetIndex,
-  parseSeedTargets,
+  parseSeedTarget,
   readJsonlRecords,
   seedTargetKey,
   type SeedTarget,
@@ -203,7 +204,7 @@ async function loadInitialTargets(directoryPaths: string[]): Promise<SeedTarget[
     ...uiCoverageTargets.map((target) => `${target.langCode}:${target.word}`)
   ])];
 
-  return parseSeedTargets(targetSpecs.join(","));
+  return targetSpecs.map((targetSpec) => parseSeedTarget(targetSpec));
 }
 
 /** Loads frontend term metadata so structured seeds still cover public examples. */
@@ -319,6 +320,7 @@ async function runExtractionPass(options: ExtractionPassOptions): Promise<Extrac
   const targets = options.passTargets.map((frontierTarget) => frontierTarget.target);
   const targetKeys = options.passTargets.map((frontierTarget) => frontierTarget.key);
   const targetIndex = buildSeedTargetIndex(targets);
+  const targetRanks = buildStructuredDescendantTargetRanks(targets);
   const matchedTargetKeys = new Set<string>();
   let scannedLines = 0;
   let writtenRecords = 0;
@@ -350,8 +352,8 @@ async function runExtractionPass(options: ExtractionPassOptions): Promise<Extrac
       continue;
     }
 
-    const outputEntry = prioritizeStructuredDescendantTargets(record.entry, targets);
-    await writeJsonlLine(options.output, JSON.stringify(outputEntry));
+    const outputEntry = prioritizeStructuredDescendantTargetsWithRanks(record.entry, targetRanks);
+    await writeJsonlLine(options.output, outputEntry === record.entry ? record.rawLine : JSON.stringify(outputEntry));
     frontierTarget.status = "matched";
     matchedTargetKeys.add(matchedKey);
     writtenRecords += 1;

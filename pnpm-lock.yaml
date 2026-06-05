@@ -84,6 +84,9 @@ importers:
       '@zag-js/accordion':
         specifier: ^1.41.0
         version: 1.41.0
+      '@zag-js/collapsible':
+        specifier: ^1.41.0
+        version: 1.41.0
       '@zag-js/combobox':
         specifier: ^1.41.0
         version: 1.41.0
@@ -932,6 +935,9 @@ packages:
 
   '@zag-js/aria-hidden@1.41.0':
     resolution: {integrity: sha512-Jxzceqd29Bq35h/pu7qHaPcE8lWf/NFLJR7hNPqKUde+VBSsuiZXsy8U3xhvTkFi5lE3j6rcN5Mx8a11gAj7Sg==}
+
+  '@zag-js/collapsible@1.41.0':
+    resolution: {integrity: sha512-Zdo1RiwxzjuM3ZElpgSxsHAej3dRnCP6Jti0rIyM+EEE3CvKeFpprJFh0sjE7TW5PEuhey69Q9QhMjJbHFfNpg==}
 
   '@zag-js/collection@1.41.0':
     resolution: {integrity: sha512-rCkN6uCMPhnf9Mc7Yav1ZRdJtxprjlWPybXL37dZRNPPd7G3mTwCuETbZdUSlE7lf8DKsP7jilA2P4l47BJxQg==}
@@ -2878,6 +2884,14 @@ snapshots:
   '@zag-js/aria-hidden@1.41.0':
     dependencies:
       '@zag-js/dom-query': 1.41.0
+
+  '@zag-js/collapsible@1.41.0':
+    dependencies:
+      '@zag-js/anatomy': 1.41.0
+      '@zag-js/core': 1.41.0
+      '@zag-js/dom-query': 1.41.0
+      '@zag-js/types': 1.41.0
+      '@zag-js/utils': 1.41.0
 
   '@zag-js/collection@1.41.0':
     dependencies:

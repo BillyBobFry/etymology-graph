@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useQueryClient } from "@tanstack/vue-query";
-import { usePreferredReducedMotion } from "@vueuse/core";
+import { useIntersectionObserver, usePreferredReducedMotion } from "@vueuse/core";
 import { computed, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -16,6 +16,9 @@ import {
 } from "@etymology-graph/graph";
 
 import EntryChooser from "../features/terms/EntryChooser.vue";
+import EtymologyStarterQueries from "../features/terms/EtymologyStarterQueries.vue";
+import EtymologyExploreSuggestions from "./EtymologyExploreSuggestions.vue";
+import EtymologyExploreTray from "./EtymologyExploreTray.vue";
 import GraphCanvas from "../features/graph/GraphCanvas.vue";
 import TermSearchForm from "../features/terms/TermSearchForm.vue";
 import {
@@ -28,10 +31,9 @@ import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
 import { useCognatesQuery } from "../features/terms/composables/useCognatesQuery";
 import { useSimilarTermsQuery } from "../features/terms/composables/useSimilarTermsQuery";
 import { useTermEntrySelection } from "../features/terms/composables/useTermEntrySelection";
-import { mergeEtymologyGraphs } from "../features/graph/mergeEtymologyGraphs";
+import { mergeEtymologyGraphs, pruneGraphBranchUntilSharedDescendant } from "../features/graph/mergeEtymologyGraphs";
 import { starterQueriesForLanguage } from "../features/terms/starterQueries";
 import { useSearchLanguageStore } from "../features/terms/searchLanguageStore";
-import Button from "../uiComponents/Button.vue";
 import Divider from "../uiComponents/Divider.vue";
 import Link from "../uiComponents/Link.vue";
 import PageMain from "../uiComponents/PageMain.vue";
@@ -41,7 +43,6 @@ type GraphStatus = "idle" | "loading" | "success" | "empty" | "error";
 type ChildTermsStatus = "idle" | "loading" | "success" | "empty" | "error";
 
 const defaultChildTermsLimit = 50;
-const similarTermsSkeletonItems = [0, 1, 2, 3] as const;
 
 const route = useRoute();
 const router = useRouter();
@@ -54,8 +55,13 @@ const childTermsGraphInput = ref<ChildTermsQuery | null>(null);
 const cognateExpansionError = ref<string | null>(null);
 const cognateExpansionGraphs = ref<Map<string, EtymologyGraph | null>>(new Map());
 const loadingCognateGraphIds = ref<Set<string>>(new Set());
+const selectedCognateGraphIds = ref<Set<string>>(new Set());
 const expandedGraph = ref<EtymologyGraph | null>(null);
+const exploreSuggestionsRef = ref<HTMLElement | null>(null);
 const graphResultRef = ref<HTMLElement | null>(null);
+const isGraphResultVisible = ref(false);
+const areExploreSuggestionsVisible = ref(true);
+const isGraphNodeDetailOpen = ref(false);
 const shouldScrollToNextGraph = ref(Boolean(langCode.value && term.value));
 const preferredMotion = usePreferredReducedMotion();
 
@@ -121,6 +127,9 @@ const visibleCognates = computed(() =>
 );
 const isCheckingCognateGraphs = computed(() =>
   cognates.value.some((cognate) => loadingCognateGraphIds.value.has(cognate.id))
+);
+const selectedCognateIds = computed(() =>
+  visibleCognates.value.filter((cognate) => isCognateInSelectedGraph(cognate)).map((cognate) => cognate.id)
 );
 const selectedGraph = computed(() => expandedGraph.value ?? ancestorGraphQuery.data.value?.graph ?? null);
 const selectedLanguageLabel = computed(() => {
@@ -191,6 +200,36 @@ const routeLabel = computed(() => {
 
   return `${langCode.value}:${term.value}`;
 });
+const hasExploreSuggestionsContent = computed(
+  () => similarTerms.value.length > 0 || visibleCognates.value.length > 0
+);
+const shouldShowExploreTray = computed(
+  () =>
+    hasExploreSuggestionsContent.value &&
+    isGraphResultVisible.value &&
+    !areExploreSuggestionsVisible.value &&
+    !isGraphNodeDetailOpen.value
+);
+
+useIntersectionObserver(
+  graphResultRef,
+  ([entry]) => {
+    isGraphResultVisible.value = entry?.isIntersecting ?? false;
+  },
+  {
+    threshold: 0.12
+  }
+);
+
+useIntersectionObserver(
+  exploreSuggestionsRef,
+  ([entry]) => {
+    areExploreSuggestionsVisible.value = entry?.isIntersecting ?? false;
+  },
+  {
+    threshold: 0.1
+  }
+);
 
 /** Returns to the etymology search page so the newly selected language's starters are visible. */
 function goToEtymologySearch(): void {
@@ -226,8 +265,18 @@ function handleLoadChildren(node: GraphTraversalNode): void {
   };
 }
 
-/** Adds a cognate's ancestry into the current graph so comparisons stay in one visual context. */
-async function handleAddCognateToGraph(cognate: GraphNode): Promise<void> {
+/** Toggles a cognate's ancestry in the current graph so comparisons stay in one visual context. */
+async function handleToggleCognateInGraph(cognate: GraphNode): Promise<void> {
+  if (selectedCognateGraphIds.value.has(cognate.id)) {
+    expandedGraph.value = selectedGraph.value
+      ? pruneGraphBranchUntilSharedDescendant(selectedGraph.value, cognate.id)
+      : expandedGraph.value;
+    removeSelectedCognateGraph(cognate.id);
+    cognateExpansionError.value = null;
+    await scrollGraphResultIntoView();
+    return;
+  }
+
   if (isCognateInSelectedGraph(cognate)) {
     await scrollGraphResultIntoView();
     return;
@@ -242,6 +291,7 @@ async function handleAddCognateToGraph(cognate: GraphNode): Promise<void> {
 
   cognateExpansionError.value = null;
   expandedGraph.value = expandedGraph.value ? mergeEtymologyGraphs(expandedGraph.value, graph) : graph;
+  addSelectedCognateGraph(cognate.id);
   await scrollGraphResultIntoView();
 }
 
@@ -328,12 +378,28 @@ function removeLoadingCognateGraph(nodeId: string): void {
   loadingCognateGraphIds.value = nextLoadingIds;
 }
 
+/** Replaces the selected set so cognate buttons can distinguish expansion state from base graph membership. */
+function addSelectedCognateGraph(nodeId: string): void {
+  const nextSelectedIds = new Set(selectedCognateGraphIds.value);
+  nextSelectedIds.add(nodeId);
+  selectedCognateGraphIds.value = nextSelectedIds;
+}
+
+/** Replaces the selected set when a cognate expansion is removed from the graph. */
+function removeSelectedCognateGraph(nodeId: string): void {
+  const nextSelectedIds = new Set(selectedCognateGraphIds.value);
+  nextSelectedIds.delete(nodeId);
+  selectedCognateGraphIds.value = nextSelectedIds;
+}
+
 watch([langCode, term], () => {
   childTermsGraphInput.value = null;
   cognateExpansionError.value = null;
   cognateExpansionGraphs.value = new Map();
   loadingCognateGraphIds.value = new Set();
+  selectedCognateGraphIds.value = new Set();
   expandedGraph.value = null;
+  isGraphNodeDetailOpen.value = false;
   shouldScrollToNextGraph.value = Boolean(langCode.value && term.value);
 });
 
@@ -342,7 +408,9 @@ watch(cognates, ensureCognateExpansionGraphs, { immediate: true });
 watch(
   () => ancestorGraphQuery.data.value?.graph ?? null,
   (graph) => {
+    selectedCognateGraphIds.value = new Set();
     expandedGraph.value = graph;
+    isGraphNodeDetailOpen.value = false;
   }
 );
 
@@ -422,113 +490,21 @@ watch(
         </h2>
       </div>
       <div class="grid gap-5 rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
-        <section
-          v-if="similarTerms.length > 0 || similarTermsQuery.isPending.value || similarTermsQuery.isError.value"
-          aria-labelledby="similar-terms-heading"
-        >
-          <div class="mb-3">
-            <div>
-              <h3 class="mb-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-text-muted">
-                Similar terms
-              </h3>
-            </div>
-          </div>
-          <div
-            v-if="similarTermsQuery.isPending.value"
-            class="flex flex-nowrap gap-2 overflow-hidden"
-            role="status"
-            aria-live="polite"
-          >
-            <span class="sr-only">Finding nearby entries</span>
-            <span
-              v-for="item in similarTermsSkeletonItems"
-              :key="item"
-              class="min-w-0 h-[34px] w-[72px] shrink-0 rounded-md"
-              aria-hidden="true"
-            >
-              <Skeleton class="h-full" tone="raised" />
-            </span>
-          </div>
-          <p v-else-if="similarTermsQuery.isError.value" class="text-sm leading-6 text-text-muted">
-            Similar terms are unavailable right now.
-          </p>
-          <div v-else class="flex flex-wrap gap-2">
-            <Button
-              v-for="similarTerm in similarTerms"
-              :key="similarTerm.node.id"
-              variant="secondary"
-              size="sm"
-              :to="{
-                name: 'etymology',
-                params: {
-                  langCode: similarTerm.node.langCode,
-                  term: similarTerm.node.word
-                }
-              }"
-            >
-              {{ similarTerm.node.word }}
-            </Button>
-          </div>
-        </section>
-        <section
-          v-if="visibleCognates.length > 0 || cognatesQuery.isPending.value || isCheckingCognateGraphs || cognatesQuery.isError.value"
-          aria-labelledby="cognates-heading"
-        >
-          <div class="mb-3">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 id="cognates-heading" class="mb-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-text-muted">
-                  Cognates
-                </h3>
-                <p class="text-sm leading-6 text-text-muted">
-                  Explicitly linked relatives in other languages.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div
-            v-if="cognatesQuery.isPending.value || isCheckingCognateGraphs"
-            class="flex flex-nowrap gap-2 overflow-hidden"
-            role="status"
-            aria-live="polite"
-          >
-            <span class="sr-only">Finding connected cognates</span>
-            <span
-              v-for="item in similarTermsSkeletonItems"
-              :key="item"
-              class="min-w-0 h-[44px] w-[104px] shrink-0 rounded-md"
-              aria-hidden="true"
-            >
-              <Skeleton class="h-full" tone="raised" />
-            </span>
-          </div>
-          <p v-else-if="cognatesQuery.isError.value" class="text-sm leading-6 text-text-muted">
-            Cognates are unavailable right now.
-          </p>
-          <div v-else class="flex flex-wrap gap-2">
-            <Button
-              v-for="cognate in visibleCognates"
-              :key="cognate.id"
-              :variant="isCognateInSelectedGraph(cognate) ? 'primary' : 'secondary'"
-              size="sm"
-              :aria-pressed="isCognateInSelectedGraph(cognate)"
-              @click="handleAddCognateToGraph(cognate)"
-            >
-              <span class="grid gap-0.5 text-left">
-                <span>{{ cognate.word }}</span>
-                <span
-                  class="font-sans text-xs font-normal leading-4"
-                  :class="isCognateInSelectedGraph(cognate) ? 'text-accent-contrast/85' : 'text-text-muted'"
-                >
-                  {{ cognate.langName ?? cognate.langCode }}
-                </span>
-              </span>
-            </Button>
-          </div>
-          <p v-if="cognateExpansionError" class="mt-3 text-sm leading-6 text-danger">
-            {{ cognateExpansionError }}
-          </p>
-        </section>
+        <div ref="exploreSuggestionsRef">
+          <EtymologyExploreSuggestions
+            id-prefix="inline-etymology-explore"
+            :similar-terms="similarTerms"
+            :cognates="visibleCognates"
+            :selected-cognate-ids="selectedCognateIds"
+            :similar-terms-loading="similarTermsQuery.isPending.value"
+            :similar-terms-error="similarTermsQuery.isError.value"
+            :cognates-loading="cognatesQuery.isPending.value"
+            :cognates-checking="isCheckingCognateGraphs"
+            :cognates-error="cognatesQuery.isError.value"
+            :cognate-expansion-error="cognateExpansionError"
+            @toggle-cognate="handleToggleCognateInGraph"
+          />
+        </div>
         <TermSearchForm
           id-prefix="etymology-term-search"
           compact
@@ -575,24 +551,22 @@ watch(
             {{ etymologyStarterHelpText }}
           </p>
         </div>
-        <div class="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
-          <Button
-            v-for="query in etymologyStarterSet.queries"
-            :key="query.term"
-            variant="secondary"
-            full-width
-            @click="openStarterTerm(query.term)"
-          >
-            <span class="grid gap-1 text-left">
-              <span>{{ query.term }}</span>
-              <span class="font-sans text-sm font-normal leading-5 text-text-muted">{{ query.description }}</span>
-            </span>
-          </Button>
-        </div>
+        <EtymologyStarterQueries :queries="etymologyStarterSet.queries" @select="openStarterTerm" />
       </section>
-      <p v-else-if="graphStatus === 'loading'" class="text-text-page-muted">
-        Loading the ancestry graph...
-      </p>
+      <div
+        v-else-if="graphStatus === 'loading'"
+        class="relative z-0 min-h-[min(72dvh,560px)] overflow-hidden rounded-md border border-border [background:radial-gradient(ellipse_at_50%_42%,transparent_58%,color-mix(in_oklch,var(--theme-text)_6%,transparent)_100%),linear-gradient(135deg,color-mix(in_oklch,var(--theme-surface-muted)_82%,var(--theme-background))_0%,var(--theme-surface)_100%)] [box-shadow:inset_0_0_0_1px_color-mix(in_oklch,var(--theme-surface-raised)_72%,transparent)] after:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(color-mix(in_oklch,var(--theme-text)_12%,transparent)_0.7px,transparent_0.8px),radial-gradient(color-mix(in_oklch,var(--theme-surface-raised)_80%,transparent)_0.7px,transparent_0.8px)] after:bg-position-[0_0,11px_17px] after:bg-size-[19px_23px,29px_31px] after:opacity-[0.18] after:content-[''] md:min-h-[360px]"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <span class="sr-only">Loading the ancestry graph</span>
+        <div class="absolute right-3 top-3 z-2 flex gap-2" aria-hidden="true">
+          <Skeleton class="h-9 w-9" tone="raised" />
+          <Skeleton class="h-9 w-9" tone="raised" />
+          <Skeleton class="h-9 w-20" tone="raised" />
+        </div>
+      </div>
       <p v-else-if="graphStatus === 'error'" class="text-danger">
         {{ graphError }}
       </p>
@@ -607,8 +581,23 @@ watch(
           :graph="selectedGraph"
           :root-node-id="selectedGraph.rootNodeId"
           @load-children="handleLoadChildren"
+          @node-details-open-change="isGraphNodeDetailOpen = $event"
         />
       </template>
     </section>
+
+    <EtymologyExploreTray
+      :show="shouldShowExploreTray"
+      :similar-terms="similarTerms"
+      :cognates="visibleCognates"
+      :selected-cognate-ids="selectedCognateIds"
+      :similar-terms-loading="similarTermsQuery.isPending.value"
+      :similar-terms-error="similarTermsQuery.isError.value"
+      :cognates-loading="cognatesQuery.isPending.value"
+      :cognates-checking="isCheckingCognateGraphs"
+      :cognates-error="cognatesQuery.isError.value"
+      :cognate-expansion-error="cognateExpansionError"
+      @toggle-cognate="handleToggleCognateInGraph"
+    />
   </PageMain>
 </template>
