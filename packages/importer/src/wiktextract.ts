@@ -36,6 +36,7 @@ type WiktextractSense = {
   raw_glosses?: string[];
   tags?: string[];
   raw_tags?: string[];
+  alt_of?: Array<{ word?: string }>;
 };
 
 type WiktextractDescendant = {
@@ -498,13 +499,17 @@ export function previewStructuredEntry(entry: WiktextractEntry, sourceMetadata?:
   const affixBaseEdges = hasOutgoingAncestryEdge(sourceEdges, currentNode.id)
     ? []
     : extractAffixBaseEdges(entry, currentNode, nodesById, declaringEntryId);
+  const alternativeFormEdges = hasOutgoingAncestryEdge([...sourceEdges, ...affixBaseEdges], currentNode.id)
+    ? []
+    : extractAlternativeFormEdges(entry, currentNode, nodesById, declaringEntryId);
   const compoundEdges =
-    sourceEdges.length === 0 && affixBaseEdges.length === 0
+    sourceEdges.length === 0 && affixBaseEdges.length === 0 && alternativeFormEdges.length === 0
       ? extractCompoundEdges(entry, currentNode, nodesById, declaringEntryId)
       : [];
   const edges = [
     ...sourceEdges,
     ...affixBaseEdges,
+    ...alternativeFormEdges,
     ...compoundEdges,
     ...extractRelationshipTemplateEdges(entry, currentNode, nodesById, declaringEntryId),
     ...extractDescendantEdges(entry, currentNode, nodesById, declaringEntryId),
@@ -636,6 +641,49 @@ function affixTemplateBaseComponent(
   return (
     components.find((component) => !component.term.startsWith("-") && !component.term.endsWith("-")) ?? components[0]
   );
+}
+
+/** Connects Wiktextract alternative-form pages to their same-language lemma so traversal can continue. */
+function extractAlternativeFormEdges(
+  entry: WiktextractEntry,
+  currentNode: GraphNode,
+  nodesById: Map<string, GraphNode>,
+  declaringEntryId: string
+): GraphEdge[] {
+  const edges: GraphEdge[] = [];
+
+  for (const lemma of alternativeFormLemmaWords(entry)) {
+    appendTemplateAncestryEdge(
+      edges,
+      nodesById,
+      currentNode,
+      makeNode(currentNode.langCode, lemma),
+      "derived_from",
+      entry.etymology_number,
+      "alt_of",
+      false,
+      declaringEntryId
+    );
+  }
+
+  return edges;
+}
+
+/** Reads same-language lemma links from explicit Wiktextract alternative-form senses. */
+function alternativeFormLemmaWords(entry: WiktextractEntry): string[] {
+  const lemmaWords = (entry.senses ?? []).flatMap((sense) => {
+    const tags = new Set([...(sense.tags ?? []), ...(sense.raw_tags ?? [])]);
+    if (!tags.has("alt-of") && !tags.has("alternative")) {
+      return [];
+    }
+
+    return (sense.alt_of ?? []).flatMap((alternative) => {
+      const word = trimOptional(alternative.word);
+      return word ? [word] : [];
+    });
+  });
+
+  return [...new Set(lemmaWords)];
 }
 
 /** Captures entries whose etymology is first formed from same-language compound components. */

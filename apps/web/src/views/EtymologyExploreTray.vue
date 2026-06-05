@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as collapsible from "@zag-js/collapsible";
 import { normalizeProps, useMachine, type PropTypes } from "@zag-js/vue";
+import { onClickOutside } from "@vueuse/core";
 import { computed, ref, useId, watch } from "vue";
 
 import type { GraphNode, SimilarTerm } from "@etymology-graph/graph";
@@ -26,6 +27,7 @@ const emit = defineEmits<{
 }>();
 
 const isOpen = ref(false);
+const trayRef = ref<HTMLElement | null>(null);
 const generatedId = useId();
 const relatedCount = computed(() => props.similarTerms.length + props.cognates.length);
 const hasCognates = computed(() => props.cognates.length > 0);
@@ -59,6 +61,8 @@ const service = useMachine(
 );
 const api = computed(() => collapsible.connect<PropTypes>(service, normalizeProps));
 
+onClickOutside(trayRef, handleOutsideTrayClick);
+
 /** Hides the floating panel once the inline suggestions are visible again. */
 watch(
   () => props.show,
@@ -73,11 +77,21 @@ watch(
 function handleOpenChange(details: collapsible.OpenChangeDetails): void {
   isOpen.value = details.open;
 }
+
+/** Collapses the expanded tray when mobile users tap back into the graph or page. */
+function handleOutsideTrayClick(): void {
+  if (!isOpen.value) {
+    return;
+  }
+
+  api.value.setOpen(false);
+}
 </script>
 
 <template>
   <div
     v-if="show"
+    ref="trayRef"
     v-bind="api.getRootProps()"
     class="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-900 overflow-hidden rounded-md border border-border-strong bg-surface-raised/95 shadow-overlay backdrop-blur-sm md:inset-x-auto md:right-4 md:w-[min(430px,calc(100vw-2rem))]"
   >

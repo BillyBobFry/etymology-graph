@@ -210,6 +210,9 @@ const shouldShowExploreTray = computed(
     !areExploreSuggestionsVisible.value &&
     !isGraphNodeDetailOpen.value
 );
+const shouldReserveExploreTraySpace = computed(
+  () => hasExploreSuggestionsContent.value && !isGraphNodeDetailOpen.value
+);
 
 useIntersectionObserver(
   graphResultRef,
@@ -528,7 +531,11 @@ watch(
 
     <Divider />
 
-    <section ref="graphResultRef" class="scroll-mt-6 grid gap-5">
+    <section
+      ref="graphResultRef"
+      class="scroll-mt-6 grid gap-5"
+      :class="shouldReserveExploreTraySpace ? 'pb-36 md:pb-32' : ''"
+    >
       <section
         v-if="graphStatus === 'idle' || graphStatus === 'empty'"
         class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper"
@@ -587,6 +594,7 @@ watch(
     </section>
 
     <EtymologyExploreTray
+      :key="routeLabel"
       :show="shouldShowExploreTray"
       :similar-terms="similarTerms"
       :cognates="visibleCognates"

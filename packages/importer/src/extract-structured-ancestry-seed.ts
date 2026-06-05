@@ -27,6 +27,7 @@ type FrontierStatus = "pending" | "matched" | "not_found";
 type FrontierReason =
   | "initial_seed"
   | "ancestor_template"
+  | "alternative_form"
   | "structured_descendant"
   | "structured_derived";
 

@@ -1521,6 +1521,127 @@ describe("traverseAncestors against merged neighborhoods", () => {
     ]);
   });
 
+  it("reaches chief ancestry through same-language alternative-form pages", () => {
+    const entries: WiktextractEntry[] = [
+      {
+        word: "chief",
+        lang: "English",
+        lang_code: "en",
+        pos: "noun",
+        etymology_text: "From Middle English cheef, chef, from Old French chief.",
+        etymology_templates: [
+          template("inh", "en", "enm", "cheef", "Middle English cheef"),
+          template("der", "en", "fro", "chief", "Old French chief")
+        ]
+      },
+      {
+        word: "cheef",
+        lang: "Middle English",
+        lang_code: "enm",
+        pos: "noun",
+        senses: [
+          {
+            glosses: ["alternative form of chef"],
+            tags: ["alt-of", "alternative"],
+            alt_of: [{ word: "chef" }]
+          }
+        ]
+      },
+      {
+        word: "chef",
+        lang: "Middle English",
+        lang_code: "enm",
+        pos: "noun",
+        etymology_number: 1,
+        etymology_text: "From Old French chief, from Latin caput.",
+        etymology_templates: [
+          template("bor", "enm", "fro", "chief", "Old French chief"),
+          template("der", "enm", "la", "caput", "Latin caput")
+        ]
+      },
+      {
+        word: "chief",
+        lang: "Old French",
+        lang_code: "fro",
+        pos: "noun",
+        etymology_templates: [
+          {
+            name: "ety",
+            args: { "1": "fro" },
+            expansion: treeExpansion([
+              {
+                lang: "fro",
+                term: "chief",
+                children: [
+                  {
+                    keyword: "inherited",
+                    terms: [
+                      {
+                        lang: "la-vul",
+                        term: "capus",
+                        children: [
+                          {
+                            keyword: "from",
+                            terms: [
+                              {
+                                lang: "la",
+                                term: "caput",
+                                children: [
+                                  {
+                                    keyword: "inherited",
+                                    terms: [
+                                      {
+                                        lang: "itc-pro",
+                                        term: "*kaput",
+                                        children: [
+                                          {
+                                            keyword: "inherited",
+                                            terms: [
+                                              { lang: "ine-pro", term: "*káput", children: [] }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ])
+          }
+        ]
+      }
+    ];
+    const neighborhood = mergeStructuredNeighborhood(entries);
+    const reached = traverseAncestors({
+      ...neighborhood,
+      rootEntryId: expectEntryId("en", "chief", "noun", 0),
+      edgeTypes: ANCESTOR_EDGE_TYPES,
+      maxDepth: 8
+    });
+
+    expect(neighborhood.edges.map((edge) => edge.id)).toContain(
+      "enm:cheef:derived_from:enm:chef:from:enm:cheef:entry:noun:0"
+    );
+    expect([...reached.nodeDepthsById.keys()].sort()).toEqual([
+      "en:chief",
+      "enm:cheef",
+      "enm:chef",
+      "fro:chief",
+      "ine-pro:*káput",
+      "itc-pro:*kaput",
+      "la-vul:capus",
+      "la:caput"
+    ]);
+  });
+
   it("reaches tooth ancestry through a queued Middle English descendant variant", () => {
     const englishTooth: WiktextractEntry = {
       word: "tooth",
@@ -2033,6 +2154,24 @@ describe("structured ancestry seed expansion", () => {
       "en:canal"
     ]));
   });
+
+  it("queues same-language lemmas from alternative-form pages", () => {
+    const middleEnglishCheef: WiktextractEntry = {
+      word: "cheef",
+      lang: "Middle English",
+      lang_code: "enm",
+      pos: "noun",
+      senses: [
+        {
+          glosses: ["alternative form of chef"],
+          tags: ["alt-of", "alternative"],
+          alt_of: [{ word: "chef" }]
+        }
+      ]
+    };
+
+    expect(discoveredTargetKeys(middleEnglishCheef)).toContain("enm:chef");
+  });
 });
 
 describe("seed target matching", () => {
@@ -2064,6 +2203,11 @@ describe("seed target matching", () => {
     expect(findMatchingSeedTargetIndex(targetIndex, entry)).toBe(0);
   });
 });
+
+/** Builds a minimal rendered etymon metadata payload for structured tree extraction tests. */
+function treeExpansion(terms: unknown[]): string {
+  return `"terms": ${JSON.stringify(terms)}`;
+}
 
 /** Creates the Wiktextract template shape used by graph conversion regression fixtures. */
 function template(

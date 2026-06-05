@@ -163,7 +163,18 @@ export const router = createRouter({
       return savedPosition;
     }
 
-    return routeTopLevelPath(to.path) === routeTopLevelPath(from.path) ? false : { left: 0, top: 0 };
+    const top = { left: 0, top: 0 };
+
+    // Always scroll to top when opening a sound change article.
+    const isSoundChangeRoute = to.name === "sound-change-article";
+    if (isSoundChangeRoute) {
+      return top;
+    }
+
+    // Don't scroll when keeping the same top-level route, as this involves changing the chosen word or language
+    const isSameTopLevelRoute = routeTopLevelPath(to.path) === routeTopLevelPath(from.path);
+    return isSameTopLevelRoute ? false : top;
+
   }
 });
 

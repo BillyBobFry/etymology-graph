@@ -11,6 +11,7 @@ type WiktextractDescendant = NonNullable<WiktextractEntry["descendants"]>[number
 
 export type StructuredAncestryDiscoveryReason =
   | "ancestor_template"
+  | "alternative_form"
   | "structured_descendant"
   | "structured_derived";
 
@@ -30,6 +31,7 @@ export type StructuredDescendantTargetRanks = ReadonlyMap<string, number>;
 export function structuredAncestryDiscoveredTargets(entry: WiktextractEntry): StructuredAncestryDiscoveredTarget[] {
   return [
     ...ancestorTemplateTargets(entry).map((target) => ({ target, reason: "ancestor_template" as const })),
+    ...alternativeFormTargets(entry),
     ...structuredChildTargets(entry)
   ];
 }
@@ -108,6 +110,22 @@ function seedTargetFromTemplate(template: WiktextractTemplate): SeedTarget[] {
   }
 
   return [{ langCode, word: displayedTerm }];
+}
+
+/** Enqueues same-language lemma records for Wiktextract alternative-form pages. */
+function alternativeFormTargets(entry: WiktextractEntry): StructuredAncestryDiscoveredTarget[] {
+  return uniqueSeedTargets((entry.senses ?? []).flatMap((sense) => {
+    const tags = new Set([...(sense.tags ?? []), ...(sense.raw_tags ?? [])]);
+    if (!tags.has("alt-of") && !tags.has("alternative")) {
+      return [];
+    }
+
+    return (sense.alt_of ?? []).flatMap((alternative) => {
+      const word = trimOptional(alternative.word);
+
+      return entry.lang_code && word ? [{ langCode: entry.lang_code, word }] : [];
+    });
+  })).map((target) => ({ target, reason: "alternative_form" }));
 }
 
 /** Keeps display variants such as Latin macrons when they correspond to a linked template target. */
