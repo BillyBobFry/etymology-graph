@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
+import { normalizeWord, type EtymologyGraph } from "@etymology-graph/graph";
 
 import { plainTextFromGlossarySegments } from "../features/glossary/linguisticGlossary";
 import GraphEvidencePanel from "../features/graph/GraphEvidencePanel.vue";
+import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLayout";
 import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
 import { useDoubletGraphQuery } from "../features/graph/composables/useDoubletGraphQuery";
 import { soundChangeArticles } from "../features/soundChanges/soundChanges";
@@ -33,8 +35,25 @@ const featuredDoubletGraphQuery = useDoubletGraphQuery(() => featuredDoubletExam
   staleTime: featuredHomepageGraphCacheTime,
   gcTime: featuredHomepageGraphCacheTime
 });
+const featuredEtymologyGraph = computed(() => featuredEtymologyGraphQuery.data.value?.graph ?? null);
+const featuredDoubletGraph = computed(() => featuredDoubletGraphQuery.data.value?.graph ?? null);
 const featuredEtymologyGraphStatus = computed(() => graphEvidenceStatus(featuredEtymologyGraphQuery));
 const featuredDoubletGraphStatus = computed(() => graphEvidenceStatus(featuredDoubletGraphQuery));
+const featuredEtymologyHighlightedNodeIds = computed(() =>
+  featuredEtymologyGraph.value ? [featuredEtymologyGraph.value.rootNodeId] : []
+);
+const featuredDoubletLayoutPreset = computed<GraphLayoutPreset>(() =>
+  featuredDoubletGraph.value
+    ? { type: "doublet-arms", rootNodeId: featuredDoubletGraph.value.rootNodeId }
+    : { type: "auto" }
+);
+const featuredDoubletHighlightedNodeIds = computed(() =>
+  highlightedTermNodeIds(
+    featuredDoubletGraph.value,
+    featuredDoubletExample.query.langCode,
+    featuredDoubletExample.expectedSameLanguageTerms
+  )
+);
 
 /** Chooses a deterministic daily example so the homepage rotates without backend state. */
 function pickFeaturedExample<T>(examples: readonly T[], offset: number): T {
@@ -63,6 +82,19 @@ function graphEvidenceStatus(query: {
   }
 
   return query.data.value?.graph ? "success" : "empty";
+}
+
+/** Finds featured example nodes by graph identity rather than display casing. */
+function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, terms: string[]): string[] {
+  if (!graph) {
+    return [];
+  }
+
+  const normalizedTerms = new Set(terms.map((term) => normalizeWord(term)));
+
+  return graph.nodes
+    .filter((node) => node.langCode === langCode && normalizedTerms.has(node.normalizedWord))
+    .map((node) => node.id);
 }
 </script>
 
@@ -118,9 +150,8 @@ function graphEvidenceStatus(query: {
 
         <GraphEvidencePanel
           :status="featuredEtymologyGraphStatus"
-          :graph="featuredEtymologyGraphQuery.data.value?.graph ?? null"
-          :root-node-id="featuredEtymologyGraphQuery.data.value?.graph?.rootNodeId"
-          :layout-preset="featuredEtymologyExample.layoutPreset"
+          :graph="featuredEtymologyGraph"
+          :highlighted-node-ids="featuredEtymologyHighlightedNodeIds"
           loading-label="Loading featured etymology..."
           empty-text="This example is not in the index yet."
           error-text="This featured etymology could not load."
@@ -181,9 +212,9 @@ function graphEvidenceStatus(query: {
 
         <GraphEvidencePanel
           :status="featuredDoubletGraphStatus"
-          :graph="featuredDoubletGraphQuery.data.value?.graph ?? null"
-          :root-node-id="featuredDoubletGraphQuery.data.value?.graph?.rootNodeId"
-          :layout-preset="featuredDoubletExample.layoutPreset"
+          :graph="featuredDoubletGraph"
+          :layout-preset="featuredDoubletLayoutPreset"
+          :highlighted-node-ids="featuredDoubletHighlightedNodeIds"
           class="lg:order-1"
           loading-label="Loading featured doublet graph..."
           empty-text="This doublet example is not in the index yet."

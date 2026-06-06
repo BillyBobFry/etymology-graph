@@ -21,6 +21,7 @@ const emit = defineEmits<{
 const isGraphGuideOpen = defineModel<boolean>("guideOpen", { required: true });
 const graphControlsClass =
   "absolute right-3.5 top-3.5 z-10 flex items-center gap-1.5 rounded-full border border-border/80 bg-surface/90 p-1.5 shadow-paper";
+const showsLayoutControls = computed(() => props.usesDesktopLayout || props.expanded);
 const graphControlsLabel = computed(() => (props.usesDesktopLayout ? "Graph controls" : "Touch graph controls"));
 const resetButtonLabel = computed(() => (props.usesDesktopLayout ? "Reset graph layout" : "Reset term positions"));
 const expandButtonLabel = computed(() => {
@@ -52,7 +53,7 @@ function emitControlAction(action: "zoom-in" | "zoom-out" | "reset" | "toggle-ex
 
 <template>
   <div :class="graphControlsClass" role="group" :aria-label="graphControlsLabel">
-    <template v-if="usesDesktopLayout">
+    <template v-if="showsLayoutControls">
       <IconButton label="Zoom out" size="sm" @click="emitControlAction('zoom-out')">
         <Minus :size="16" stroke-width="2.75" aria-hidden="true" />
       </IconButton>
@@ -67,7 +68,7 @@ function emitControlAction(action: "zoom-in" | "zoom-out" | "reset" | "toggle-ex
         <Plus :size="16" stroke-width="2.75" aria-hidden="true" />
       </IconButton>
     </template>
-    <IconButton :label="resetButtonLabel" size="sm" @click="emitControlAction('reset')">
+    <IconButton v-if="showsLayoutControls" :label="resetButtonLabel" size="sm" @click="emitControlAction('reset')">
       <RotateCcw :size="16" stroke-width="2.75" aria-hidden="true" />
     </IconButton>
     <IconButton :label="expandButtonLabel" size="sm" :active="expanded" @click="emitControlAction('toggle-expanded')">

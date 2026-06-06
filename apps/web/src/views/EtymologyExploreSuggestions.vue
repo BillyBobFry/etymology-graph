@@ -104,7 +104,7 @@ const isCognateSelected = (cognate: GraphNode): boolean => selectedCognateIdSet.
       </div>
       <div
         v-if="cognatesLoading || cognatesChecking"
-        class="flex flex-1  wrap gap-2 overflow-hidden"
+        class="flex flex-1 flex-wrap gap-2 overflow-hidden"
         role="status"
         aria-live="polite"
       >

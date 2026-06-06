@@ -58,7 +58,14 @@ const annotationCollisionPadding = 18;
 const annotationAnchorLinkDistance = 150;
 
 export type GraphLayoutOrientation = "horizontal" | "vertical";
-export type GraphLayoutPreset = "auto" | "doublet-arms";
+export type GraphLayoutPreset =
+  | {
+      type: "auto";
+    }
+  | {
+      type: "doublet-arms";
+      rootNodeId: string;
+    };
 
 export type PositionedGraphNode = GraphTraversalNode &
   SimulationNodeDatum & {
@@ -172,7 +179,6 @@ type GraphLayoutOptions = {
 type BuildSimulationOptions = {
   layoutPreset?: GraphLayoutPreset;
   preserveExistingLayout?: boolean;
-  rootNodeId?: string;
   annotations?: GraphNodeAnnotation[];
   expansionAnchorNodeId?: string;
 };
@@ -206,8 +212,7 @@ export function useGraphLayout(options: GraphLayoutOptions) {
     const preferredSiblingPositions = preferredNodeSiblingPositions(generationOrders, orientation);
     const layoutPlan = graphLayoutPlan(graph, generationLevels, {
       orientation,
-      preset: buildOptions.layoutPreset ?? "auto",
-      rootNodeId: buildOptions.rootNodeId
+      preset: buildOptions.layoutPreset ?? { type: "auto" }
     });
     const layoutKey = graphLayoutPlanKey(layoutPlan);
     const canPreserveExistingLayout = buildOptions.preserveExistingLayout ?? true;
@@ -807,14 +812,13 @@ function layeredDagPositionKey(nodePositions: Map<string, GraphLayoutPoint>): st
 type GraphLayoutPlanOptions = {
   orientation: GraphLayoutOrientation;
   preset: GraphLayoutPreset;
-  rootNodeId?: string;
 };
 
 /** Chooses the least surprising layout preset that matches the graph topology. */
 export function graphLayoutPlan(
   graph: EtymologyGraph,
   generationLevels = graphGenerationLevels(graph),
-  options: GraphLayoutPlanOptions = { orientation: "horizontal", preset: "auto" }
+  options: GraphLayoutPlanOptions = { orientation: "horizontal", preset: { type: "auto" } }
 ): GraphLayoutPlan {
   const nodeIds = new Set(graph.nodes.map((node) => node.id));
   const sourceEdges = graph.edges.filter(
@@ -825,8 +829,8 @@ export function graphLayoutPlan(
     return { shape: "force" };
   }
 
-  if (options.preset === "doublet-arms") {
-    const doubletArmPlan = doubletArmLayoutPlan(graph, sourceEdges, options.orientation, options.rootNodeId);
+  if (options.preset.type === "doublet-arms") {
+    const doubletArmPlan = doubletArmLayoutPlan(graph, sourceEdges, options.orientation, options.preset.rootNodeId);
 
     if (doubletArmPlan) {
       return doubletArmPlan;

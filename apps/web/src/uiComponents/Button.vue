@@ -32,28 +32,6 @@ const props = withDefaults(
 
 const isLink = computed(() => props.to !== undefined);
 const buttonComponent = computed(() => (isLink.value ? RouterLink : "button"));
-const disabledClass = computed(() => (props.disabled || props.loading ? "cursor-not-allowed opacity-65" : "cursor-pointer"));
-const baseClass =
-  "inline-flex items-center justify-center gap-2 rounded-md border font-label font-bold leading-none transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-
-const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    "border-accent bg-accent text-accent-contrast shadow-paper hover:brightness-95",
-  secondary:
-    "border-border-strong bg-surface-muted text-text hover:border-border-strong hover:brightness-95",
-  ghost:
-    "border-transparent bg-transparent text-text-muted hover:bg-background hover:text-text hover:brightness-95",
-  danger:
-    "border-danger bg-danger text-accent-contrast shadow-paper hover:brightness-95"
-};
-
-const sizeClasses: Record<ButtonSize, string> = {
-  sm: "px-3 py-2 text-sm",
-  md: "px-5 py-3 text-base",
-  lg: "px-6 py-4 text-lg"
-};
-
-const activeClass = "bg-surface-muted text-text";
 
 /** Keeps link-shaped buttons from navigating while they are inactive. */
 const preventInactiveLinkClick = (event: MouseEvent): void => {
@@ -69,19 +47,24 @@ const preventInactiveLinkClick = (event: MouseEvent): void => {
 <template>
   <component
     :is="buttonComponent"
-    :to="to"
+  :to="to"
     :type="isLink ? undefined : type"
     :disabled="isLink ? undefined : disabled || loading"
     :aria-busy="loading"
     :aria-disabled="isLink && (disabled || loading) ? 'true' : undefined"
     :tabindex="isLink && (disabled || loading) ? -1 : undefined"
+    class="inline-flex items-center justify-center gap-2 rounded-md border font-label font-medium leading-none transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     :class="[
-      baseClass,
-      variantClasses[variant],
-      sizeClasses[size],
-      disabledClass,
-      active ? activeClass : '',
-      fullWidth ? 'w-full' : 'w-fit'
+      variant === 'primary' && 'border-accent bg-accent text-accent-contrast shadow-paper hover:brightness-95',
+      variant === 'secondary' && 'border-border-strong bg-surface-muted text-text hover:border-border-strong hover:brightness-95',
+      variant === 'ghost' && 'border-transparent bg-transparent text-text-muted hover:bg-background hover:text-text hover:brightness-95',
+      variant === 'danger' && 'border-danger bg-danger text-accent-contrast shadow-paper hover:brightness-95',
+      size === 'sm' && 'px-3 py-2 text-sm',
+      size === 'md' && 'px-5 py-3 text-base',
+      size === 'lg' && 'px-6 py-4 text-lg',
+      disabled || loading ? 'cursor-not-allowed opacity-65' : 'cursor-pointer',
+      active && 'bg-surface-muted text-text',
+      fullWidth ? 'w-full' : 'w-fit',
     ]"
     @click="preventInactiveLinkClick"
   >

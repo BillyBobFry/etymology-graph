@@ -14,6 +14,7 @@ import {
 
 import EntryChooser from "../features/terms/EntryChooser.vue";
 import GraphCanvas from "../features/graph/GraphCanvas.vue";
+import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLayout";
 import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
 import { useChildTermsGraphQuery } from "../features/graph/composables/useChildTermsGraphQuery";
 import { useDoubletGraphQuery } from "../features/graph/composables/useDoubletGraphQuery";
@@ -121,6 +122,24 @@ const graphStatus = computed<GraphStatus>(() => {
 const graphError = computed(() => doubletGraphQuery.error.value?.message ?? "This doublet graph could not load.");
 const fallbackAncestorError = computed(() => fallbackAncestorGraphQuery.error.value?.message ?? "This source trail could not load.");
 const isFallbackGraph = computed(() => !doubletGraphQuery.data.value?.graph && Boolean(fallbackAncestorGraphQuery.data.value?.graph));
+const graphLayoutPreset = computed<GraphLayoutPreset>(() =>
+  isFallbackGraph.value || !selectedGraph.value
+    ? { type: "auto" }
+    : { type: "doublet-arms", rootNodeId: selectedGraph.value.rootNodeId }
+);
+const highlightedGraphNodeIds = computed(() => {
+  const graph = selectedGraph.value;
+
+  if (!graph) {
+    return [];
+  }
+
+  if (isFallbackGraph.value) {
+    return [graph.rootNodeId];
+  }
+
+  return graph.nodes.filter((node) => node.langCode === langCode.value && node.id !== graph.rootNodeId).map((node) => node.id);
+});
 const showFallbackNote = computed(() => isFallbackGraph.value && !fallbackNoteDismissed.value);
 const childTermsStatus = computed<ChildTermsStatus>(() => {
   if (!childTermsGraphInput.value) {
@@ -356,8 +375,8 @@ watch(
           </StatusNote>
           <GraphCanvas
             :graph="selectedGraph"
-            :layout-preset="isFallbackGraph ? 'auto' : 'doublet-arms'"
-            :root-node-id="isFallbackGraph ? selectedGraph.rootNodeId : undefined"
+            :layout-preset="graphLayoutPreset"
+            :highlighted-node-ids="highlightedGraphNodeIds"
             @load-children="handleLoadChildren"
           />
         </div>

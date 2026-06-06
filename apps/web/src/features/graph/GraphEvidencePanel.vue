@@ -13,7 +13,7 @@ withDefaults(
     status: GraphEvidenceStatus;
     graph: EtymologyGraph | null;
     layoutPreset?: GraphLayoutPreset;
-    rootNodeId?: string;
+    highlightedNodeIds?: string[];
     showControls?: boolean;
     annotations?: GraphNodeAnnotation[];
     loadingLabel?: string;
@@ -21,8 +21,8 @@ withDefaults(
     emptyText?: string;
   }>(),
   {
-    layoutPreset: "auto",
-    rootNodeId: undefined,
+    layoutPreset: () => ({ type: "auto" }),
+    highlightedNodeIds: () => [],
     showControls: true,
     annotations: () => [],
     loadingLabel: "Loading graph...",
@@ -79,7 +79,7 @@ const emit = defineEmits<{
       v-else-if="graph"
       :graph="graph"
       :layout-preset="layoutPreset"
-      :root-node-id="rootNodeId"
+      :highlighted-node-ids="highlightedNodeIds"
       :show-controls="showControls"
       :annotations="annotations"
       @load-children="emit('load-children', $event)"

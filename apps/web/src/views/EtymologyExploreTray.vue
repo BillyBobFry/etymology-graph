@@ -137,10 +137,12 @@ function handleOutsideTrayClick(): void {
       </span>
       <span
         v-bind="api.getIndicatorProps()"
-        class="font-label text-sm font-bold text-accent transition data-[state=open]:text-text-muted"
+        class="text-accent transition-[color,transform] duration-[180ms] ease data-[state=open]:rotate-180 data-[state=open]:text-text-muted"
         aria-hidden="true"
       >
-        {{ api.open ? "Hide" : "Open" }}
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 6L8 11L13 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
       </span>
     </button>
 

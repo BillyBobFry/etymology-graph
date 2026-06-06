@@ -1,7 +1,7 @@
 import type { EdgeType } from "@etymology-graph/graph";
 import type { PositionedGraphNode } from "./composables/useGraphLayout";
 
-export type NodeContextAction = "load-children" | "view-etymology" | "view-doublets" | "find-source-language-links";
+export type NodeContextAction = "load-children" | "view-etymology" | "find-source-language-links";
 
 export type NodeActionItem = {
   value: NodeContextAction;
@@ -11,7 +11,9 @@ export type NodeActionItem = {
 
 export type NodeActionLanguageContext = {
   nodeWord: string;
+  sourceLanguageCode: string;
   sourceLanguageName: string;
+  targetLanguageCode: string;
   targetLanguageName: string;
 };
 
@@ -32,24 +34,22 @@ const stableNodeActionItems: NodeActionItem[] = [
     value: "view-etymology",
     label: "View etymology",
     description: "Open this word's ancestry graph."
-  },
-  {
-    value: "view-doublets",
-    label: "View doublets",
-    description: "Find same-language terms with shared sources."
   }
 ];
 
 /** Creates node action copy with optional source and result language context. */
 export function createNodeActionItems(languageContext?: NodeActionLanguageContext): NodeActionItem[] {
-  return [
-    ...stableNodeActionItems.map((item) => nodeActionItemWithContext(item, languageContext)),
-    {
+  const items = stableNodeActionItems.map((item) => nodeActionItemWithContext(item, languageContext));
+
+  if (languageContext && languageContext.sourceLanguageCode !== languageContext.targetLanguageCode) {
+    items.push({
       value: "find-source-language-links",
       label: sourceLanguageLinksLabel(languageContext),
       description: sourceLanguageLinksDescription(languageContext)
-    }
-  ];
+    });
+  }
+
+  return items;
 }
 
 /** Adds selected-word context to reusable actions without changing their behavior. */
@@ -74,12 +74,6 @@ function nodeActionItemWithContext(
         label: `View ${languageContext.nodeWord} etymology`,
         description: `Open the ancestry graph for ${nodeActionSubject(languageContext)}.`
       };
-    case "view-doublets":
-      return {
-        ...item,
-        label: `View ${languageContext.nodeWord} doublets`,
-        description: `Find ${languageContext.sourceLanguageName} terms with sources shared by ${languageContext.nodeWord}.`
-      };
     case "find-source-language-links":
       return item;
   }
@@ -96,7 +90,7 @@ function sourceLanguageLinksLabel(languageContext?: NodeActionLanguageContext): 
     return "Find source links";
   }
 
-  return `Other links from ${languageContext.sourceLanguageName} to ${languageContext.targetLanguageName}`;
+  return `Links from ${languageContext.sourceLanguageName} to ${languageContext.targetLanguageName}`;
 }
 
 /** Explains which result language will be searched for this source language. */
@@ -113,7 +107,6 @@ export function isNodeContextAction(value: string): value is NodeContextAction {
   return (
     value === "load-children" ||
     value === "view-etymology" ||
-    value === "view-doublets" ||
     value === "find-source-language-links"
   );
 }

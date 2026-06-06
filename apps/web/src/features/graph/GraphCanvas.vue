@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useEventListener, useMediaQuery, useScrollLock } from "@vueuse/core";
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 import type { EtymologyGraph, GraphTraversalNode } from "@etymology-graph/graph";
@@ -49,12 +49,13 @@ const props = withDefaults(
   defineProps<{
     graph: EtymologyGraph;
     layoutPreset?: GraphLayoutPreset;
-    rootNodeId?: string;
+    highlightedNodeIds?: string[];
     showControls?: boolean;
     annotations?: GraphNodeAnnotation[];
   }>(),
   {
-    layoutPreset: "auto",
+    layoutPreset: () => ({ type: "auto" }),
+    highlightedNodeIds: () => [],
     showControls: true,
     annotations: () => []
   }
@@ -67,13 +68,14 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const searchLanguageStore = useSearchLanguageStore();
-const { getEtymologyRoute, getDoubletsRoute, getAncestorLanguageRoute } = useGraphNodeRoutes();
+const { getEtymologyRoute, getAncestorLanguageRoute } = useGraphNodeRoutes();
 const selectedNodeId = ref<string>();
 const contextNodeId = ref<string>();
 const pendingExpansionAnchorNodeId = ref<string>();
 const isGraphGuideOpen = ref(false);
 const isNodeContextMenuOpen = ref(false);
 const isGraphExpanded = ref(false);
+const graphCanvasRoot = ref<HTMLElement | null>(null);
 const isBodyScrollLocked = useScrollLock(() => document.body);
 const nodeContextMenu = ref<ContextMenuInstance | null>(null);
 const usesDesktopGraphLayout = useMediaQuery("(min-width: 768px)");
@@ -208,13 +210,12 @@ const nodeContextMenuItems = computed(() => createNodeActionItems(nodeActionLang
 const selectedNodeActionItems = computed(() => createNodeActionItems(nodeActionLanguageContextForNode(selectedNode.value)));
 
 watch(
-  [() => props.graph, graphLayoutOrientation, () => props.layoutPreset, () => props.rootNodeId],
-  ([graph, orientation, layoutPreset, rootNodeId]) => {
+  [() => props.graph, graphLayoutOrientation, () => props.layoutPreset],
+  ([graph, orientation, layoutPreset]) => {
     const expansionAnchorNodeId = pendingExpansionAnchorNodeId.value;
 
     buildSimulation(graph, orientation, {
       layoutPreset,
-      rootNodeId,
       annotations: props.annotations,
       expansionAnchorNodeId
     });
@@ -237,7 +238,6 @@ watch(
   () => {
     buildSimulation(props.graph, graphLayoutOrientation.value, {
       layoutPreset: props.layoutPreset,
-      rootNodeId: props.rootNodeId,
       annotations: props.annotations
     });
   }
@@ -252,6 +252,10 @@ watch(
 
 watch(isGraphExpanded, (expanded) => {
   isBodyScrollLocked.value = expanded;
+
+  if (!expanded) {
+    void scrollInlineGraphIntoView();
+  }
 });
 
 watch(usesDesktopGraphLayout, (usesDesktopLayout) => {
@@ -271,6 +275,16 @@ onBeforeUnmount(() => {
 /** Expands the graph into an app-level overlay without breaking portalled floating UI. */
 function toggleGraphExpanded(): void {
   setGraphExpanded(!isGraphExpanded.value);
+}
+
+/** Returns users to the graph's inline page position after leaving the full-screen workspace. */
+async function scrollInlineGraphIntoView(): Promise<void> {
+  await nextTick();
+
+  graphCanvasRoot.value?.scrollIntoView({
+    block: "start",
+    behavior: "auto"
+  });
 }
 
 /** Centralizes expanded-state cleanup for toolbar clicks and Escape. */
@@ -299,7 +313,6 @@ function closeNodeContextMenu(): void {
 function resetGraphLayout(): void {
   resetLayout(props.graph, graphLayoutOrientation.value, {
     layoutPreset: props.layoutPreset,
-    rootNodeId: props.rootNodeId,
     annotations: props.annotations
   });
   resetNodeDrag();
@@ -375,7 +388,9 @@ function nodeActionLanguageContextForNode(
 
   return {
     nodeWord: node.word,
+    sourceLanguageCode: node.langCode,
     sourceLanguageName: node.langName ?? languageNameForCode(node.langCode),
+    targetLanguageCode: selectedSearchLanguageCode.value,
     targetLanguageName: languageNameForCode(selectedSearchLanguageCode.value)
   };
 }
@@ -416,9 +431,6 @@ function performNodeAction(action: NodeContextAction, node: GraphTraversalNode):
       return;
     case "view-etymology":
       void router.push(getEtymologyRoute(routeParamsForNode(node)));
-      return;
-    case "view-doublets":
-      void router.push(getDoubletsRoute(routeParamsForNode(node)));
       return;
     case "find-source-language-links":
       void router.push(getAncestorLanguageRoute(ancestorLanguageRouteParamsForNode(node)));
@@ -464,6 +476,7 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
 
 <template>
   <div
+    ref="graphCanvasRoot"
     class="overflow-hidden [background:radial-gradient(ellipse_at_50%_42%,transparent_58%,color-mix(in_oklch,var(--theme-text)_6%,transparent)_100%),linear-gradient(135deg,color-mix(in_oklch,var(--theme-surface-muted)_82%,var(--theme-background))_0%,var(--theme-surface)_100%)] [box-shadow:inset_0_0_0_1px_color-mix(in_oklch,var(--theme-surface-raised)_72%,transparent)] after:absolute after:inset-0 after:pointer-events-none after:content-[''] after:opacity-[0.18] after:bg-[radial-gradient(color-mix(in_oklch,var(--theme-text)_12%,transparent)_0.7px,transparent_0.8px),radial-gradient(color-mix(in_oklch,var(--theme-surface-raised)_80%,transparent)_0.7px,transparent_0.8px)] after:bg-position-[0_0,11px_17px] after:bg-size-[19px_23px,29px_31px]"
     :class="isGraphExpanded ? 'fixed inset-0 z-900 rounded-none border-0' : 'relative z-0 rounded-md border border-border'"
   >
@@ -527,7 +540,7 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
             />
             <GraphCanvasNodes
               :nodes="renderedNodes"
-              :root-node-id="rootNodeId"
+              :highlighted-node-ids="highlightedNodeIds"
               :selected-node-id="selectedNodeId"
               :context-node-id="contextNodeId"
               :context-menu-open="isNodeContextMenuOpen"

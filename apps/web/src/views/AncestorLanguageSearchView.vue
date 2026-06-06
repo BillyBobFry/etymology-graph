@@ -580,7 +580,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
                 :key="match.entry.id"
                 :status="graphStatus"
                 :graph="expandedGraphQuery.data.value?.graph ?? null"
-                :root-node-id="match.entry.nodeId"
+                :highlighted-node-ids="[match.entry.nodeId]"
               />
             </template>
           </AncestorLanguageResultsAccordion>

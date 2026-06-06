@@ -3,10 +3,18 @@ import { useQueryClient } from "@tanstack/vue-query";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { DEFAULT_ANCESTOR_MAX_DEPTH, type ComparisonSetQuery, type DoubletGroup, type Language } from "@etymology-graph/graph";
+import {
+  DEFAULT_ANCESTOR_MAX_DEPTH,
+  normalizeWord,
+  type ComparisonSetQuery,
+  type DoubletGroup,
+  type EtymologyGraph,
+  type Language
+} from "@etymology-graph/graph";
 
 import DoubletGroupsAccordion from "../features/graph/DoubletGroupsAccordion.vue";
 import GraphEvidencePanel from "../features/graph/GraphEvidencePanel.vue";
+import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLayout";
 import {
   comparisonSetQueryKey,
   fetchComparisonSet,
@@ -68,6 +76,17 @@ const expandedGraphRootNodeId = computed(() => {
 
   return graph?.rootNodeId;
 });
+const expandedGraphLayoutPreset = computed<GraphLayoutPreset>(() =>
+  expandedGraphRootNodeId.value
+    ? { type: "doublet-arms", rootNodeId: expandedGraphRootNodeId.value }
+    : { type: "auto" }
+);
+const expandedGraphHighlightedNodeIds = computed(() =>
+  highlightedTermNodeIds(
+    expandedGraphQuery.data.value?.graph ?? null,
+    expandedGroup.value?.entries.map((entry) => ({ langCode: entry.langCode, word: entry.word })) ?? []
+  )
+);
 const resultsStatus = computed<ResultsStatus>(() => {
   if (!resultQueryInput.value) {
     return "idle";
@@ -229,6 +248,24 @@ function loadMoreGroups(): void {
 function firstRouteParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
+
+/** Finds graph nodes that represent the entries shown for an expanded doublet group. */
+function highlightedTermNodeIds(graph: EtymologyGraph | null, terms: Array<{ langCode: string; word: string }>): string[] {
+  if (!graph || terms.length === 0) {
+    return [];
+  }
+
+  const termKeys = new Set(terms.map((term) => termKey(term.langCode, term.word)));
+
+  return graph.nodes
+    .filter((node) => termKeys.has(termKey(node.langCode, node.normalizedWord)))
+    .map((node) => node.id);
+}
+
+/** Keeps highlight matching aligned with graph-node normalization. */
+function termKey(langCode: string, word: string): string {
+  return `${langCode}:${normalizeWord(word)}`;
+}
 </script>
 
 <template>
@@ -332,8 +369,8 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
             :key="group.sharedAncestor.id"
             :status="graphStatus"
             :graph="expandedGraphQuery.data.value?.graph ?? null"
-            layout-preset="doublet-arms"
-            :root-node-id="expandedGraphRootNodeId"
+            :layout-preset="expandedGraphLayoutPreset"
+            :highlighted-node-ids="expandedGraphHighlightedNodeIds"
             empty-text="No focused graph is available for this group."
           />
         </template>

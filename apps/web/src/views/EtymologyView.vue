@@ -132,6 +132,12 @@ const selectedCognateIds = computed(() =>
   visibleCognates.value.filter((cognate) => isCognateInSelectedGraph(cognate)).map((cognate) => cognate.id)
 );
 const selectedGraph = computed(() => expandedGraph.value ?? ancestorGraphQuery.data.value?.graph ?? null);
+const highlightedGraphNodeIds = computed(() => {
+  const rootNodeId = selectedGraph.value?.rootNodeId;
+  const highlightedNodeIds = rootNodeId ? [rootNodeId] : [];
+
+  return [...new Set([...highlightedNodeIds, ...selectedCognateIds.value])];
+});
 const selectedLanguageLabel = computed(() => {
   if (!langCode.value) {
     return null;
@@ -586,7 +592,7 @@ watch(
         </p>
         <GraphCanvas
           :graph="selectedGraph"
-          :root-node-id="selectedGraph.rootNodeId"
+          :highlighted-node-ids="highlightedGraphNodeIds"
           @load-children="handleLoadChildren"
           @node-details-open-change="isGraphNodeDetailOpen = $event"
         />

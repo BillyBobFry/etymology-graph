@@ -4,8 +4,6 @@ import {
   type DoubletsQuery
 } from "@etymology-graph/graph";
 
-import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLayout";
-
 export type FeaturedGraphExample<TQuery> = {
   heading: string;
   concept: string;
@@ -13,7 +11,6 @@ export type FeaturedGraphExample<TQuery> = {
   exampleText: string;
   query: TQuery;
   ctaLabel: string;
-  layoutPreset?: GraphLayoutPreset;
 };
 
 export type FeaturedDoubletExample = FeaturedGraphExample<DoubletsQuery> & {
@@ -116,7 +113,6 @@ export const featuredDoubletExamples: FeaturedDoubletExample[] = [
     ctaLabel: "Open this doublet graph",
     browseCtaLabel: "See more English doublets",
     expectedSameLanguageTerms: ["father", "faeder", "pater"],
-    layoutPreset: "doublet-arms",
     query: { langCode: "en", word: "father", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH, limit: featuredGraphLimit }
   },
   {
@@ -129,7 +125,6 @@ export const featuredDoubletExamples: FeaturedDoubletExample[] = [
     ctaLabel: "Open this doublet graph",
     browseCtaLabel: "See more English doublets",
     expectedSameLanguageTerms: ["language", "langaj"],
-    layoutPreset: "doublet-arms",
     query: { langCode: "en", word: "language", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH, limit: featuredGraphLimit }
   },
   {
@@ -142,7 +137,6 @@ export const featuredDoubletExamples: FeaturedDoubletExample[] = [
     ctaLabel: "Open this doublet graph",
     browseCtaLabel: "See more English doublets",
     expectedSameLanguageTerms: ["ward", "guard"],
-    layoutPreset: "doublet-arms",
     query: { langCode: "en", word: "ward", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH, limit: featuredGraphLimit }
   },
   {
@@ -155,7 +149,6 @@ export const featuredDoubletExamples: FeaturedDoubletExample[] = [
     ctaLabel: "Open this doublet graph",
     browseCtaLabel: "See more English doublets",
     expectedSameLanguageTerms: ["an", "one"],
-    layoutPreset: "doublet-arms",
     query: { langCode: "en", word: "an", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH, limit: featuredGraphLimit }
   },
   {
@@ -168,7 +161,6 @@ export const featuredDoubletExamples: FeaturedDoubletExample[] = [
     ctaLabel: "Open this doublet graph",
     browseCtaLabel: "See more English doublets",
     expectedSameLanguageTerms: ["coffee", "caffè"],
-    layoutPreset: "doublet-arms",
     query: { langCode: "en", word: "coffee", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH, limit: featuredGraphLimit }
   },
   {
@@ -181,7 +173,6 @@ export const featuredDoubletExamples: FeaturedDoubletExample[] = [
     ctaLabel: "Open this doublet graph",
     browseCtaLabel: "See more English doublets",
     expectedSameLanguageTerms: ["ford", "port"],
-    layoutPreset: "doublet-arms",
     query: { langCode: "en", word: "ford", maxDepth: DEFAULT_ANCESTOR_MAX_DEPTH, limit: featuredGraphLimit }
   }
 ];
