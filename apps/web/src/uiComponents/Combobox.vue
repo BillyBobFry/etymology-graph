@@ -21,7 +21,7 @@ type VirtualizedOption = {
 
 const defaultListMaxHeight = 288;
 const virtualOverscan = 4;
-const loadingSkeletonRows = [0, 1, 2] as const;
+const loadingSkeletonRows = [0, 1, 2, 3] as const;
 
 const props = withDefaults(
   defineProps<{
@@ -343,10 +343,10 @@ watch(() => props.closeOnEmpty && !inputValue.value.trim(), (shouldClose) => {
               <span
                 v-for="row in loadingSkeletonRows"
                 :key="row"
-                class="flex h-[86px] items-center rounded-md px-3"
+                class="flex h-14 items-center rounded-md px-3"
                 aria-hidden="true"
               >
-                <Skeleton tone="raised" class="h-10 w-2/3" />
+                <Skeleton tone="raised" class="h-12 w-2/3" />
               </span>
             </li>
 

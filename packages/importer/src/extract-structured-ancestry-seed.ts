@@ -28,6 +28,8 @@ type FrontierReason =
   | "initial_seed"
   | "ancestor_template"
   | "alternative_form"
+  | "cognate_template"
+  | "doublet_template"
   | "structured_descendant"
   | "structured_derived";
 
@@ -132,7 +134,7 @@ const frontierPath =
   process.env.STRUCTURED_ANCESTRY_FRONTIER_PATH ??
   "../../wikidata_downloads/checkpoints/structured-ancestry-frontier.json";
 const maxDepth = Number(process.env.STRUCTURED_ANCESTRY_MAX_DEPTH ?? 8);
-const maxEnqueuedTargets = Number(process.env.STRUCTURED_ANCESTRY_MAX_TARGETS ?? 500_000);
+const maxEnqueuedTargets = Number(process.env.STRUCTURED_ANCESTRY_MAX_TARGETS ?? 700_000);
 const maxDiscoveredTargetsPerMatch = Number(
   process.env.STRUCTURED_ANCESTRY_MAX_DISCOVERED_TARGETS_PER_MATCH ?? 200
 );

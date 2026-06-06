@@ -2172,6 +2172,63 @@ describe("structured ancestry seed expansion", () => {
 
     expect(discoveredTargetKeys(middleEnglishCheef)).toContain("enm:chef");
   });
+
+  it("queues explicit doublet template links", () => {
+    const englishCharacter: WiktextractEntry = {
+      word: "character",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_templates: [
+        {
+          name: "doublet",
+          args: {
+            "1": "en",
+            "2": "charakter",
+            "3": "charact"
+          },
+          expansion: "Doublet of charakter and charact"
+        }
+      ]
+    };
+
+    expect(discoveredTargetKeys(englishCharacter)).toEqual(expect.arrayContaining([
+      "en:charakter",
+      "en:charact"
+    ]));
+  });
+
+  it("queues explicit cognate template links", () => {
+    const englishIs: WiktextractEntry = {
+      word: "is",
+      lang: "English",
+      lang_code: "en",
+      pos: "verb",
+      etymology_templates: [
+        {
+          name: "cog",
+          args: {
+            "1": "nl",
+            "2": "is"
+          },
+          expansion: "Dutch is"
+        },
+        {
+          name: "cognate",
+          args: {
+            "1": "de",
+            "2": "ist"
+          },
+          expansion: "German ist"
+        }
+      ]
+    };
+
+    expect(discoveredTargetKeys(englishIs)).toEqual(expect.arrayContaining([
+      "nl:is",
+      "de:ist"
+    ]));
+  });
 });
 
 describe("seed target matching", () => {

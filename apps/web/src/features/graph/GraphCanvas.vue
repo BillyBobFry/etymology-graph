@@ -43,6 +43,8 @@ type ContextMenuInstance = {
   close(): void;
 };
 
+const inlineGraphControlsPanRoom = 76;
+
 const props = withDefaults(
   defineProps<{
     graph: EtymologyGraph;
@@ -103,6 +105,7 @@ const {
   height: graphCanvasHeight,
   minZoom: 0.12,
   contentBounds: graphNodeBounds,
+  inlineScrollTopPanRoom: props.showControls ? inlineGraphControlsPanRoom : 0,
   isInlineScrollHandoffEnabled
 });
 

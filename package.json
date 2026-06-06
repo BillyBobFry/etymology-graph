@@ -16,6 +16,7 @@
     "seed:languages": "pnpm --filter @etymology-graph/importer seed:languages:generate",
     "seed:languages:generate": "pnpm --filter @etymology-graph/importer seed:languages:generate",
     "seed:languages:validate": "pnpm --filter @etymology-graph/importer seed:languages:validate",
+    "homepage:validate-featured-graphs": "pnpm --filter @etymology-graph/web exec tsx scripts/validate-homepage-featured-graphs.ts",
     "seed:languages:import": "pnpm --filter @etymology-graph/importer seed:languages:import",
     "atlas:refresh:source-languages": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer atlas:refresh:source-languages",
     "embeddings:refresh:english": "pnpm --filter @etymology-graph/importer embeddings:refresh:english",

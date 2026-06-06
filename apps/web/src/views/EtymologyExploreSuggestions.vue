@@ -50,12 +50,12 @@ const isCognateSelected = (cognate: GraphNode): boolean => selectedCognateIdSet.
     <section v-if="hasSimilarTermsSection" :aria-labelledby="similarTermsHeadingId">
       <div class="mb-3">
         <h3 :id="similarTermsHeadingId" class="mb-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-text-muted">
-          Similar terms
+          Similar
         </h3>
       </div>
       <div
         v-if="similarTermsLoading"
-        class="flex flex-nowrap gap-2 overflow-hidden"
+        class="flex flex-wrap gap-2 overflow-hidden"
         role="status"
         aria-live="polite"
       >
@@ -93,20 +93,18 @@ const isCognateSelected = (cognate: GraphNode): boolean => selectedCognateIdSet.
 
     <section v-if="hasCognatesSection" :aria-labelledby="cognatesHeadingId">
       <div class="mb-3">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 :id="cognatesHeadingId" class="mb-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-text-muted">
+        <div class="flex flex-wrap items-center gap-2 mb-1">
+            <h3 :id="cognatesHeadingId" class="font-label text-xs font-bold uppercase tracking-[0.12em] text-text-muted">
               Cognates
             </h3>
-            <p class="text-sm leading-6 text-text-muted">
-              Explicitly linked relatives in other languages.
+            <p class="text-xs leading-6 text-text-muted">
+              Relatives in other languages.
             </p>
-          </div>
         </div>
       </div>
       <div
         v-if="cognatesLoading || cognatesChecking"
-        class="flex flex-nowrap gap-2 overflow-hidden"
+        class="flex flex-1  wrap gap-2 overflow-hidden"
         role="status"
         aria-live="polite"
       >

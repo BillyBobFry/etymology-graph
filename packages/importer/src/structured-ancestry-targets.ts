@@ -12,6 +12,8 @@ type WiktextractDescendant = NonNullable<WiktextractEntry["descendants"]>[number
 export type StructuredAncestryDiscoveryReason =
   | "ancestor_template"
   | "alternative_form"
+  | "cognate_template"
+  | "doublet_template"
   | "structured_descendant"
   | "structured_derived";
 
@@ -31,6 +33,7 @@ export type StructuredDescendantTargetRanks = ReadonlyMap<string, number>;
 export function structuredAncestryDiscoveredTargets(entry: WiktextractEntry): StructuredAncestryDiscoveredTarget[] {
   return [
     ...ancestorTemplateTargets(entry).map((target) => ({ target, reason: "ancestor_template" as const })),
+    ...relationshipTemplateTargets(entry),
     ...alternativeFormTargets(entry),
     ...structuredChildTargets(entry)
   ];
@@ -110,6 +113,71 @@ function seedTargetFromTemplate(template: WiktextractTemplate): SeedTarget[] {
   }
 
   return [{ langCode, word: displayedTerm }];
+}
+
+/** Reads explicit doublet and cognate links as records to process later. */
+function relationshipTemplateTargets(entry: WiktextractEntry): StructuredAncestryDiscoveredTarget[] {
+  return uniqueRelationshipTargets((entry.etymology_templates ?? []).flatMap((template) => {
+    switch (template.name) {
+      case "doublet":
+        return doubletTemplateTargets(template, entry.lang_code);
+      case "cog":
+      case "cognate":
+        return cognateTemplateTargets(template);
+      default:
+        return [];
+    }
+  }));
+}
+
+/** Converts a same-language doublet template to one or more seed targets. */
+function doubletTemplateTargets(
+  template: WiktextractTemplate,
+  fallbackLangCode: string | undefined
+): StructuredAncestryDiscoveredTarget[] {
+  const langCode = trimOptional(template.args?.["1"]) ?? fallbackLangCode;
+  if (!langCode || !isSingleLanguageCode(langCode)) {
+    return [];
+  }
+
+  return numericTemplateArgsFrom(template.args ?? {}, 2).map((word) => ({
+    target: { langCode, word },
+    reason: "doublet_template"
+  }));
+}
+
+/** Converts a cognate template to a cross-language seed target. */
+function cognateTemplateTargets(template: WiktextractTemplate): StructuredAncestryDiscoveredTarget[] {
+  const langCode = trimOptional(template.args?.["1"]);
+  const word = trimOptional(template.args?.["2"]);
+  if (!langCode || !word || word === "-" || !isSingleLanguageCode(langCode)) {
+    return [];
+  }
+
+  return [{
+    target: { langCode, word },
+    reason: "cognate_template"
+  }];
+}
+
+/** Returns positional template arguments from a start index while skipping gloss metadata keys. */
+function numericTemplateArgsFrom(args: Record<string, string>, startIndex: number): string[] {
+  return Object.entries(args)
+    .map(([key, value]) => ({
+      argumentIndex: Number.parseInt(key, 10),
+      value
+    }))
+    .filter(({ argumentIndex }) => Number.isInteger(argumentIndex) && argumentIndex >= startIndex)
+    .sort((left, right) => left.argumentIndex - right.argumentIndex)
+    .flatMap(({ value }) => {
+      const word = trimOptional(value);
+      return word && word !== "-" ? [word] : [];
+    });
+}
+
+/** Keeps combined language lists from becoming impossible seed language codes. */
+function isSingleLanguageCode(langCode: string): boolean {
+  return !langCode.includes(",");
 }
 
 /** Enqueues same-language lemma records for Wiktextract alternative-form pages. */
@@ -318,6 +386,23 @@ function firstDescendantPerLanguage(descendants: WiktextractDescendant[]): Wikte
   }
 
   return primaryDescendants;
+}
+
+/** Removes duplicate relationship targets while keeping their first discovery reason. */
+function uniqueRelationshipTargets(
+  discoveredTargets: StructuredAncestryDiscoveredTarget[]
+): StructuredAncestryDiscoveredTarget[] {
+  const uniqueTargets = new Map<string, StructuredAncestryDiscoveredTarget>();
+
+  for (const discoveredTarget of discoveredTargets) {
+    const canonicalTarget = canonicalSeedTarget(discoveredTarget.target);
+    const key = seedTargetKey(canonicalTarget);
+    if (!uniqueTargets.has(key)) {
+      uniqueTargets.set(key, { ...discoveredTarget, target: canonicalTarget });
+    }
+  }
+
+  return [...uniqueTargets.values()];
 }
 
 /** Removes duplicate targets while preserving discovery order. */

@@ -33,7 +33,7 @@ const relatedCount = computed(() => props.similarTerms.length + props.cognates.l
 const hasCognates = computed(() => props.cognates.length > 0);
 const hasOnlySimilarTerms = computed(() => props.similarTerms.length > 0 && !hasCognates.value);
 const triggerLabel = computed(() =>
-  relatedCount.value > 0 ? `Explore ${relatedCount.value} related terms` : "Explore related terms"
+  relatedCount.value > 0 ? `${relatedCount.value} related terms` : "Related terms"
 );
 const statusLabel = computed(() => {
   const parts: string[] = [];

@@ -39,6 +39,7 @@ type GraphViewportOptions = {
   zoomStep?: number;
   keyboardPanStep?: number;
   contentVisibleBuffer?: number;
+  inlineScrollTopPanRoom?: number;
   contentBounds?: Readonly<Ref<GraphViewportContentBounds | null>>;
   isInlineScrollHandoffEnabled?: Readonly<Ref<boolean>>;
 };
@@ -93,6 +94,7 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
   const zoomStep = options.zoomStep ?? defaultZoomStep;
   const keyboardPanStep = options.keyboardPanStep ?? defaultKeyboardPanStep;
   const contentVisibleBuffer = options.contentVisibleBuffer ?? defaultContentVisibleBuffer;
+  const inlineScrollTopPanRoom = options.inlineScrollTopPanRoom ?? 0;
   let lastSinglePointer: ViewportPoint | null = null;
   let lastPinch: PinchSnapshot | null = null;
 
@@ -462,6 +464,7 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     const frame = viewportFrame.value;
     const frameRight = frame.x + frame.width;
     const frameBottom = frame.y + frame.height;
+    const topPanLimit = frame.y + inlineScrollTopPanRoom;
     const currentLeft = bounds.minX * zoom.value + panX.value;
     const currentRight = bounds.maxX * zoom.value + panX.value;
     const currentTop = bounds.minY * zoom.value + panY.value;
@@ -477,8 +480,8 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
 
     if (deltaY < 0 && currentBottom > frameBottom + viewportChangeEpsilon) {
       nextPanY = Math.max(nextPanY + deltaY, frameBottom - bounds.maxY * zoom.value);
-    } else if (deltaY > 0 && currentTop < frame.y - viewportChangeEpsilon) {
-      nextPanY = Math.min(nextPanY + deltaY, frame.y - bounds.minY * zoom.value);
+    } else if (deltaY > 0 && currentTop < topPanLimit - viewportChangeEpsilon) {
+      nextPanY = Math.min(nextPanY + deltaY, topPanLimit - bounds.minY * zoom.value);
     }
 
     return applyViewport({
