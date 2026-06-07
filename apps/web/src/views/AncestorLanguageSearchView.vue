@@ -108,8 +108,8 @@ const sourceLayerHelpText = computed(() => {
   const descendantName = descendantLanguage.value?.canonicalName;
 
   return descendantName
-    ? `Browse curated source layers and open the ${descendantName} words that trace back to them.`
-    : "Choose a language first, then open one of its curated source layers.";
+    ? `Pick a source language, then open matching ${descendantName} words.`
+    : "Choose a language first, then pick a source language.";
 });
 const resultQueryInput = computed(() => {
   if (
@@ -173,18 +173,18 @@ const graphStatus = computed<GraphStatus>(() => {
 });
 const resultHeading = computed(() => {
   if (!descendantLanguage.value || !ancestorLanguage.value) {
-    return "Open a source layer";
+    return "Choose a source language";
   }
 
   return `${descendantLanguage.value.canonicalName} words from ${ancestorLanguage.value.canonicalName}`;
 });
 const resultSummary = computed(() => {
   if (!descendantLanguage.value) {
-    return "Choose a language to see its source layers.";
+    return "Choose a language to see available source languages.";
   }
 
   if (!selectedSourceLayer.value) {
-    return `Choose a source layer to list ${descendantLanguage.value.canonicalName} words with a shared lineage.`;
+    return `Choose a source language to list matching ${descendantLanguage.value.canonicalName} words.`;
   }
 
   if (selectedSourceLayer.value.status === "available") {
@@ -192,19 +192,19 @@ const resultSummary = computed(() => {
   }
 
   if (selectedSourceLayer.value.status === "empty") {
-    return "No paths in the index yet for this source layer.";
+    return "No paths in the index yet for this source language.";
   }
 
   if (selectedSourceLayer.value.status === "unrefreshed") {
-    return "This source layer is waiting for coverage.";
+    return "No word list for this language pair yet.";
   }
 
-  return "Checking coverage for this source layer.";
+  return "Checking coverage for this source language.";
 });
 const sourceIndexHeading = computed(() =>
   descendantLanguage.value
-    ? `${descendantLanguage.value.canonicalName} source layers`
-    : "Source layers"
+    ? `${descendantLanguage.value.canonicalName} source languages`
+    : "Source languages"
 );
 
 watch([routeDescendantLangCode, routeAncestorLangCode], syncLanguagePairFromRoute, { immediate: true });
@@ -257,7 +257,7 @@ function ensureValidLanguageSelection(availableLanguages: Language[]): void {
   }
 }
 
-/** Opens the first result-bearing source drawer so the atlas starts with useful results. */
+/** Opens the first result-bearing source language so the page starts with useful results. */
 function ensureDefaultAncestorSelection(suggestions: ResolvedSourceLayerSuggestion[]): void {
   if (sourceLayerQuery.isPending.value || sourceLayerQuery.isError.value) {
     return;
@@ -425,13 +425,13 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
   <PageMain>
     <section class="border-b border-border-strong pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-        Word lineages
+        Source languages
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
-        Open a drawer of words with the same source.
+        Find words that share a source language.
       </h1>
       <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
-        Browse a language by historical layer, then inspect the paths that connect each word back to a shared source.
+        Choose a modern language and an older source language, then open matching word paths.
       </p>
     </section>
 
@@ -442,7 +442,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
       <div class="grid gap-5 border-b border-border pb-5 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,18rem)] lg:items-end">
         <div class="grid gap-2">
           <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
-            Lineage atlas
+            Source language
           </p>
           <h2 id="ancestor-language-results" class="text-3xl font-black leading-tight tracking-[-0.04em] text-text">
             {{ resultHeading }}
@@ -489,7 +489,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
           <ul
             v-if="visibleSourceLayerSuggestions.length > 0"
             class="flex gap-2 overflow-x-auto pb-1 lg:grid lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:pr-1 lg:pb-0"
-            aria-label="Source layers"
+            aria-label="Source languages"
           >
             <li
               v-for="suggestion in visibleSourceLayerSuggestions"
@@ -523,7 +523,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
             </li>
           </ul>
           <p v-else class="text-sm leading-6 text-text-muted">
-            No source layers with matches are available for this language yet.
+            No source languages with matches are available for this language yet.
           </p>
         </aside>
 
@@ -534,10 +534,10 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
           >
             <div class="grid max-w-md gap-2">
               <p class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
-                Choose a source layer
+                Choose a source language
               </p>
               <p class="leading-7">
-                Pick a historical source on the left to open its shared word list.
+                Select a source language on the left to open matching words.
               </p>
             </div>
           </div>

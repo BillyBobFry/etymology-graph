@@ -10,13 +10,13 @@ import PageMain from "../uiComponents/PageMain.vue";
         Route not found
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
-        This path is not in the atlas.
+        Page not found.
       </h1>
       <p class="mb-6 max-w-3xl text-lg leading-8 text-text-page-muted">
-        Return home to choose etymology, doublets, word lineages, or sound changes.
+        Return home to choose etymology, doublets, source languages, or sound changes.
       </p>
       <Button :to="{ name: 'home' }">
-        Back to the atlas
+        Back home
       </Button>
     </section>
   </PageMain>

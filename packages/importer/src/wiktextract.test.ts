@@ -335,6 +335,33 @@ describe("previewEntry", () => {
     expect(edgeIds).not.toContain("enm:flour:derived_from:xno:flur:from:en:flower:entry:noun:1");
   });
 
+  it("does not let a clipping sense override a real entry etymology", () => {
+    const entry: WiktextractEntry = {
+      word: "turnip",
+      lang: "English",
+      lang_code: "en",
+      pos: "noun",
+      etymology_text: "From Middle English turnepe, probably from turn + Middle English nepe.",
+      etymology_templates: [
+        template("inh", "en", "enm", "turnepe", "Middle English turnepe"),
+        template("inh", "en", "enm", "nepe", "Middle English nepe"),
+        template("inh", "en", "ang", "nǣp", "Old English nǣp"),
+        template("der", "en", "la", "nāpus", "Latin nāpus")
+      ],
+      senses: [
+        {
+          glosses: ["Clipping of turnip watch"],
+          tags: ["abbreviation", "alt-of", "clipping", "dated"],
+          alt_of: [{ word: "turnip watch" }]
+        }
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).not.toContain("en:turnip:derived_from:en:turnip watch:from:en:turnip:entry:noun:0");
+  });
+
   it("does not use inherited opening prose fallback for a multi-template flat ancestry chain", () => {
     const entry: WiktextractEntry = {
       word: "tre",
@@ -1491,6 +1518,128 @@ describe("previewEntry merged neighborhoods", () => {
 });
 
 describe("traverseAncestors against merged neighborhoods", () => {
+  it("reaches garden ancestry through Old Northern French source hints", () => {
+    const entries: WiktextractEntry[] = [
+      {
+        word: "garden",
+        lang: "English",
+        lang_code: "en",
+        pos: "noun",
+        etymology_text:
+          "From Middle English gardyn, garden, from Anglo-Norman gardin, from Frankish *gardin-, oblique stem of *gardō.",
+        etymology_templates: [
+          template("inh", "en", "enm", "gardyn", "Middle English gardyn"),
+          template("der", "en", "xno", "gardin", "Anglo-Norman gardin"),
+          template("der", "en", "frk", "*gardō", "Frankish *gardin-", { "4": "*gardin-" })
+        ]
+      },
+      {
+        word: "gardyn",
+        lang: "Middle English",
+        lang_code: "enm",
+        pos: "noun",
+        etymology_number: 1,
+        etymology_text: "From Old Northern French gardin, though ultimately of Germanic origin.",
+        etymology_templates: [template("bor", "enm", "fro-nor", "gardin", "Old Northern French gardin")]
+      },
+      {
+        word: "gardin",
+        lang: "Old French",
+        lang_code: "fro",
+        pos: "noun",
+        descendants: [
+          {
+            lang: "Middle English",
+            lang_code: "enm",
+            word: "gardyn",
+            raw_tags: ["borrowed"],
+            descendants: [{ lang: "English", lang_code: "en", word: "garden" }]
+          }
+        ],
+        etymology_templates: [
+          {
+            name: "ety",
+            args: { "1": "fro" },
+            expansion: treeExpansion([
+              {
+                lang: "fro",
+                term: "gardin",
+                children: [
+                  {
+                    keyword: "inherited",
+                    terms: [
+                      {
+                        lang: "la-eme",
+                        term: "gardīnus",
+                        children: [
+                          {
+                            keyword: "borrowed",
+                            terms: [
+                              {
+                                lang: "frk",
+                                term: "*gardō",
+                                children: [
+                                  {
+                                    keyword: "inherited",
+                                    terms: [
+                                      {
+                                        lang: "gem-pro",
+                                        term: "*gardô",
+                                        children: [
+                                          {
+                                            keyword: "derived",
+                                            terms: [{ lang: "ine-pro", term: "*gʰerdʰ-", children: [] }]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ])
+          }
+        ]
+      }
+    ];
+    const neighborhood = mergeStructuredNeighborhood(entries);
+    const reached = traverseAncestors({
+      ...neighborhood,
+      rootEntryId: expectEntryId("en", "garden", "noun", 0),
+      edgeTypes: ANCESTOR_EDGE_TYPES,
+      maxDepth: 8
+    });
+
+    expect(neighborhood.edges.map((edge) => edge.id)).toEqual(expect.arrayContaining([
+      "enm:gardyn:borrowed_from:fro-nor:gardin:from:enm:gardyn:entry:noun:1",
+      "enm:gardyn:borrowed_from:fro:gardin:from:fro:gardin:entry:noun:0"
+    ]));
+    expect(neighborhood.edges.map((edge) => edge.id)).not.toContain(
+      "enm:gardyn:borrowed_from:fro:gardin:from:enm:gardyn:entry:noun:1"
+    );
+    expect([...reached.reachedEdgeIds]).toEqual(expect.arrayContaining([
+      "enm:gardyn:borrowed_from:fro-nor:gardin:from:enm:gardyn:entry:noun:1",
+      "enm:gardyn:borrowed_from:fro:gardin:from:fro:gardin:entry:noun:0"
+    ]));
+    expect([...reached.nodeDepthsById.keys()].sort()).toEqual([
+      "en:garden",
+      "enm:gardyn",
+      "frk:*gardō",
+      "fro-nor:gardin",
+      "fro:gardin",
+      "gem-pro:*gardô",
+      "ine-pro:*gʰerdʰ-",
+      "la-eme:gardīnus"
+    ]);
+  });
+
   it("reaches canal ancestry through ancestor-page descendant records", () => {
     const neighborhood = mergeStructuredNeighborhood(canalNeighborhoodEntries());
     const reached = traverseAncestors({
@@ -2152,6 +2301,21 @@ describe("structured ancestry seed expansion", () => {
       "la:canalis",
       "enm:canal",
       "en:canal"
+    ]));
+  });
+
+  it("queues supporting Old French pages for Old Northern French source hints", () => {
+    const middleEnglishGardyn: WiktextractEntry = {
+      word: "gardyn",
+      lang: "Middle English",
+      lang_code: "enm",
+      pos: "noun",
+      etymology_templates: [template("bor", "enm", "fro-nor", "gardin", "Old Northern French gardin")]
+    };
+
+    expect(discoveredTargetKeys(middleEnglishGardyn)).toEqual(expect.arrayContaining([
+      "fro-nor:gardin",
+      "fro:gardin"
     ]));
   });
 

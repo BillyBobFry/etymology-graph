@@ -2,6 +2,7 @@ import type { Pool, PoolClient } from "pg";
 
 import {
   canonicalGraphWord,
+  DEFAULT_ANCESTOR_MAX_DEPTH,
   EDGE_TYPES,
   normalizeWord,
   type AncestorPathQuery,
@@ -349,8 +350,9 @@ const ANCHOR_ENTRY_CTE_SQL = `
  * Recursive CTE that walks ancestor edges away from the seed entry while only following edges whose
  * declaring entry is currently in the allowed set. The allowed set is seeded with the anchor entry
  * and expands at each visited node when another homed entry agrees with the seed (case b) or is the
- * only entry homed at the node (case a). Edge candidates come from `graph_edge_walk_mv`, which excludes
- * ambiguous descendant-list evidence whenever the same node has self-declared ancestry.
+ * only entry homed at the node (case a). Default edge candidates come from `graph_edge_walk_mv`; ambiguous
+ * descendant-list evidence can still be followed when the self-declared branch dead-ends and the descendant
+ * branch continues.
  */
 const ANCESTOR_WALK_CTE_SQL = `
   ancestor_walk AS (
@@ -414,7 +416,31 @@ const ANCESTOR_WALK_CTE_SQL = `
       ON next_edge.from_node_id = ancestor_walk.node_id
     WHERE ancestor_walk.depth < $3
       AND next_edge.edge_type = ANY($4::TEXT[])
-      AND next_edge.default_ancestor_walk_candidate
+      AND (
+        next_edge.default_ancestor_walk_candidate
+        OR (
+          next_edge.template_name = 'descendants'
+          AND EXISTS (
+            SELECT 1
+            FROM graph_edge_walk_mv descendant_next_edge
+            WHERE descendant_next_edge.from_node_id = next_edge.to_node_id
+              AND descendant_next_edge.edge_type = ANY($4::TEXT[])
+              AND descendant_next_edge.default_ancestor_walk_candidate
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM graph_edge_walk_mv own_next_edge
+            JOIN graph_edge_walk_mv own_branch_edge
+              ON own_next_edge.from_node_id = own_branch_edge.to_node_id
+              AND own_next_edge.edge_type = ANY($4::TEXT[])
+              AND own_next_edge.default_ancestor_walk_candidate
+            WHERE own_branch_edge.from_node_id = ancestor_walk.node_id
+              AND own_branch_edge.edge_type = ANY($4::TEXT[])
+              AND own_branch_edge.declaring_entry_id = ANY(current_allowed.allowed_entry_ids)
+              AND own_branch_edge.default_ancestor_walk_candidate
+          )
+        )
+      )
       AND (
         NOT ancestor_walk.entry_scoped
         OR next_edge.declaring_entry_id = ANY(current_allowed.allowed_entry_ids)
@@ -425,14 +451,38 @@ const ANCESTOR_WALK_CTE_SQL = `
             FROM lexical_entries
             WHERE lexical_entries.node_id = ancestor_walk.node_id
           ) <= 1
-          AND NOT EXISTS (
-            SELECT 1
-            FROM graph_edge_walk_mv own_edge
-            WHERE own_edge.from_node_id = ancestor_walk.node_id
-              AND own_edge.edge_type = ANY($4::TEXT[])
-              AND own_edge.declaring_entry_id = ANY(current_allowed.allowed_entry_ids)
-              AND own_edge.default_ancestor_walk_candidate
-              AND split_part(own_edge.to_node_id, ':', 1) = split_part(next_edge.to_node_id, ':', 1)
+          AND (
+            NOT EXISTS (
+              SELECT 1
+              FROM graph_edge_walk_mv own_edge
+              WHERE own_edge.from_node_id = ancestor_walk.node_id
+                AND own_edge.edge_type = ANY($4::TEXT[])
+                AND own_edge.declaring_entry_id = ANY(current_allowed.allowed_entry_ids)
+                AND own_edge.default_ancestor_walk_candidate
+                AND split_part(own_edge.to_node_id, ':', 1) = split_part(next_edge.to_node_id, ':', 1)
+            )
+            OR (
+              EXISTS (
+                SELECT 1
+                FROM graph_edge_walk_mv descendant_next_edge
+                WHERE descendant_next_edge.from_node_id = next_edge.to_node_id
+                  AND descendant_next_edge.edge_type = ANY($4::TEXT[])
+                  AND descendant_next_edge.default_ancestor_walk_candidate
+              )
+              AND NOT EXISTS (
+                SELECT 1
+                FROM graph_edge_walk_mv own_edge
+                JOIN graph_edge_walk_mv own_next_edge
+                  ON own_next_edge.from_node_id = own_edge.to_node_id
+                  AND own_next_edge.edge_type = ANY($4::TEXT[])
+                  AND own_next_edge.default_ancestor_walk_candidate
+                WHERE own_edge.from_node_id = ancestor_walk.node_id
+                  AND own_edge.edge_type = ANY($4::TEXT[])
+                  AND own_edge.declaring_entry_id = ANY(current_allowed.allowed_entry_ids)
+                  AND own_edge.default_ancestor_walk_candidate
+                  AND split_part(own_edge.to_node_id, ':', 1) = split_part(next_edge.to_node_id, ':', 1)
+              )
+            )
           )
         )
       )
@@ -511,7 +561,31 @@ const ANCESTOR_PATH_WALK_CTE_SQL = `
       FROM graph_edge_walk_mv candidate_edge
       WHERE candidate_edge.from_node_id = current_walk.node_id
         AND candidate_edge.edge_type = ANY($4::TEXT[])
-        AND candidate_edge.default_ancestor_walk_candidate
+        AND (
+          candidate_edge.default_ancestor_walk_candidate
+          OR (
+            candidate_edge.template_name = 'descendants'
+            AND EXISTS (
+              SELECT 1
+              FROM graph_edge_walk_mv descendant_next_edge
+              WHERE descendant_next_edge.from_node_id = candidate_edge.to_node_id
+                AND descendant_next_edge.edge_type = ANY($4::TEXT[])
+                AND descendant_next_edge.default_ancestor_walk_candidate
+            )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM graph_edge_walk_mv own_next_edge
+              JOIN graph_edge_walk_mv own_branch_edge
+                ON own_next_edge.from_node_id = own_branch_edge.to_node_id
+                AND own_next_edge.edge_type = ANY($4::TEXT[])
+                AND own_next_edge.default_ancestor_walk_candidate
+              WHERE own_branch_edge.from_node_id = current_walk.node_id
+                AND own_branch_edge.edge_type = ANY($4::TEXT[])
+                AND own_branch_edge.declaring_entry_id = ANY(current_walk.current_allowed_entry_ids)
+                AND own_branch_edge.default_ancestor_walk_candidate
+            )
+          )
+        )
         AND (
           NOT current_walk.entry_scoped
           OR candidate_edge.declaring_entry_id = ANY(current_walk.current_allowed_entry_ids)
@@ -522,14 +596,38 @@ const ANCESTOR_PATH_WALK_CTE_SQL = `
               FROM lexical_entries
               WHERE lexical_entries.node_id = current_walk.node_id
             ) <= 1
-            AND NOT EXISTS (
-              SELECT 1
-              FROM graph_edge_walk_mv own_edge
-              WHERE own_edge.from_node_id = current_walk.node_id
-                AND own_edge.edge_type = ANY($4::TEXT[])
-                AND own_edge.declaring_entry_id = ANY(current_walk.current_allowed_entry_ids)
-                AND own_edge.default_ancestor_walk_candidate
-                AND split_part(own_edge.to_node_id, ':', 1) = split_part(candidate_edge.to_node_id, ':', 1)
+            AND (
+              NOT EXISTS (
+                SELECT 1
+                FROM graph_edge_walk_mv own_edge
+                WHERE own_edge.from_node_id = current_walk.node_id
+                  AND own_edge.edge_type = ANY($4::TEXT[])
+                  AND own_edge.declaring_entry_id = ANY(current_walk.current_allowed_entry_ids)
+                  AND own_edge.default_ancestor_walk_candidate
+                  AND split_part(own_edge.to_node_id, ':', 1) = split_part(candidate_edge.to_node_id, ':', 1)
+              )
+              OR (
+                EXISTS (
+                  SELECT 1
+                  FROM graph_edge_walk_mv descendant_next_edge
+                  WHERE descendant_next_edge.from_node_id = candidate_edge.to_node_id
+                    AND descendant_next_edge.edge_type = ANY($4::TEXT[])
+                    AND descendant_next_edge.default_ancestor_walk_candidate
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM graph_edge_walk_mv own_edge
+                  JOIN graph_edge_walk_mv own_next_edge
+                    ON own_next_edge.from_node_id = own_edge.to_node_id
+                    AND own_next_edge.edge_type = ANY($4::TEXT[])
+                    AND own_next_edge.default_ancestor_walk_candidate
+                  WHERE own_edge.from_node_id = current_walk.node_id
+                    AND own_edge.edge_type = ANY($4::TEXT[])
+                    AND own_edge.declaring_entry_id = ANY(current_walk.current_allowed_entry_ids)
+                    AND own_edge.default_ancestor_walk_candidate
+                    AND split_part(own_edge.to_node_id, ':', 1) = split_part(candidate_edge.to_node_id, ':', 1)
+                )
+              )
             )
           )
         )
@@ -927,60 +1025,42 @@ export class PostgresGraphRepository implements GraphRepository {
     };
   }
 
-  /** Lists explicit Wiktionary cognate links for a term without running ancestry traversal. */
+  /** Lists explicit Wiktionary cognate links without repeating the seed's own ancestor path. */
   public async findCognates(query: CognatesQuery): Promise<CognatesResult> {
     const normalizedWord = normalizeCanonicalGraphWord(query.langCode, query.word);
     const result = await this.pool.query<BaseNodeRow>(
       `
-        WITH anchor_entries AS (
-          SELECT
-            lexical_entries.id,
-            lexical_entries.node_id
-          FROM lexical_entries
-          WHERE lexical_entries.lang_code = $1
-            AND lexical_entries.normalized_word = $2
-            AND ($3::TEXT IS NULL OR lexical_entries.pos = $3)
-            AND ($4::INTEGER IS NULL OR lexical_entries.etymology_number = $4)
-          ORDER BY
-            lexical_entries.etymology_number ASC NULLS FIRST,
-            lexical_entries.pos ASC NULLS FIRST,
-            lexical_entries.id ASC
-          LIMIT 1
-        ),
-        anchor_node AS (
-          SELECT graph_nodes.id
-          FROM graph_nodes
-          WHERE graph_nodes.lang_code = $1
-            AND graph_nodes.normalized_word = $2
-          ORDER BY graph_nodes.id
-          LIMIT 1
-        ),
+        WITH RECURSIVE
+        ${ANCHOR_ENTRY_CTE_SQL},
+        ${ANCESTOR_WALK_CTE_SQL},
         cognate_node_ids AS (
           SELECT DISTINCT
             CASE
-              WHEN graph_edges.from_node_id = anchor.node_id THEN graph_edges.to_node_id
+              WHEN graph_edges.from_node_id = anchor_resolved.node_id THEN graph_edges.to_node_id
               ELSE graph_edges.from_node_id
             END AS node_id
-          FROM (
-            SELECT
-              COALESCE(anchor_entries.node_id, anchor_node.id) AS node_id,
-              anchor_entries.id AS entry_id
-            FROM anchor_node
-            LEFT JOIN anchor_entries ON TRUE
-          ) anchor
+          FROM anchor_resolved
           JOIN graph_edge_walk_mv graph_edges
             ON graph_edges.edge_type = 'cognate_with'
             AND (
-              graph_edges.from_node_id = anchor.node_id
-              OR graph_edges.to_node_id = anchor.node_id
+              graph_edges.from_node_id = anchor_resolved.node_id
+              OR graph_edges.to_node_id = anchor_resolved.node_id
             )
-          WHERE anchor.node_id IS NOT NULL
+          WHERE anchor_resolved.node_id IS NOT NULL
             AND (
-              anchor.entry_id IS NULL
-              OR graph_edges.declaring_entry_id = anchor.entry_id
+              anchor_resolved.entry_id IS NULL
+              OR graph_edges.declaring_entry_id = anchor_resolved.entry_id
+            )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM ancestor_walk
+              WHERE ancestor_walk.node_id = CASE
+                WHEN graph_edges.from_node_id = anchor_resolved.node_id THEN graph_edges.to_node_id
+                ELSE graph_edges.from_node_id
+              END
             )
           ORDER BY node_id
-          LIMIT $5
+          LIMIT $7
         )
         SELECT
           graph_nodes.id,
@@ -1001,7 +1081,15 @@ export class PostgresGraphRepository implements GraphRepository {
         ${LEXICAL_SUMMARY_LATERAL_SQL}
         ORDER BY graph_nodes.lang_code, graph_nodes.normalized_word, graph_nodes.id
       `,
-      [query.langCode, normalizedWord, query.pos ?? null, query.etymologyNumber ?? null, query.limit]
+      [
+        query.langCode,
+        normalizedWord,
+        DEFAULT_ANCESTOR_MAX_DEPTH,
+        [...ANCESTOR_TRAVERSAL_EDGE_TYPES],
+        query.pos ?? null,
+        query.etymologyNumber ?? null,
+        query.limit
+      ]
     );
 
     return {

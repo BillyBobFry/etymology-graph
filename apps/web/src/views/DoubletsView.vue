@@ -125,7 +125,7 @@ const graphStatus = computed<GraphStatus>(() => {
 });
 
 const graphError = computed(() => doubletGraphQuery.error.value?.message ?? "This doublet graph could not load.");
-const fallbackAncestorError = computed(() => fallbackAncestorGraphQuery.error.value?.message ?? "This source trail could not load.");
+const fallbackAncestorError = computed(() => fallbackAncestorGraphQuery.error.value?.message ?? "This etymology graph could not load.");
 const isFallbackGraph = computed(() => !doubletGraphQuery.data.value?.graph && Boolean(fallbackAncestorGraphQuery.data.value?.graph));
 const graphLayoutPreset = computed<GraphLayoutPreset>(() =>
   isFallbackGraph.value || !selectedGraph.value
@@ -194,7 +194,7 @@ const doubletsIntroSegments = computed<GlossaryTextSegment[]>(() => [
 ]);
 const loadingGraphLabel = computed(() =>
   graphStatus.value === "loadingFallback"
-    ? `Loading the source trail for ${routeLabel.value}.`
+    ? `Loading the etymology graph for ${routeLabel.value}.`
     : `Loading doublet paths for ${routeLabel.value}.`
 );
 
@@ -334,7 +334,7 @@ watch(
           This doublet route is missing a term or language code.
         </p>
         <p v-else class="mb-4 text-text-muted">
-          No doublet paths or source trails in the index yet for {{ routeLabel }}.
+          No doublet paths are in the index yet for {{ routeLabel }}, and the etymology graph is unavailable.
         </p>
         <div class="mb-5">
           <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
@@ -413,7 +413,7 @@ watch(
               {{ childTermsError }}
             </span>
             <span v-else>
-              No doublet paths are in the index yet for {{ routeLabel }}. Showing this word's source trail instead.
+              No doublet paths are in the index yet for {{ routeLabel }}. Showing this word's etymology graph instead.
             </span>
           </StatusNote>
           <GraphCanvas

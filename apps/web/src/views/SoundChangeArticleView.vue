@@ -150,7 +150,7 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
       Article not found.
     </h1>
     <p class="text-text-page-muted">
-      This article is not in the atlas yet.
+      No article matches this link.
     </p>
     <Button
       size="sm"

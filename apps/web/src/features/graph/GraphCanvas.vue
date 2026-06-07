@@ -34,7 +34,7 @@ import {
   type NodeContextAction,
   type SelectedNodeRelationship
 } from "./graphNodeActions";
-import { wiktionaryHrefForNode } from "./graphNodeDisplay";
+import { hasImportedLexicalEntry, wiktionaryHrefForNode } from "./graphNodeDisplay";
 import { edgeLabel, isSourceDirectedEdgeType } from "./graphRelationshipDisplay";
 import type { GraphNodeAnnotation } from "./graphAnnotations";
 import ContextMenu from "../../uiComponents/ContextMenu.vue";
@@ -166,7 +166,7 @@ const {
 const selectedNode = computed(() => nodes.value.find((node) => node.id === selectedNodeId.value));
 const nodesById = computed(() => new Map(nodes.value.map((node) => [node.id, node])));
 const graphInteractionAriaLabel = computed(() => {
-  const graphSummary = `Force-directed etymology graph with ${props.graph.nodes.length} words and ${props.graph.edges.length} relationships.`;
+  const graphSummary = `Etymology graph with ${props.graph.nodes.length} words and ${props.graph.edges.length} links.`;
 
   if (isInlineScrollHandoffEnabled.value) {
     return `${graphSummary} Scroll or swipe to pan the graph. When the graph reaches an edge, the page scrolls. Pinch to zoom. Use plus, minus, arrow keys, or zero when focused.`;
@@ -197,7 +197,7 @@ const contextNode = computed(() => nodes.value.find((node) => node.id === contex
 const selectedNodeWiktionaryHref = computed(() => {
   const node = selectedNode.value;
 
-  if (!node) {
+  if (!node || !hasImportedLexicalEntry(node)) {
     return undefined;
   }
 

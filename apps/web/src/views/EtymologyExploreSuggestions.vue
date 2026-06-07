@@ -59,7 +59,7 @@ const isCognateSelected = (cognate: GraphNode): boolean => selectedCognateIdSet.
         role="status"
         aria-live="polite"
       >
-        <span class="sr-only">Finding nearby entries</span>
+        <span class="sr-only">Finding similar terms</span>
         <span
           v-for="item in skeletonItems"
           :key="item"

@@ -18,223 +18,223 @@ export const defaultStarterLangCode = "en";
 const englishEtymologyStarterQueries: StarterQuery[] = [
   {
     term: "bread",
-    description: "Trace a core inherited word"
+    description: "Inherited from Old English"
   },
   {
     term: "wine",
-    description: "Follow a borrowed lineage"
+    description: "Borrowed through Latin"
   },
   {
     term: "father",
-    description: "Inspect a deep family term"
+    description: "Kinship word with old Germanic roots"
   },
   {
     term: "cheese",
-    description: "Compare source paths"
+    description: "Food word borrowed through Latin"
   },
   {
     term: "mother",
-    description: "Follow a kinship root"
+    description: "Kinship word inherited from Old English"
   },
   {
     term: "brother",
-    description: "Compare family-word ancestry"
+    description: "Family word with Germanic ancestry"
   },
   {
     term: "name",
-    description: "Trace an inherited noun"
+    description: "Inherited noun from Old English"
   },
   {
     term: "night",
-    description: "Open a deep Indo-European path"
+    description: "Old Germanic and Indo-European ancestors"
   },
   {
     term: "heart",
-    description: "Inspect a body-part lineage"
+    description: "Body-part word from Old English"
   },
   {
     term: "two",
-    description: "Trace a numeral ancestor"
+    description: "Numeral with Indo-European ancestry"
   },
   {
     term: "three",
-    description: "Compare numeral cognates"
+    description: "Numeral shared across related languages"
   },
   {
     term: "seven",
-    description: "Follow a stable numeral"
+    description: "Stable inherited numeral"
   },
   {
     term: "ten",
-    description: "Inspect a counting root"
+    description: "Counting word from Old English"
   },
   {
     term: "new",
-    description: "Trace a common adjective"
+    description: "Common adjective inherited from Old English"
   },
   {
     term: "king",
-    description: "Compare inherited and royal terms"
+    description: "Inherited title word"
   },
   {
     term: "royal",
-    description: "Follow a French borrowing"
+    description: "Borrowed through French"
   },
   {
     term: "regal",
-    description: "Inspect a Latin route"
+    description: "Borrowed from Latin"
   },
   {
     term: "wheel",
-    description: "Trace a technology word"
+    description: "Old word for a practical object"
   },
   {
     term: "cycle",
-    description: "Follow a Greek source path"
+    description: "Borrowed from Greek through Latin"
   },
   {
     term: "chakra",
-    description: "Compare a Sanskrit borrowing"
+    description: "Borrowed from Sanskrit"
   },
   {
     term: "sugar",
-    description: "Follow a trade-word route"
+    description: "Trade word borrowed through several languages"
   },
   {
     term: "ginger",
-    description: "Trace a spice name"
+    description: "Spice name borrowed through Old French"
   },
   {
     term: "orange",
-    description: "Inspect a long borrowing chain"
+    description: "Borrowed through several languages"
   },
   {
     term: "school",
-    description: "Follow a learned borrowing"
+    description: "Learned borrowing from Greek through Latin"
   },
   {
     term: "water",
-    description: "Trace a basic vocabulary root"
+    description: "Basic word inherited from Old English"
   },
   {
     term: "fire",
-    description: "Inspect an elemental word"
+    description: "Inherited word for fire"
   },
   {
     term: "sun",
-    description: "Follow a celestial lineage"
+    description: "Inherited word for the sun"
   },
   {
     term: "moon",
-    description: "Trace a sky-word source"
+    description: "Inherited word for the moon"
   },
   {
     term: "star",
-    description: "Compare a celestial root"
+    description: "Inherited word for a star"
   },
   {
     term: "earth",
-    description: "Inspect a ground-word path"
+    description: "Inherited word for the ground"
   },
   {
     term: "stone",
-    description: "Trace a material word"
+    description: "Inherited word for stone"
   },
   {
     term: "tree",
-    description: "Follow a plant-word lineage"
+    description: "Inherited word for a tree"
   },
   {
     term: "leaf",
-    description: "Inspect a botanical term"
+    description: "Inherited word for a leaf"
   },
   {
     term: "flower",
-    description: "Trace a plant-name route"
+    description: "Plant word from Old French"
   },
   {
     term: "seed",
-    description: "Open a growth-word path"
+    description: "Inherited word for seed"
   },
   {
     term: "fish",
-    description: "Trace an animal-name root"
+    description: "Inherited word for fish"
   },
   {
     term: "bird",
-    description: "Inspect an animal-word lineage"
+    description: "Animal word from Old English"
   },
   {
     term: "dog",
-    description: "Follow a common animal term"
+    description: "Common animal word"
   },
   {
     term: "cow",
-    description: "Trace a livestock word"
+    description: "Livestock word from Old English"
   },
   {
     term: "horse",
-    description: "Inspect a domestic-animal term"
+    description: "Domestic animal word"
   },
   {
     term: "eye",
-    description: "Trace a body-part source"
+    description: "Body-part word from Old English"
   },
   {
     term: "ear",
-    description: "Follow a sensory-word path"
+    description: "Body-part word from Old English"
   },
   {
     term: "nose",
-    description: "Inspect a body-word lineage"
+    description: "Body-part word from Old English"
   },
   {
     term: "tooth",
-    description: "Trace a dental root"
+    description: "Body-part word with Germanic ancestry"
   },
   {
     term: "tongue",
-    description: "Compare body and language senses"
+    description: "Body-part word with language senses"
   },
   {
     term: "hand",
-    description: "Follow a common body term"
+    description: "Body-part word from Old English"
   },
   {
     term: "foot",
-    description: "Trace a body-part lineage"
+    description: "Body-part word with Germanic ancestry"
   },
   {
     term: "blood",
-    description: "Inspect an old body word"
+    description: "Inherited body word"
   },
   {
     term: "bone",
-    description: "Follow a skeletal term"
+    description: "Body-part word from Old English"
   },
   {
     term: "one",
-    description: "Trace a numeral source"
+    description: "Inherited numeral"
   },
   {
     term: "four",
-    description: "Inspect a counting word"
+    description: "Inherited numeral"
   },
   {
     term: "five",
-    description: "Follow a numeral root"
+    description: "Inherited numeral"
   },
   {
     term: "six",
-    description: "Trace a counting lineage"
+    description: "Inherited numeral"
   },
   {
     term: "eight",
-    description: "Inspect a numeral ancestor"
+    description: "Inherited numeral"
   },
   {
     term: "nine",
-    description: "Follow a number-word route"
+    description: "Inherited numeral"
   }
 ];
 
@@ -245,11 +245,11 @@ const englishDoubletStarterQueries: StarterQuery[] = [
   },
   {
     term: "chief",
-    description: "Compare a borrowed route"
+    description: "Borrowed doublet of head"
   },
   {
     term: "channel",
-    description: "Open a shared-source case"
+    description: "Shared source with canal"
   },
   {
     term: "fragile",
@@ -257,7 +257,7 @@ const englishDoubletStarterQueries: StarterQuery[] = [
   },
   {
     term: "skirt",
-    description: "Compare the Norse route"
+    description: "Norse relative of shirt"
   },
   {
     term: "chef",
@@ -265,74 +265,74 @@ const englishDoubletStarterQueries: StarterQuery[] = [
   },
   {
     term: "canal",
-    description: "Compare canal and channel"
+    description: "Shared source with channel"
   },
   {
     term: "frail",
-    description: "Open the inherited partner"
+    description: "Shared source with fragile"
   },
   {
     term: "ward",
-    description: "Compare ward and guard"
+    description: "Shared source with guard"
   },
   {
     term: "guard",
-    description: "Trace a Germanic doublet"
+    description: "Germanic doublet of ward"
   },
   {
     term: "warranty",
-    description: "Compare legal-word routes"
+    description: "Shared source with guarantee"
   },
   {
     term: "guarantee",
-    description: "Inspect a guarantee doublet"
+    description: "Shared source with warranty"
   },
   {
     term: "cattle",
-    description: "Compare property-word history"
+    description: "Shared source with chattel"
   },
   {
     term: "chattel",
-    description: "Open a Norman French route"
+    description: "Norman French doublet of cattle"
   },
   {
     term: "capital",
-    description: "Trace the caput family"
+    description: "Shared source in the caput family"
   }
 ];
 
 const romanceCoreStarterQueries: StarterQuery[] = [
   {
     term: "padre",
-    description: "Trace a family-word lineage"
+    description: "Kinship word from Latin"
   },
   {
     term: "madre",
-    description: "Follow a kinship source"
+    description: "Kinship word from Latin"
   },
   {
     term: "nombre",
-    description: "Inspect an inherited noun"
+    description: "Inherited noun from Latin"
   },
   {
     term: "noche",
-    description: "Open a deep ancestry path"
+    description: "Latin word with older ancestry"
   },
   {
     term: "agua",
-    description: "Trace a basic vocabulary root"
+    description: "Basic word from Latin"
   },
   {
     term: "fuego",
-    description: "Inspect an elemental word"
+    description: "Element word from Latin"
   },
   {
     term: "sol",
-    description: "Follow a celestial lineage"
+    description: "Word for the sun from Latin"
   },
   {
     term: "luna",
-    description: "Trace a sky-word source"
+    description: "Word for the moon from Latin"
   }
 ];
 
@@ -345,24 +345,24 @@ export const starterQueriesByLanguage: Record<string, StarterQueriesByKind> = {
     etymology: [
       {
         term: "pan",
-        description: "Trace a food-word lineage"
+        description: "Food word from Latin"
       },
       {
         term: "vino",
-        description: "Follow a borrowed source path"
+        description: "Word for wine from Latin"
       },
       ...romanceCoreStarterQueries,
       {
         term: "perro",
-        description: "Inspect a common animal term"
+        description: "Common animal word"
       },
       {
         term: "caballo",
-        description: "Trace a domestic-animal word"
+        description: "Domestic animal word from Latin"
       },
       {
         term: "rey",
-        description: "Compare royal vocabulary"
+        description: "Royal title from Latin"
       }
     ]
   },
@@ -370,55 +370,55 @@ export const starterQueriesByLanguage: Record<string, StarterQueriesByKind> = {
     etymology: [
       {
         term: "pain",
-        description: "Trace a food-word lineage"
+        description: "Food word from Latin"
       },
       {
         term: "vin",
-        description: "Follow a borrowed source path"
+        description: "Word for wine from Latin"
       },
       {
         term: "père",
-        description: "Trace a family-word lineage"
+        description: "Kinship word from Latin"
       },
       {
         term: "mère",
-        description: "Follow a kinship source"
+        description: "Kinship word from Latin"
       },
       {
         term: "nom",
-        description: "Inspect an inherited noun"
+        description: "Inherited noun from Latin"
       },
       {
         term: "nuit",
-        description: "Open a deep ancestry path"
+        description: "Latin word with older ancestry"
       },
       {
         term: "eau",
-        description: "Trace a basic vocabulary root"
+        description: "Basic word from Latin"
       },
       {
         term: "feu",
-        description: "Inspect an elemental word"
+        description: "Element word from Latin"
       },
       {
         term: "soleil",
-        description: "Follow a celestial lineage"
+        description: "Word for the sun from Latin"
       },
       {
         term: "lune",
-        description: "Trace a sky-word source"
+        description: "Word for the moon from Latin"
       },
       {
         term: "chien",
-        description: "Inspect a common animal term"
+        description: "Common animal word"
       },
       {
         term: "cheval",
-        description: "Trace a domestic-animal word"
+        description: "Domestic animal word"
       },
       {
         term: "roi",
-        description: "Compare royal vocabulary"
+        description: "Royal title from Latin"
       }
     ]
   },
@@ -426,55 +426,55 @@ export const starterQueriesByLanguage: Record<string, StarterQueriesByKind> = {
     etymology: [
       {
         term: "Brot",
-        description: "Trace a food-word lineage"
+        description: "Food word with Germanic ancestry"
       },
       {
         term: "Wein",
-        description: "Follow a borrowed source path"
+        description: "Borrowed word for wine"
       },
       {
         term: "Vater",
-        description: "Trace a family-word lineage"
+        description: "Kinship word with Germanic ancestry"
       },
       {
         term: "Mutter",
-        description: "Follow a kinship source"
+        description: "Kinship word with Germanic ancestry"
       },
       {
         term: "Name",
-        description: "Inspect an inherited noun"
+        description: "Inherited noun"
       },
       {
         term: "Nacht",
-        description: "Open a deep ancestry path"
+        description: "Old Germanic and Indo-European ancestors"
       },
       {
         term: "Wasser",
-        description: "Trace a basic vocabulary root"
+        description: "Basic word with Germanic ancestry"
       },
       {
         term: "Feuer",
-        description: "Inspect an elemental word"
+        description: "Element word with Germanic ancestry"
       },
       {
         term: "Sonne",
-        description: "Follow a celestial lineage"
+        description: "Word for the sun with Germanic ancestry"
       },
       {
         term: "Mond",
-        description: "Trace a sky-word source"
+        description: "Word for the moon with Germanic ancestry"
       },
       {
         term: "Hund",
-        description: "Inspect a common animal term"
+        description: "Common animal word"
       },
       {
         term: "Pferd",
-        description: "Trace a domestic-animal word"
+        description: "Domestic animal word"
       },
       {
         term: "König",
-        description: "Compare royal vocabulary"
+        description: "Royal title with Germanic ancestry"
       }
     ]
   },
@@ -482,55 +482,55 @@ export const starterQueriesByLanguage: Record<string, StarterQueriesByKind> = {
     etymology: [
       {
         term: "pane",
-        description: "Trace a food-word lineage"
+        description: "Food word from Latin"
       },
       {
         term: "vino",
-        description: "Follow a borrowed source path"
+        description: "Word for wine from Latin"
       },
       {
         term: "padre",
-        description: "Trace a family-word lineage"
+        description: "Kinship word from Latin"
       },
       {
         term: "madre",
-        description: "Follow a kinship source"
+        description: "Kinship word from Latin"
       },
       {
         term: "nome",
-        description: "Inspect an inherited noun"
+        description: "Inherited noun from Latin"
       },
       {
         term: "notte",
-        description: "Open a deep ancestry path"
+        description: "Latin word with older ancestry"
       },
       {
         term: "acqua",
-        description: "Trace a basic vocabulary root"
+        description: "Basic word from Latin"
       },
       {
         term: "fuoco",
-        description: "Inspect an elemental word"
+        description: "Element word from Latin"
       },
       {
         term: "sole",
-        description: "Follow a celestial lineage"
+        description: "Word for the sun from Latin"
       },
       {
         term: "luna",
-        description: "Trace a sky-word source"
+        description: "Word for the moon from Latin"
       },
       {
         term: "cane",
-        description: "Inspect a common animal term"
+        description: "Common animal word from Latin"
       },
       {
         term: "cavallo",
-        description: "Trace a domestic-animal word"
+        description: "Domestic animal word from Latin"
       },
       {
         term: "re",
-        description: "Compare royal vocabulary"
+        description: "Royal title from Latin"
       }
     ]
   },
@@ -538,55 +538,55 @@ export const starterQueriesByLanguage: Record<string, StarterQueriesByKind> = {
     etymology: [
       {
         term: "panis",
-        description: "Trace a food-word lineage"
+        description: "Food word with Indo-European ancestry"
       },
       {
         term: "vinum",
-        description: "Follow a borrowed source path"
+        description: "Word for wine with older ancestry"
       },
       {
         term: "pater",
-        description: "Trace a family-word lineage"
+        description: "Kinship word with Indo-European ancestry"
       },
       {
         term: "mater",
-        description: "Follow a kinship source"
+        description: "Kinship word with Indo-European ancestry"
       },
       {
         term: "nomen",
-        description: "Inspect an inherited noun"
+        description: "Inherited noun with older ancestry"
       },
       {
         term: "nox",
-        description: "Open a deep ancestry path"
+        description: "Word for night with older ancestry"
       },
       {
         term: "aqua",
-        description: "Trace a basic vocabulary root"
+        description: "Basic word with older ancestry"
       },
       {
         term: "ignis",
-        description: "Inspect an elemental word"
+        description: "Element word with older ancestry"
       },
       {
         term: "sol",
-        description: "Follow a celestial lineage"
+        description: "Word for the sun with older ancestry"
       },
       {
         term: "luna",
-        description: "Trace a sky-word source"
+        description: "Word for the moon with older ancestry"
       },
       {
         term: "canis",
-        description: "Inspect a common animal term"
+        description: "Common animal word with older ancestry"
       },
       {
         term: "equus",
-        description: "Trace a domestic-animal word"
+        description: "Domestic animal word with older ancestry"
       },
       {
         term: "rex",
-        description: "Compare royal vocabulary"
+        description: "Royal title with older ancestry"
       }
     ]
   }

@@ -499,7 +499,8 @@ export function previewStructuredEntry(entry: WiktextractEntry, sourceMetadata?:
   const affixBaseEdges = hasOutgoingAncestryEdge(sourceEdges, currentNode.id)
     ? []
     : extractAffixBaseEdges(entry, currentNode, nodesById, declaringEntryId);
-  const alternativeFormEdges = hasOutgoingAncestryEdge([...sourceEdges, ...affixBaseEdges], currentNode.id)
+  const alternativeFormEdges = hasOutgoingAncestryEdge([...sourceEdges, ...affixBaseEdges], currentNode.id) ||
+    hasSourceTemplateHints(entry)
     ? []
     : extractAlternativeFormEdges(entry, currentNode, nodesById, declaringEntryId);
   const compoundEdges =
@@ -574,6 +575,13 @@ function hasImmediateSourceFallbackHint(entry: WiktextractEntry): boolean {
     hasPieWordHeader(entry) ||
     startsWithImmediateSourceProse(entry) ||
     (entry.etymology_templates ?? []).some((template) => template.name === "root")
+  );
+}
+
+/** Treats sense-level alt-of links as fallback only when the entry has no source-template evidence. */
+function hasSourceTemplateHints(entry: WiktextractEntry): boolean {
+  return (entry.etymology_templates ?? []).some((template) =>
+    parseEtymologyKeywordEdgeType(template.name ?? "") !== undefined
   );
 }
 

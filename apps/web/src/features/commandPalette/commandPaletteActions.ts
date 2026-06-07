@@ -17,8 +17,8 @@ export type CommandPaletteAction = {
 const primaryNavigationActions: CommandPaletteAction[] = [
   {
     id: "route:etymology-search",
-    label: "Search word lineages",
-    description: "Open a term and follow its source trail.",
+    label: "Search etymology",
+    description: "Open a word origin graph.",
     group: "Navigate",
     keywords: ["etymology", "word", "lineage", "search", "term"],
     to: { name: "etymology-search" }
@@ -33,8 +33,8 @@ const primaryNavigationActions: CommandPaletteAction[] = [
   },
   {
     id: "route:ancestor-language-search",
-    label: "Compare source languages",
-    description: "List words by the language they trace through.",
+    label: "Browse source languages",
+    description: "List words by older source language.",
     group: "Navigate",
     keywords: ["ancestor", "language", "source", "borrowed", "inherited"],
     to: { name: "ancestor-language-search" }
@@ -50,7 +50,7 @@ const primaryNavigationActions: CommandPaletteAction[] = [
   {
     id: "route:glossary",
     label: "Open glossary",
-    description: "Look up linguistic terms used across the atlas.",
+    description: "Look up definitions used in graphs and articles.",
     group: "Navigate",
     keywords: ["glossary", "definition", "reference", "vocabulary"],
     to: { name: "glossary" }

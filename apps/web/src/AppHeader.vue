@@ -82,7 +82,7 @@ const sectionNavItems = computed<SectionNavItem[]>(() => [
   },
   {
     value: "word-lineages",
-    label: "Word lineages",
+    label: "Source languages",
     to: { name: "ancestor-language-search" },
     active: isAncestorLanguageRoute.value
   },
@@ -203,7 +203,7 @@ onMounted(() => {
         </RouterLink>
       </div>
       <IconButton
-        label="Search commands"
+        label="Search pages and words"
         class="shrink-0"
         variant="secondary"
         size="sm"

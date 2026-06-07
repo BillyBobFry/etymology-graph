@@ -29,6 +29,11 @@ export function formatDetailedIpa(node: GraphTraversalNode): string | undefined 
   return node.lexicalSummary?.ipaLabel ? `${ipa} ${node.lexicalSummary.ipaLabel}` : ipa;
 }
 
+/** Distinguishes imported dictionary entries from graph-only nodes discovered inside another entry. */
+export function hasImportedLexicalEntry(node: GraphTraversalNode): boolean {
+  return (node.lexicalSummary?.entryCount ?? 0) > 0;
+}
+
 /** Creates a stable Wiktionary entry URL for the selected graph node. */
 export function wiktionaryHrefForNode(node: GraphTraversalNode, canonicalName: string): string {
   if (node.word.startsWith("*")) {

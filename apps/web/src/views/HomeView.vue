@@ -7,8 +7,8 @@ import { plainTextFromGlossarySegments } from "../features/glossary/linguisticGl
 import GraphEvidencePanel from "../features/graph/GraphEvidencePanel.vue";
 import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLayout";
 import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
-import { useDoubletGraphQuery } from "../features/graph/composables/useDoubletGraphQuery";
 import { soundChangeArticles } from "../features/soundChanges/soundChanges";
+import { useComparisonSetQuery } from "../features/soundChanges/useComparisonSetQuery";
 import Button from "../uiComponents/Button.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 import {
@@ -31,7 +31,7 @@ const featuredEtymologyGraphQuery = useAncestorGraphQuery(() => featuredEtymolog
   staleTime: featuredHomepageGraphCacheTime,
   gcTime: featuredHomepageGraphCacheTime
 });
-const featuredDoubletGraphQuery = useDoubletGraphQuery(() => featuredDoubletExample.query, {
+const featuredDoubletGraphQuery = useComparisonSetQuery(() => featuredDoubletExample.query, {
   staleTime: featuredHomepageGraphCacheTime,
   gcTime: featuredHomepageGraphCacheTime
 });
@@ -50,7 +50,7 @@ const featuredDoubletLayoutPreset = computed<GraphLayoutPreset>(() =>
 const featuredDoubletHighlightedNodeIds = computed(() =>
   highlightedTermNodeIds(
     featuredDoubletGraph.value,
-    featuredDoubletExample.query.langCode,
+    featuredDoubletExample.primaryTerm.langCode,
     featuredDoubletExample.expectedSameLanguageTerms
   )
 );
@@ -102,13 +102,13 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
   <PageMain>
     <section class="border-b border-border-strong pb-10">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-        Map the history of language
+        Etymology graph
       </p>
       <h1 class="mb-5 max-w-4xl text-5xl font-black leading-none tracking-[-0.06em] sm:text-7xl">
-        Follow words across time, place, and meaning.
+        Trace words through the languages that shaped them.
       </h1>
       <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
-        Trace lineages, compare doublets, and explore the sound changes that connect languages.
+        Search etymologies, compare doublets, and read sound-change articles built from Wiktionary data.
       </p>
     </section>
 
@@ -189,8 +189,8 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
                 :to="{
                   name: 'doublets',
                   params: {
-                    langCode: featuredDoubletExample.query.langCode,
-                    term: featuredDoubletExample.query.word
+                    langCode: featuredDoubletExample.primaryTerm.langCode,
+                    term: featuredDoubletExample.primaryTerm.word
                   }
                 }"
                 full-width
@@ -199,7 +199,7 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
                 {{ featuredDoubletExample.ctaLabel }}
               </Button>
               <Button
-                :to="{ name: 'doublet-groups', params: { langCode: featuredDoubletExample.query.langCode } }"
+                :to="{ name: 'doublet-groups', params: { langCode: featuredDoubletExample.primaryTerm.langCode } }"
                 variant="secondary"
                 full-width
                 class="h-12 text-center"
@@ -235,7 +235,7 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
             </h2>
             <p class="mt-4 leading-7 text-text-page-muted">
               Regular pronunciation shifts can hide a shared source. These articles pair short explanations with graph
-              examples, so each pattern stays tied to real word lineages.
+              examples, so each pattern stays tied to real word paths.
             </p>
           </div>
 
@@ -250,10 +250,10 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
               Current articles
             </p>
             <h3 class="text-2xl font-bold leading-tight">
-              Patterns in the graph
+              Sound-change articles
             </h3>
             <p class="mt-3 max-w-2xl leading-7 text-text-muted">
-              Start with a named sound change, then open the examples to see the older relationships behind it.
+              Start with a named sound change, then open examples that compare related words.
             </p>
           </div>
 
@@ -282,7 +282,7 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
         <div class="grid gap-6 lg:order-2">
           <div>
             <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-              Word lineages
+              Source languages
             </p>
             <h2 id="home-word-lineages-heading" class="text-3xl font-black leading-tight tracking-[-0.04em]">
               {{ featuredAncestorLanguageExample.heading }}
@@ -346,7 +346,7 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
             size="sm"
             class="mt-5"
           >
-            Explore more word lineages
+            Browse words by source language
           </Button>
         </div>
       </div>

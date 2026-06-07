@@ -55,14 +55,14 @@ const coverageLabel = computed(() => {
   const count = language.value?.graphNodeCount ?? 0;
 
   if (count === 0) {
-    return "No terms in the atlas";
+    return "No terms indexed";
   }
 
   if (count === 1) {
-    return "1 term in the atlas";
+    return "1 indexed term";
   }
 
-  return `${count.toLocaleString()} terms in the atlas`;
+  return `${count.toLocaleString()} indexed terms`;
 });
 
 /** Extracts a single typed route parameter from Vue Router's param shape. */
@@ -105,13 +105,13 @@ function sourceLabelForUrl(url: string): string {
         Language not found
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
-        This language is not in the atlas.
+        This language is not in the index.
       </h1>
       <p class="mb-6 max-w-3xl text-lg leading-8 text-text-page-muted">
         Check the path or return to a word page to follow a language label from the graph.
       </p>
       <Button :to="{ name: 'etymology-search' }">
-        Search word lineages
+        Search etymology
       </Button>
     </section>
 

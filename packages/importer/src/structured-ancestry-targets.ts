@@ -112,7 +112,19 @@ function seedTargetFromTemplate(template: WiktextractTemplate): SeedTarget[] {
     return [];
   }
 
-  return [{ langCode, word: displayedTerm }];
+  return sourceRecordTargets(langCode, displayedTerm);
+}
+
+/** Queues broader source pages when Wiktextract stores real entries outside a subvariety category. */
+function sourceRecordTargets(langCode: string, word: string): SeedTarget[] {
+  if (langCode === "fro-nor") {
+    return [
+      { langCode, word },
+      { langCode: "fro", word }
+    ];
+  }
+
+  return [{ langCode, word }];
 }
 
 /** Reads explicit doublet and cognate links as records to process later. */

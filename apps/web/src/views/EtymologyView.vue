@@ -189,8 +189,8 @@ const etymologyStarterSet = computed(() =>
 );
 const etymologyStarterHelpText = computed(() =>
   etymologyStarterSet.value.isFallback
-    ? "Showing English starting points until this language has curated examples."
-    : "Try terms curated for this language."
+    ? "No examples for this language yet. Showing English examples."
+    : "Example words for this language."
 );
 const childTermsRouteLabel = computed(() => {
   if (!childTermsGraphInput.value) {
@@ -280,7 +280,7 @@ async function handleToggleCognateInGraph(cognate: GraphNode): Promise<void> {
   const graph = cognateExpansionGraphs.value.get(cognate.id);
 
   if (!graph) {
-    cognateExpansionError.value = "No connected source trail is available for that cognate yet.";
+    cognateExpansionError.value = "No source path is available for that cognate yet.";
     return;
   }
 
@@ -478,7 +478,7 @@ watch(
     <section class="grid gap-5 lg:grid-cols-[minmax(180px,0.42fr)_minmax(0,1fr)] lg:items-start">
       <div>
         <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-          Explore another term
+          Search another word
         </p>
         <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
           Choose a language, then search its words
@@ -536,14 +536,14 @@ watch(
           This etymology route is missing a term or language code.
         </p>
         <p v-else class="mb-4 text-text-muted">
-          No source trail in the index for {{ routeLabel }}.
+          No source path in the index for {{ routeLabel }}.
         </p>
         <div class="mb-5">
           <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
             Starting points
           </p>
           <h2 id="etymology-empty-starters" class="text-2xl font-bold leading-tight">
-            Try a known ancestry path
+            Example words with source paths
           </h2>
           <p class="mt-1 text-sm leading-6 text-text-muted">
             {{ etymologyStarterHelpText }}
@@ -570,7 +570,7 @@ watch(
       </p>
       <template v-else-if="selectedGraph">
         <p v-if="childTermsStatus === 'loading'" class="text-text-page-muted">
-          Loading direct child terms for {{ childTermsRouteLabel }}...
+          Loading descendant words for {{ childTermsRouteLabel }}...
         </p>
         <p v-else-if="childTermsStatus === 'error'" class="text-danger">
           {{ childTermsError }}

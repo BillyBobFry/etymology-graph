@@ -50,7 +50,7 @@ const routes: RouteRecordRaw[] = [
     name: "etymology-search",
     component: EtymologySearchView,
     meta: {
-      title: "Word Lineages"
+      title: "Etymology"
     }
   },
   {
@@ -90,7 +90,7 @@ const routes: RouteRecordRaw[] = [
     name: "ancestor-language-search",
     component: AncestorLanguageSearchView,
     meta: {
-      title: "Word Lineages"
+      title: "Source Languages"
     }
   },
   {
@@ -226,7 +226,7 @@ function ancestorLanguageResultsRouteTitle(
 
   return langCode && ancestorLangCode
     ? `${context.languageNameForCode(langCode)} from ${context.languageNameForCode(ancestorLangCode)}`
-    : "Word Lineages";
+    : "Source Languages";
 }
 
 /** Names language detail tabs after the selected language code. */

@@ -375,7 +375,7 @@ function termResultDescription(result: GraphNode): string {
     result.lexicalSummary?.definition
   ].filter((part) => part !== undefined && part.length > 0);
 
-  return parts.length > 0 ? parts.join(" · ") : "Word lineage";
+  return parts.length > 0 ? parts.join(" · ") : "Etymology entry";
 }
 
 /** Converts a graph search result into one navigable palette row. */
@@ -425,7 +425,7 @@ function isApplePlatform(): boolean {
             <div class="flex items-center gap-3">
               <Search class="shrink-0 text-text-muted" :size="18" stroke-width="2.5" aria-hidden="true" />
               <label id="command-palette-title" class="sr-only" for="command-palette-search">
-                Search commands and terms
+                Search pages and words
               </label>
               <input
                 id="command-palette-search"
@@ -435,7 +435,7 @@ function isApplePlatform(): boolean {
                 type="text"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="Search commands..."
+                placeholder="Search pages, words, articles..."
                 :aria-activedescendant="hasVisibleItems ? visibleItems[highlightedIndex]?.id : undefined"
                 aria-controls="command-palette-results"
                 aria-expanded="true"

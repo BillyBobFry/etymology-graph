@@ -33,18 +33,13 @@ const exampleSegmentsForTerm = (term: LinguisticGlossaryTerm): GlossaryTextSegme
 
 <template>
   <PageMain>
-    <section class="grid gap-5 border-b border-border-strong pb-8">
-      <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
+    <section class="grid gap-4 border-b border-border-strong pb-8">
+      <h1 class="text-5xl font-black leading-none tracking-[-0.06em] sm:text-7xl">
         Glossary
+      </h1>
+      <p class="max-w-xl text-lg leading-8 text-text-page-muted">
+        A compact reference for the linguistic terms used in sound-change articles, graph notes, and etymology pages.
       </p>
-      <div class="grid gap-5 lg:grid-cols-[minmax(0,0.72fr)_minmax(240px,0.28fr)] lg:items-start">
-        <h1 class="text-5xl font-black leading-none tracking-[-0.06em] sm:text-7xl">
-          Read word histories with less guesswork.
-        </h1>
-        <p class="max-w-xl text-lg leading-8 text-text-page-muted">
-          A compact reference for the linguistic terms used in sound-change articles, graph notes, and word lineages.
-        </p>
-      </div>
     </section>
 
     <section class="grid gap-4" aria-labelledby="glossary-index-heading">
@@ -53,7 +48,7 @@ const exampleSegmentsForTerm = (term: LinguisticGlossaryTerm): GlossaryTextSegme
           Term index
         </p>
         <h2 id="glossary-index-heading" class="mt-2 text-3xl font-black tracking-tighter">
-          Browse the vocabulary
+          Definitions
         </h2>
       </div>
 

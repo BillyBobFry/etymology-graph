@@ -13,8 +13,8 @@ const etymologyStarterSet = computed(() =>
 );
 const etymologyStarterHelpText = computed(() =>
   etymologyStarterSet.value.isFallback
-    ? "Showing English starting points until this language has curated examples."
-    : "Start with terms curated for the selected language."
+    ? "No examples for this language yet. Showing English examples."
+    : "Example words for the selected language."
 );
 </script>
 
@@ -22,7 +22,7 @@ const etymologyStarterHelpText = computed(() =>
   <PageMain>
     <section class="border-b border-border-strong pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
-        Word lineages
+        Etymology
       </p>
       <h1 class="mb-4 text-5xl font-black leading-none tracking-[-0.06em] text-text sm:text-7xl">
         Trace a word to its sources.
@@ -39,7 +39,7 @@ const etymologyStarterHelpText = computed(() =>
           Search the index
         </p>
         <h2 class="max-w-sm text-2xl font-bold leading-tight text-text">
-          Open a word in the atlas
+          Search for a word
         </h2>
       </div>
       <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
@@ -57,7 +57,7 @@ const etymologyStarterHelpText = computed(() =>
           Starting points
         </p>
         <h2 id="etymology-search-starters" class="text-2xl font-bold leading-tight">
-          Try a known ancestry path
+          Example words with source paths
         </h2>
         <p class="mt-1 text-sm leading-6 text-text-muted">
           {{ etymologyStarterHelpText }}

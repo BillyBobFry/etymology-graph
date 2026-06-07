@@ -21,7 +21,7 @@ const emit = defineEmits<{
   select: [ancestorLangCode: string];
 }>();
 
-/** Prevents unbuilt or empty source layers from starting slow fallback searches. */
+/** Prevents unbuilt or empty source languages from starting slow fallback searches. */
 function isSuggestionDisabled(suggestion: AncestorLanguageSuggestion): boolean {
   return suggestion.status !== undefined && suggestion.status !== "available";
 }

@@ -19,7 +19,7 @@ import PageMain from "../uiComponents/PageMain.vue";
           </h1>
         </div>
         <p class="max-w-xl text-lg leading-8 text-text-page-muted">
-          Sound changes are regular shifts in pronunciation that affect groups of words over time. These articles pair short explanations with graph examples, so a historical pattern can be read through real word lineages.
+          Sound changes are regular shifts in pronunciation that affect groups of words over time. These articles pair short explanations with graph examples from real words.
         </p>
       </div>
     </section>
@@ -31,7 +31,7 @@ import PageMain from "../uiComponents/PageMain.vue";
             Sound-change articles
           </p>
           <h2 id="sound-change-list-heading" class="mt-2 text-3xl font-black tracking-tighter">
-            Browse the patterns
+            All sound-change articles
           </h2>
         </div>
       </div>

@@ -13,7 +13,7 @@ const wiktionaryUrl = "https://www.wiktionary.org/";
         <div class="max-w-2xl">
           <LingraphicLogo class="text-base!" />
           <p class="mt-2 text-sm leading-6">
-            An archival language atlas for tracing word lineages. Built from
+            A word-origin graph built from
             <Link :href="wiktionaryUrl" target="_blank">Wiktionary</Link>
             -derived lexical data. Etymologies can be incomplete, uncertain, or source-dependent.
           </p>
@@ -24,7 +24,7 @@ const wiktionaryUrl = "https://www.wiktionary.org/";
           class="flex flex-wrap gap-x-4 gap-y-2 md:justify-end"
         >
           <Link variant="list" :to="{ name: 'etymology-search' }">Search</Link>
-          <Link variant="list" :to="{ name: 'ancestor-language-search' }">Word lineages</Link>
+          <Link variant="list" :to="{ name: 'ancestor-language-search' }">Source languages</Link>
           <Link variant="list" :to="{ name: 'sound-changes' }">Sound changes</Link>
           <Link variant="list" :to="{ name: 'glossary' }">Glossary</Link>
           <Link variant="list" :href="githubRepositoryUrl" target="_blank">GitHub</Link>

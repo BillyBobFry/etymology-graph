@@ -76,8 +76,10 @@ alwaysApply: false
 - Do not use em dashes in UI copy or documentation. Prefer a period, comma, colon, or a simpler sentence split.
 - Use proper Unicode symbols in user-facing copy. Prefer `→` over ASCII `->` for relationships, transformations, paths, and sound-change notation.
 - Keep implementation details out of user-facing copy. Do not mention imports, imported data, seed data, APIs, databases, edge types, metadata, backend/frontend code, or the data model unless the user is in an explicitly technical/admin context.
-- Describe the user-visible result instead: a word page, source trail, lineage, entry, relationship, graph, search, path, match, index, or atlas.
-- Frame the product as an archival language atlas. Prefer labels such as `Map the history of language`, `Word lineages`, `Doublets`, and `Sound changes` over narrow tool labels such as `lookup`.
+- Describe the user-visible result instead: an etymology page, source path, source language, entry, relationship, graph, search, match, index, doublet, or sound-change article.
+- Use the archival atlas idea as visual direction, not as filler copy. Avoid vague metaphors like `atlas`, `drawer`, `source layer`, `trail`, `route`, `deep path`, and `lineage` when a concrete label such as `source language`, `source path`, `etymology graph`, or `word origin` would be clearer.
+- Keep route labels distinct and literal: use `Etymology` for word-origin search/pages, `Source languages` for browsing words by older source language, `Doublets` for same-language shared-source words, and `Sound changes` for pronunciation-shift articles.
+- Starter/example copy should name the specific relationship or source when possible, such as `Borrowed through Latin`, `Inherited from Old English`, or `Shared source with canal`, instead of generic prompts like `Trace a food-word lineage` or `Open a deep ancestry path`.
 - In public empty states, describe coverage without exposing local development mechanics. Prefer `No paths in the index yet` or `This example is not in the index yet` over `No imported matches`, `not in the local dataset`, or `import a broader seed set`.
 - Use `step`, `link`, `relationship`, or `path` for user-facing traversal counts. Reserve `edge` and `node` for code, developer docs, and explicitly technical graph diagnostics.
 - Do not make headings and labels repeat the same noun. If an eyebrow says `Graph examples`, the heading should add meaning, such as `Compare related words`, not repeat `Examples`.
@@ -89,8 +91,8 @@ Example:
 ```vue
 <PageMain>
   <section class="pb-8">
-    <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">Atlas section</p>
-    <h1 class="text-5xl font-black tracking-[-0.06em]">Paint primary content on the page.</h1>
+    <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">Etymology</p>
+    <h1 class="text-5xl font-black tracking-[-0.06em]">Search for a word.</h1>
   </section>
   <Divider />
   <section class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">

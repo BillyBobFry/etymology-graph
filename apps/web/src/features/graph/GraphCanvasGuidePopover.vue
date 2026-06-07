@@ -31,7 +31,7 @@ const graphGuideInteractionItems = computed<GraphGuideItem[]>(() =>
   props.usesDesktopLayout
     ? [
         { term: "Click", description: "View term details." },
-        { term: "Drag term", description: "Reposition it until the graph reloads." },
+        { term: "Drag term", description: "Rearrange it. Layout resets when you open another word." },
         { term: "Right-click", description: "Open term actions." },
         {
           term: "Pan and zoom",
