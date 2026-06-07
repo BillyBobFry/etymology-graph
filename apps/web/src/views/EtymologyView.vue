@@ -118,13 +118,7 @@ const languagesQuery = useLanguagesQuery();
 const languages = computed(() => languagesQuery.data.value?.languages ?? []);
 const similarTerms = computed(() => similarTermsQuery.data.value?.terms ?? []);
 const cognates = computed(() => cognatesQuery.data.value?.terms ?? []);
-const visibleCognates = computed(() =>
-  cognates.value.filter((cognate) => {
-    const graph = cognateExpansionGraphs.value.get(cognate.id);
-
-    return graph ? graphSharesCurrentGraphAncestor(graph) : false;
-  })
-);
+const visibleCognates = computed(() => cognates.value);
 const isCheckingCognateGraphs = computed(() =>
   cognates.value.some((cognate) => loadingCognateGraphIds.value.has(cognate.id))
 );
@@ -277,10 +271,15 @@ async function handleToggleCognateInGraph(cognate: GraphNode): Promise<void> {
     return;
   }
 
-  const graph = cognateExpansionGraphs.value.get(cognate.id);
+  const graph = cognateExpansionGraphs.value.get(cognate.id) ?? (await loadCognateExpansionGraph(cognate));
 
   if (!graph) {
     cognateExpansionError.value = "No source path is available for that cognate yet.";
+    return;
+  }
+
+  if (!graphSharesCurrentGraphAncestor(graph)) {
+    cognateExpansionError.value = "That cognate does not share a visible source path with this graph yet.";
     return;
   }
 
@@ -305,19 +304,14 @@ function isCognateInSelectedGraph(cognate: GraphNode): boolean {
   return selectedGraph.value?.nodes.some((node) => node.id === cognate.id) ?? false;
 }
 
-/** Loads candidate cognate ancestries so the strip only offers graph-connected comparisons. */
-function ensureCognateExpansionGraphs(nextCognates: GraphNode[]): void {
-  for (const cognate of nextCognates) {
-    if (cognateExpansionGraphs.value.has(cognate.id) || loadingCognateGraphIds.value.has(cognate.id)) {
-      continue;
-    }
+/** Fetches one cognate ancestry only after a user asks to add it to the visible graph. */
+async function loadCognateExpansionGraph(cognate: GraphNode): Promise<EtymologyGraph | null> {
+  const cachedGraph = cognateExpansionGraphs.value.get(cognate.id);
 
-    void loadCognateExpansionGraph(cognate);
+  if (cachedGraph !== undefined) {
+    return cachedGraph;
   }
-}
 
-/** Fetches one cognate ancestry through the shared graph cache used by normal etymology views. */
-async function loadCognateExpansionGraph(cognate: GraphNode): Promise<void> {
   const query: AncestorsQuery = {
     langCode: cognate.langCode,
     word: cognate.word,
@@ -334,8 +328,10 @@ async function loadCognateExpansionGraph(cognate: GraphNode): Promise<void> {
     });
 
     setCognateExpansionGraph(cognate.id, result.graph);
+    return result.graph;
   } catch {
     setCognateExpansionGraph(cognate.id, null);
+    return null;
   } finally {
     removeLoadingCognateGraph(cognate.id);
   }
@@ -397,8 +393,6 @@ watch([langCode, term], () => {
   isGraphNodeDetailOpen.value = false;
   shouldScrollToNextGraph.value = Boolean(langCode.value && term.value);
 });
-
-watch(cognates, ensureCognateExpansionGraphs, { immediate: true });
 
 watch(
   () => ancestorGraphQuery.data.value?.graph ?? null,

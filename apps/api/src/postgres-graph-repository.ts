@@ -1033,7 +1033,11 @@ export class PostgresGraphRepository implements GraphRepository {
         WITH RECURSIVE
         ${ANCHOR_ENTRY_CTE_SQL},
         ${ANCESTOR_WALK_CTE_SQL},
-        cognate_node_ids AS (
+        seed_graph_node_ids AS (
+          SELECT DISTINCT ancestor_walk.node_id
+          FROM ancestor_walk
+        ),
+        explicit_cognate_node_ids AS (
           SELECT DISTINCT
             CASE
               WHEN graph_edges.from_node_id = anchor_resolved.node_id THEN graph_edges.to_node_id
@@ -1060,6 +1064,101 @@ export class PostgresGraphRepository implements GraphRepository {
               END
             )
           ORDER BY node_id
+        ),
+        candidate_anchor_entries AS (
+          SELECT
+            explicit_cognate_node_ids.node_id,
+            candidate_entry.entry_id
+          FROM explicit_cognate_node_ids
+          LEFT JOIN LATERAL (
+            SELECT lexical_entries.id AS entry_id
+            FROM lexical_entries
+            WHERE lexical_entries.node_id = explicit_cognate_node_ids.node_id
+            ORDER BY
+              lexical_entries.etymology_number ASC NULLS FIRST,
+              lexical_entries.pos ASC NULLS FIRST,
+              lexical_entries.id ASC
+            LIMIT 1
+          ) candidate_entry ON TRUE
+        ),
+        candidate_walk AS (
+          SELECT
+            candidate_anchor_entries.node_id AS candidate_node_id,
+            candidate_anchor_entries.node_id AS node_id,
+            0 AS depth,
+            ARRAY[candidate_anchor_entries.node_id] AS path,
+            CASE
+              WHEN candidate_anchor_entries.entry_id IS NULL THEN ARRAY[]::TEXT[]
+              ELSE ARRAY[candidate_anchor_entries.entry_id]::TEXT[]
+            END AS allowed_entry_ids,
+            candidate_anchor_entries.entry_id IS NOT NULL AS entry_scoped
+          FROM candidate_anchor_entries
+
+          UNION ALL
+
+          SELECT
+            candidate_walk.candidate_node_id,
+            next_edge.to_node_id AS node_id,
+            candidate_walk.depth + 1 AS depth,
+            candidate_walk.path || next_edge.to_node_id AS path,
+            current_allowed.allowed_entry_ids AS allowed_entry_ids,
+            candidate_walk.entry_scoped AS entry_scoped
+          FROM candidate_walk
+          CROSS JOIN LATERAL (
+            SELECT
+              CASE
+                WHEN NOT candidate_walk.entry_scoped THEN ARRAY[]::TEXT[]
+                ELSE candidate_walk.allowed_entry_ids || COALESCE((
+                  SELECT ARRAY_AGG(candidate.id)
+                  FROM lexical_entries candidate
+                  WHERE candidate.node_id = candidate_walk.node_id
+                    AND NOT candidate.id = ANY(candidate_walk.allowed_entry_ids)
+                    AND (
+                      (
+                        SELECT COUNT(*) FROM lexical_entries
+                        WHERE lexical_entries.node_id = candidate_walk.node_id
+                      ) = 1
+                      OR EXISTS (
+                        SELECT 1
+                        FROM graph_edge_walk_mv adopt_edge
+                        JOIN graph_edge_walk_mv seed_edge
+                          ON seed_edge.from_node_id = adopt_edge.from_node_id
+                          AND seed_edge.to_node_id = adopt_edge.to_node_id
+                          AND seed_edge.edge_type = ANY($4::TEXT[])
+                          AND seed_edge.declaring_entry_id = ANY(candidate_walk.allowed_entry_ids)
+                          AND seed_edge.default_ancestor_walk_candidate
+                        WHERE adopt_edge.declaring_entry_id = candidate.id
+                          AND adopt_edge.from_node_id = candidate_walk.node_id
+                          AND adopt_edge.edge_type = ANY($4::TEXT[])
+                          AND adopt_edge.default_ancestor_walk_candidate
+                      )
+                    )
+                ), ARRAY[]::TEXT[])
+              END AS allowed_entry_ids
+          ) current_allowed
+          JOIN graph_edge_walk_mv next_edge
+            ON next_edge.from_node_id = candidate_walk.node_id
+          WHERE candidate_walk.depth < $3
+            AND next_edge.edge_type = ANY($4::TEXT[])
+            AND next_edge.default_ancestor_walk_candidate
+            AND (
+              NOT candidate_walk.entry_scoped
+              OR next_edge.declaring_entry_id = ANY(current_allowed.allowed_entry_ids)
+            )
+            AND NOT next_edge.to_node_id = ANY(candidate_walk.path)
+        ),
+        cognate_node_ids AS (
+          SELECT DISTINCT explicit_cognate_node_ids.node_id
+          FROM explicit_cognate_node_ids
+          WHERE EXISTS (
+            SELECT 1
+            FROM candidate_walk
+            JOIN seed_graph_node_ids
+              ON seed_graph_node_ids.node_id = candidate_walk.node_id
+            WHERE candidate_walk.candidate_node_id = explicit_cognate_node_ids.node_id
+              AND candidate_walk.depth > 0
+          )
+          ORDER BY explicit_cognate_node_ids.node_id
           LIMIT $7
         )
         SELECT

@@ -1237,6 +1237,7 @@ function extractTreeAncestryEdges(
       continue;
     }
 
+    const hasStructuredMetadata = parseEtymologyTreeMetadata(template.expansion) !== undefined;
     const metadataEdges = extractStructuredTreeAncestryEdges(
       template.expansion,
       currentNode,
@@ -1246,6 +1247,10 @@ function extractTreeAncestryEdges(
       declaringEntryId
     );
     edges.push(...metadataEdges);
+
+    if (hasStructuredMetadata && !hasVisibleEtymologyTreeHeader(template.expansion)) {
+      continue;
+    }
 
     const treeTerms = parseEtymologyTreeTerms(template.expansion);
     if (templateHasMultipleSourceTerms(template) && treeTermsContainNode(treeTerms, currentNode.id)) {
@@ -1292,6 +1297,11 @@ function extractTreeAncestryEdges(
   }
 
   return uniqueGraphEdges(edges);
+}
+
+/** Detects rendered tree headers whose visible rows can safely supplement structured metadata. */
+function hasVisibleEtymologyTreeHeader(expansion: string): boolean {
+  return expansion.startsWith("Etymology tree\n");
 }
 
 /** Prevents the legacy linear parser from turning sibling source branches into ancestry chains. */

@@ -141,6 +141,17 @@ TRUNCATE
 RESTART IDENTITY CASCADE;
 SQL
 
+echo "Clearing production graph_edge_walk_mv before restore..."
+psql "$PROD_DATABASE_URL" -v ON_ERROR_STOP=1 -c "REFRESH MATERIALIZED VIEW graph_edge_walk_mv WITH NO DATA;"
+
+echo "Dropping redundant production graph_edges indexes..."
+psql "$PROD_DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+DROP INDEX IF EXISTS graph_edges_from_type_declaring_idx;
+DROP INDEX IF EXISTS graph_edges_from_declaring_type_idx;
+DROP INDEX IF EXISTS graph_edges_from_node_entry_idx;
+DROP INDEX IF EXISTS graph_edges_edge_type_idx;
+SQL
+
 echo "Restoring local data into production..."
 pg_restore \
   --data-only \

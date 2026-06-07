@@ -190,10 +190,11 @@ async function refreshSourceLanguageLayerBatch(
             AND ($5::TEXT IS NULL OR lexical_entries.id > $5)
             AND EXISTS (
               SELECT 1
-              FROM graph_edges root_edge
+              FROM graph_edge_walk_mv root_edge
               WHERE root_edge.from_node_id = lexical_entries.node_id
                 AND root_edge.declaring_entry_id = lexical_entries.id
                 AND root_edge.edge_type = ANY($4::TEXT[])
+                AND root_edge.default_ancestor_walk_candidate
             )
           ORDER BY lexical_entries.id
           LIMIT $6
@@ -237,14 +238,15 @@ async function refreshSourceLanguageLayerBatch(
           ) current_allowed
           JOIN LATERAL (
             SELECT DISTINCT ON (candidate_edge.to_node_id)
-              candidate_edge.id,
+              candidate_edge.edge_id AS id,
               candidate_edge.to_node_id
-            FROM graph_edges candidate_edge
+            FROM graph_edge_walk_mv candidate_edge
             WHERE candidate_edge.from_node_id = ancestor_walk.node_id
               AND candidate_edge.edge_type = ANY($4::TEXT[])
               AND candidate_edge.declaring_entry_id = current_allowed.allowed_entry_id
+              AND candidate_edge.default_ancestor_walk_candidate
               AND NOT candidate_edge.to_node_id = ANY(ancestor_walk.path)
-            ORDER BY candidate_edge.to_node_id, candidate_edge.id
+            ORDER BY candidate_edge.to_node_id, candidate_edge.edge_id
           ) next_edge ON TRUE
           WHERE ancestor_walk.depth < $3
             AND NOT ancestor_walk.reached_target

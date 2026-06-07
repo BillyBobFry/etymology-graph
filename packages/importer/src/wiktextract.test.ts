@@ -1297,6 +1297,110 @@ describe("previewEntry", () => {
     expect(edgeIds).not.toContain("la-lat:faciō:derived_from:la-lat:-iēs:from:en:face:entry:noun:0");
   });
 
+  it("does not linearize sibling etymon components when structured metadata has no tree header", () => {
+    const entry: WiktextractEntry = {
+      word: "Iuppiter",
+      lang: "Latin",
+      lang_code: "la",
+      pos: "name",
+      etymology_text:
+        "From Proto-Italic *djous patēr, from *djous (“day, sky”) + *patēr (“father”).",
+      etymology_templates: [
+        {
+          name: "etymon",
+          args: {
+            "1": "la",
+            "2": ":inh",
+            "3": "itc-pro:*djous patēr"
+          },
+          expansion:
+            '"terms" : [ { "children" : [ { "keyword" : "inherited", "terms" : [ { "children" : [ ], "term" : "*djous", "lang" : "itc-pro" }, { "children" : [ { "keyword" : "inherited", "terms" : [ { "children" : [ ], "term" : "*ph₂tḗr", "lang" : "ine-pro" } ] } ], "term" : "*patēr", "lang" : "itc-pro" } ] } ], "term" : "*djous patēr", "lang" : "itc-pro" }, { "children" : [ { "keyword" : "inherited", "terms" : [ { "children" : [ ], "term" : "*djous patēr", "lang" : "itc-pro" } ] } ], "term" : "Iuppiter", "lang" : "la" } ]'
+        }
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toEqual(
+      expect.arrayContaining([
+        "la:iuppiter:inherited_from:itc-pro:*djous patēr:from:la:iuppiter:entry:name:0",
+        "itc-pro:*patēr:inherited_from:ine-pro:*ph₂tḗr:from:la:iuppiter:entry:name:0"
+      ])
+    );
+    expect(edgeIds).not.toContain(
+      "ine-pro:*ph₂tḗr:inherited_from:itc-pro:*djous:from:la:iuppiter:entry:name:0"
+    );
+  });
+
+  it("does not linearize headerless etymon component fragments that omit the current word", () => {
+    const entry: WiktextractEntry = {
+      word: "Iuppiter",
+      lang: "Latin",
+      lang_code: "la",
+      pos: "name",
+      etymology_text:
+        "From Proto-Italic *djous patēr, from *djous (“day, sky”) + *patēr (“father”).",
+      etymology_templates: [
+        {
+          name: "etymon",
+          args: {
+            "1": "la",
+            "2": ":inh",
+            "3": "itc-pro:*djous patēr"
+          },
+          expansion:
+            '"terms" : [ { "children" : [ ], "term" : "*djous", "lang" : "itc-pro" }, { "children" : [ { "keyword" : "inherited", "terms" : [ { "children" : [ ], "term" : "*ph₂tḗr", "lang" : "ine-pro" } ] } ], "term" : "*patēr", "lang" : "itc-pro" } ]'
+        },
+        template("der", "la", "itc-pro", "*djous patēr", "Proto-Italic *djous patēr")
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toContain(
+      "la:iuppiter:derived_from:itc-pro:*djous patēr:from:la:iuppiter:entry:name:0"
+    );
+    expect(edgeIds).not.toContain(
+      "ine-pro:*ph₂tḗr:inherited_from:itc-pro:*djous:from:la:iuppiter:entry:name:0"
+    );
+  });
+
+  it("does not make a prefixed root the parent of a sibling base root", () => {
+    const entry: WiktextractEntry = {
+      word: "resto",
+      lang: "Latin",
+      lang_code: "la",
+      pos: "verb",
+      etymology_text: "From re- (“again”) + stō (“stand; stay, remain”).",
+      etymology_templates: [
+        {
+          name: "etymon",
+          args: {
+            "1": "la",
+            "2": "re-<id:back>",
+            "3": "stō<id:to stand>"
+          },
+          expansion:
+            '"terms" : [ { "children" : [ { "keyword" : "inherited", "terms" : [ { "children" : [ ], "term" : "*wre-", "lang" : "itc-pro" } ] } ], "term" : "re-", "lang" : "la" }, { "children" : [ { "keyword" : "derived", "terms" : [ { "children" : [ { "keyword" : "from", "terms" : [ { "children" : [ ], "term" : "*steh₂-", "lang" : "ine-pro" } ] } ], "term" : "*sth₂éh₁yeti", "lang" : "ine-pro" } ] } ], "term" : "stō", "lang" : "la" } ]'
+        },
+        {
+          name: "af",
+          args: {
+            "1": "la",
+            "2": "re-",
+            "3": "stō"
+          },
+          expansion: "re- + stō"
+        }
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toContain("la:resto:derived_from:la:stō:from:la:resto:entry:verb:0");
+    expect(edgeIds).not.toContain("ine-pro:*steh₂-:inherited_from:la:re-:from:la:resto:entry:verb:0");
+  });
+
   it("keeps etymon influence branches out of the main ancestry chain", () => {
     const entry: WiktextractEntry = {
       word: "ginger",
