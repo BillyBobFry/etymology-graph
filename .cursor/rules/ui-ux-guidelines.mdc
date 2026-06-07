@@ -16,11 +16,12 @@ alwaysApply: false
 - Make clickable elements visibly interactive. Use `cursor: pointer` and provide clear hover and focus states for buttons, links, selectable graph nodes, and custom controls so users can discover what can be clicked.
 - Use `Link.vue` for text that navigates to another route or external URL, so users learn one consistent treatment for clickable navigational text.
 - Do not use `Link.vue` for every navigational surface. Header nav items, brand marks, CTA buttons, and route-card surfaces may keep contextual `RouterLink` or `<a>` styling when their shape, label, hover state, and focus state already make the navigation affordance clear.
+- Use `RouterLink` or `<a>` for custom tiles, slips, cards, and starter suggestions that navigate. Do not render them as `<button>` elements that imperatively route.
 - Avoid one-off hover, underline, focus, or color classes on ordinary text links. If the link is just text, use the shared `Link.vue` treatment.
 - When a popover or menu is open, its trigger should use the shared `active` button state so the open control remains visibly connected to the floating surface.
 - Follow established interaction conventions. Buttons, links, forms, menus, comboboxes, focus behavior, keyboard shortcuts, scrolling, and browser affordances should behave the way users expect unless there is a clear product reason to diverge.
 - Do not make custom UI clever at the expense of predictability. Prefer native platform behavior and familiar patterns over surprising gestures, hidden interactions, or non-standard control semantics.
-- Keep motion purposeful and modest. Use animation to clarify transitions or graph changes, and respect reduced-motion preferences for non-essential movement.
+- Keep motion purposeful and modest. Use animation to clarify transitions or graph changes, and respect reduced-motion preferences for non-essential movement. Avoid pressed/active movement on navigational links that immediately leave the page.
 - Prefer progressive disclosure for dense etymology data. Show the most important relationship first, then reveal metadata, source details, and raw text on demand.
 - Show languages by canonical name in user-facing UI. Do not display language codes such as `en`, `pgd`, or `ine-pro` unless the canonical name is unavailable and the code is the only fallback.
 
@@ -46,7 +47,7 @@ alwaysApply: false
 
 - Prefer shared primitives from `apps/web/src/uiComponents/` before styling one-off low-level controls.
 - `Badge.vue`: use for compact, passive metadata labels such as statuses, relationship types, required markers, and non-interactive categories. Use `variant="custom"` with a caller-provided `--badge-color` when a badge should inherit a local semantic color.
-- `Button.vue`: use for compact, text-labeled actions, form submits, destructive actions, loading states, full-width actions, and active popover/menu triggers. Buttons work best for short single-line labels; when a choice needs explanatory copy, metadata, or multiple lines of text, prefer a purpose-built interactive row, slip, or card with native button/link semantics so the larger content does not feel like a button stuffed with prose.
+- `Button.vue`: use for compact, text-labeled actions, form submits, destructive actions, loading states, full-width actions, and active popover/menu triggers. Buttons work best for short single-line labels. When a choice needs explanatory copy, metadata, or multiple lines of text, prefer a purpose-built interactive row, slip, or card with native button/link semantics so the larger content does not feel like a button stuffed with prose. If that surface navigates, make it a `RouterLink` or `<a>` rather than a `Button.vue` with click routing.
 - `IconButton.vue`: use for compact icon-only actions. Always pass a clear `label`; use `active` when it controls an open or selected state.
 - `Link.vue`: use for prose, metadata, breadcrumb, and other text links that navigate to routes or external URLs. Use `variant="plain"` only when wrapping a child that already has clear link affordance, such as a linked badge.
 - `TextField.vue`: use for labeled text-like inputs with help text, required copy, validation copy, and `v-model`.

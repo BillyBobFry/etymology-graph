@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePreferredReducedMotion } from "@vueuse/core";
 import { computed, nextTick, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 
 import {
   DEFAULT_ANCESTOR_MAX_DEPTH,
@@ -18,12 +18,16 @@ import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLa
 import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
 import { useChildTermsGraphQuery } from "../features/graph/composables/useChildTermsGraphQuery";
 import { useDoubletGraphQuery } from "../features/graph/composables/useDoubletGraphQuery";
+import GlossaryText from "../features/glossary/GlossaryText.vue";
+import type { GlossaryTextSegment } from "../features/glossary/linguisticGlossary";
+import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
 import { useTermEntrySelection } from "../features/terms/composables/useTermEntrySelection";
 import { mergeEtymologyGraphs } from "../features/graph/mergeEtymologyGraphs";
 import { starterQueriesForLanguage } from "../features/terms/starterQueries";
 import Button from "../uiComponents/Button.vue";
 import Divider from "../uiComponents/Divider.vue";
 import PageMain from "../uiComponents/PageMain.vue";
+import Skeleton from "../uiComponents/Skeleton.vue";
 import StatusNote from "../uiComponents/StatusNote.vue";
 
 type GraphStatus = "idle" | "loadingDoublets" | "loadingFallback" | "success" | "empty" | "error" | "fallbackError";
@@ -33,7 +37,8 @@ const defaultLimit = 18;
 const defaultChildTermsLimit = 50;
 
 const route = useRoute();
-const router = useRouter();
+const languagesQuery = useLanguagesQuery();
+const languages = computed(() => languagesQuery.data.value?.languages ?? []);
 
 const langCode = computed(() => firstRouteParam(route.params.langCode));
 const term = computed(() => firstRouteParam(route.params.term));
@@ -158,36 +163,53 @@ const childTermsStatus = computed<ChildTermsStatus>(() => {
 });
 const childTermsError = computed(() => childTermsGraphQuery.error.value?.message ?? "Related terms could not load.");
 const doubletStarterSet = computed(() => starterQueriesForLanguage(langCode.value ?? undefined, "doublets"));
+const selectedLanguageLabel = computed(() => languageLabelFor(langCode.value));
+const starterLanguageLabel = computed(() => languageLabelFor(doubletStarterSet.value.langCode));
 const doubletStarterHelpText = computed(() =>
   doubletStarterSet.value.isFallback
-    ? "Showing English doublet cases until this language has curated examples."
-    : "Try doublet cases curated for this language."
+    ? `Showing ${starterLanguageLabel.value} doublet cases for now.`
+    : `Try doublet cases for ${starterLanguageLabel.value}.`
 );
-const doubletGroupsLabel = computed(() => (langCode.value ? `See more ${langCode.value} doublets` : "See more doublets"));
+const doubletGroupsLabel = computed(() =>
+  selectedLanguageLabel.value ? `See more ${selectedLanguageLabel.value} doublets` : "See more doublets"
+);
 const childTermsRouteLabel = computed(() => {
   if (!childTermsGraphInput.value) {
     return "";
   }
 
-  return `${childTermsGraphInput.value.langCode}:${childTermsGraphInput.value.word}`;
+  return termLabelFor(childTermsGraphInput.value.langCode, childTermsGraphInput.value.word);
 });
 const routeLabel = computed(() => {
   if (!langCode.value || !term.value) {
     return "";
   }
 
-  return `${langCode.value}:${term.value}`;
+  return termLabelFor(langCode.value, term.value);
 });
+const doubletsIntroSegments = computed<GlossaryTextSegment[]>(() => [
+  "Exploring ",
+  { text: "doublets", termId: "doublet" },
+  `: same-language words that reconnect with ${routeLabel.value || "this word"} through shared ancestors.`
+]);
+const loadingGraphLabel = computed(() =>
+  graphStatus.value === "loadingFallback"
+    ? `Loading the source trail for ${routeLabel.value}.`
+    : `Loading doublet paths for ${routeLabel.value}.`
+);
 
-/** Opens known doublet starter terms in the language they were curated for. */
-function openDoubletStarterTerm(term: string): void {
-  void router.push({
-    name: "doublets",
-    params: {
-      langCode: doubletStarterSet.value.langCode,
-      term
-    }
-  });
+/** Shows route terms with canonical language names when the language index is available. */
+function termLabelFor(langCode: string, word: string): string {
+  return `${languageLabelFor(langCode)}: ${word}`;
+}
+
+/** Falls back to the stable language code only when canonical metadata has not loaded. */
+function languageLabelFor(nextLangCode: string | null | undefined): string {
+  if (!nextLangCode) {
+    return "";
+  }
+
+  return languages.value.find((language) => language.code === nextLangCode)?.canonicalName ?? nextLangCode;
 }
 
 /** Extracts a single typed route parameter from Vue Router's param shape. */
@@ -278,8 +300,7 @@ watch(
         {{ term ?? "Unknown term" }}
       </h1>
       <p class="max-w-3xl text-lg leading-8 text-text-page-muted">
-        Exploring same-language words that reconnect with
-        <span class="font-bold text-text">{{ routeLabel }}</span> through shared ancestors.
+        <GlossaryText :segments="doubletsIntroSegments" />
       </p>
       <Button
         v-if="langCode"
@@ -313,7 +334,7 @@ watch(
           This doublet route is missing a term or language code.
         </p>
         <p v-else class="mb-4 text-text-muted">
-          No same-language doublet partners or source trail found for {{ routeLabel }}.
+          No doublet paths or source trails in the index yet for {{ routeLabel }}.
         </p>
         <div class="mb-5">
           <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
@@ -326,27 +347,49 @@ watch(
             {{ doubletStarterHelpText }}
           </p>
         </div>
-        <div class="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
-          <Button
+        <div class="border-y border-border divide-y divide-border">
+          <RouterLink
             v-for="query in doubletStarterSet.queries"
             :key="query.term"
-            variant="secondary"
-            full-width
-            @click="openDoubletStarterTerm(query.term)"
+            :to="{
+              name: 'doublets',
+              params: {
+                langCode: doubletStarterSet.langCode,
+                term: query.term
+              }
+            }"
+            class="group flex cursor-pointer items-baseline justify-between gap-4 px-1 py-3 text-left transition duration-200 hover:bg-surface/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-3"
           >
-            <span class="grid gap-1 text-left">
-              <span>{{ query.term }}</span>
-              <span class="font-sans text-sm font-normal leading-5 text-text-muted">{{ query.description }}</span>
+            <span class="min-w-0">
+              <span class="block font-label font-bold leading-none text-text">{{ query.term }}</span>
+              <span class="mt-1 block text-sm leading-5 text-text-muted">{{ query.description }}</span>
             </span>
-          </Button>
+            <span
+              class="shrink-0 font-label text-sm font-bold text-text-muted transition group-hover:text-text"
+              aria-hidden="true"
+            >
+              Open
+            </span>
+          </RouterLink>
         </div>
       </section>
-      <p v-else-if="graphStatus === 'loadingDoublets'" class="text-text-page-muted">
-        Loading doublet partners...
-      </p>
-      <p v-else-if="graphStatus === 'loadingFallback'" class="text-text-page-muted">
-        No same-language doublets found yet. Loading the known source trail for {{ routeLabel }}...
-      </p>
+      <div
+        v-else-if="graphStatus === 'loadingDoublets' || graphStatus === 'loadingFallback'"
+        class="relative z-0 min-h-[min(72dvh,560px)] overflow-hidden rounded-md border border-border [background:radial-gradient(ellipse_at_50%_42%,transparent_58%,color-mix(in_oklch,var(--theme-text)_6%,transparent)_100%),linear-gradient(135deg,color-mix(in_oklch,var(--theme-surface-muted)_82%,var(--theme-background))_0%,var(--theme-surface)_100%)] [box-shadow:inset_0_0_0_1px_color-mix(in_oklch,var(--theme-surface-raised)_72%,transparent)] after:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(color-mix(in_oklch,var(--theme-text)_12%,transparent)_0.7px,transparent_0.8px),radial-gradient(color-mix(in_oklch,var(--theme-surface-raised)_80%,transparent)_0.7px,transparent_0.8px)] after:bg-position-[0_0,11px_17px] after:bg-size-[19px_23px,29px_31px] after:opacity-[0.18] after:content-[''] md:min-h-[360px]"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <span class="sr-only">{{ loadingGraphLabel }}</span>
+        <StatusNote class="absolute left-4 top-4 z-10 max-w-[min(34rem,calc(100%-2rem))]">
+          {{ loadingGraphLabel }}
+        </StatusNote>
+        <div class="absolute right-3 top-3 z-2 flex gap-2" aria-hidden="true">
+          <Skeleton class="h-9 w-9" tone="raised" />
+          <Skeleton class="h-9 w-9" tone="raised" />
+          <Skeleton class="h-9 w-20" tone="raised" />
+        </div>
+      </div>
       <p v-else-if="graphStatus === 'error'" class="text-danger">
         {{ graphError }}
       </p>
@@ -370,7 +413,7 @@ watch(
               {{ childTermsError }}
             </span>
             <span v-else>
-              No doublet partners were found for {{ routeLabel }} in the index. Showing this word's source trail instead.
+              No doublet paths are in the index yet for {{ routeLabel }}. Showing this word's source trail instead.
             </span>
           </StatusNote>
           <GraphCanvas

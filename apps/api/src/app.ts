@@ -80,11 +80,51 @@ const doubletGroupsQuerySchema = z.object({
   cursor: z.string().trim().regex(/^\d+:.+$/).optional()
 });
 
-const searchQuerySchema = z.object({
-  q: z.string().trim().default(""),
-  langCode: z.string().trim().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(50).default(12)
-});
+const searchLanguageCodesSchema = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value) => {
+    if (!value) {
+      return undefined;
+    }
+
+    const rawValues = Array.isArray(value) ? value : [value];
+    const languageCodes = rawValues
+      .flatMap((rawValue) => rawValue.split(","))
+      .map((languageCode) => languageCode.trim())
+      .filter((languageCode) => languageCode.length > 0);
+
+    return Array.from(new Set(languageCodes));
+  });
+
+const searchQuerySchema = z
+  .object({
+    q: z.string().trim().default(""),
+    langCode: z.string().trim().min(1).optional(),
+    langCodes: searchLanguageCodesSchema,
+    hasAncestors: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    limit: z.coerce.number().int().min(1).max(50).default(12)
+  })
+  .superRefine((query, context) => {
+    if (query.langCode && query.langCodes) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["langCodes"],
+        message: "Use either langCode or langCodes, not both"
+      });
+    }
+
+    if (query.langCodes && query.langCodes.length > 50) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["langCodes"],
+        message: "Search may include at most 50 language codes"
+      });
+    }
+  });
 
 const similarTermsHttpQuerySchema = z.object({
   langCode: z.string().trim().min(1),
@@ -286,6 +326,8 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
     return graphRepository.searchTerms({
       query: parsedQuery.data.q,
       langCode: parsedQuery.data.langCode,
+      langCodes: parsedQuery.data.langCodes,
+      hasAncestors: parsedQuery.data.hasAncestors,
       limit: parsedQuery.data.limit
     });
   });

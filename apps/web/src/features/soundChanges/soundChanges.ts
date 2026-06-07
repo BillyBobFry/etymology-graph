@@ -137,7 +137,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             tone: "unchanged",
             title: "Branch with p",
             body:
-              "This branch did not undergo the Germanic p to f shift. Spanish padre and Sanskrit pitṛ́ preserve the older p-lineage contrast.",
+              "This branch did not undergo the Germanic p to f shift. Spanish padre preserves the older p-lineage contrast.",
             placement: "above-left"
           }
         ],
@@ -184,20 +184,6 @@ export const soundChangeArticles: SoundChangeArticle[] = [
               languageCode: "es",
               languageName: "Spanish",
               term: "padre"
-            }
-          },
-          {
-            id: "pitr-sa",
-            label: "Sanskrit pitṛ́",
-            from: {
-              languageCode: "ine-pro",
-              languageName: "Proto-Indo-European",
-              term: "*ph₂tḗr"
-            },
-            to: {
-              languageCode: "sa",
-              languageName: "Sanskrit",
-              term: "पितृ"
             }
           }
         ]
@@ -416,7 +402,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
       {
         heading: "The change",
         body: [
-          "After Grimm's Law turned older p, t, k, and s into Germanic f, th, h, and s, Verner's Law voiced some of those new sounds. The result can be seen in Germanic d, b, g, and z or later r where a plain Grimm's Law outcome would predict a voiceless ",
+          "After Grimm's Law turned older p, t, and k into Germanic f, th, and h, Verner's Law voiced some of those new fricatives, along with inherited s in the same stress environment. The result can be seen in Germanic d, b, g, and z or later r where a plain Grimm's Law outcome would predict a voiceless ",
           { text: "fricative", termId: "fricative" },
           "."
         ]
@@ -444,7 +430,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
         title: "t becomes d after earlier unstressed syllables",
         pattern: "Proto-Indo-European t → Germanic d after Verner's Law",
         explanation:
-          "Father words in Germanic show a voiced d-like outcome where Latin and Sanskrit keep the older t comparison visible.",
+          "Father words in Germanic show a voiced d-like outcome where Latin keeps the older t comparison visible.",
         shiftedLabel: "Germanic reflexes with Verner voicing",
         comparisonLabel: "Cognates without the Germanic voicing",
         annotations: [
@@ -478,12 +464,6 @@ export const soundChangeArticles: SoundChangeArticle[] = [
               langCode: "la",
               word: "pater"
             },
-            fallbackTargets: [
-              {
-                langCode: "sa",
-                word: "पितृ"
-              }
-            ],
             tone: "unchanged",
             title: "Branch with t",
             body:
@@ -534,20 +514,6 @@ export const soundChangeArticles: SoundChangeArticle[] = [
               languageCode: "la",
               languageName: "Latin",
               term: "pater"
-            }
-          },
-          {
-            id: "pitr-sa-verner",
-            label: "Sanskrit pitṛ́",
-            from: {
-              languageCode: "ine-pro",
-              languageName: "Proto-Indo-European",
-              term: "*ph₂tḗr"
-            },
-            to: {
-              languageCode: "sa",
-              languageName: "Sanskrit",
-              term: "पितृ"
             }
           }
         ]
@@ -693,9 +659,9 @@ export const soundChangeArticles: SoundChangeArticle[] = [
         title: "c before e softens",
         pattern: "Latin c before e → Romance palatal consonants",
         explanation:
-          "Centum words show a hard Latin c splitting into Romance outcomes, while Latin and Greek keep harder comparison branches visible.",
+          "Centum words show a hard Latin c developing into softer Romance outcomes, while the Latin source form keeps the older k-like value visible.",
         shiftedLabel: "Romance reflexes with softened c",
-        comparisonLabel: "Forms with harder c or k-like outcomes",
+        comparisonLabel: "Latin source form with hard c",
         annotations: [
           {
             id: "centum-shifted-french",
@@ -706,12 +672,8 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             },
             fallbackTargets: [
               {
-                langCode: "fr",
-                word: "cent"
-              },
-              {
-                langCode: "es",
-                word: "ciento"
+                langCode: "it",
+                word: "cento"
               }
             ],
             tone: "shifted",
@@ -727,12 +689,6 @@ export const soundChangeArticles: SoundChangeArticle[] = [
               langCode: "la",
               word: "centum"
             },
-            fallbackTargets: [
-              {
-                langCode: "la",
-                word: "centum"
-              }
-            ],
             tone: "unchanged",
             title: "Harder comparison",
             body:
@@ -745,14 +701,28 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             id: "cent-fr-palatalization",
             label: "French cent",
             from: {
-              languageCode: "ine-pro",
-              languageName: "Proto-Indo-European",
-              term: "*ḱm̥tóm"
+              languageCode: "la",
+              languageName: "Latin",
+              term: "centum"
             },
             to: {
               languageCode: "fr",
               languageName: "French",
               term: "cent"
+            }
+          },
+          {
+            id: "cento-it-palatalization",
+            label: "Italian cento",
+            from: {
+              languageCode: "la",
+              languageName: "Latin",
+              term: "centum"
+            },
+            to: {
+              languageCode: "it",
+              languageName: "Italian",
+              term: "cento"
             }
           }
         ],
@@ -761,28 +731,14 @@ export const soundChangeArticles: SoundChangeArticle[] = [
             id: "centum-la-palatalization",
             label: "Latin centum",
             from: {
-              languageCode: "ine-pro",
-              languageName: "Proto-Indo-European",
-              term: "*ḱm̥tóm"
+              languageCode: "la",
+              languageName: "Latin",
+              term: "centum"
             },
             to: {
               languageCode: "la",
               languageName: "Latin",
               term: "centum"
-            }
-          },
-          {
-            id: "hekaton-grc-palatalization",
-            label: "Ancient Greek hekatón",
-            from: {
-              languageCode: "ine-pro",
-              languageName: "Proto-Indo-European",
-              term: "*ḱm̥tóm"
-            },
-            to: {
-              languageCode: "grc",
-              languageName: "Ancient Greek",
-              term: "ἑκατόν"
             }
           }
         ]
@@ -1056,7 +1012,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
     slug: "satem-palatalization",
     title: "Satem Palatalization",
     subtitle:
-      "How one Indo-European branch turned older palatal k-like sounds into sibilants while centum branches kept harder consonants.",
+      "How several Indo-European branches turned older palatal k-like sounds into sibilants while centum branches kept harder consonants.",
     overview: [
       "Satem palatalization is one of the clearest sound changes separating Indo-European branches. In Indo-Iranian, Balto-Slavic, and some neighboring branches, older ",
       { text: "palatal k-like sounds", termId: "palatal" },
@@ -1064,7 +1020,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
       { text: "sibilants", termId: "sibilant" },
       ", while Latin, Greek, Germanic, Celtic, and others kept harder outcomes."
     ],
-    affectedLanguages: ["Sanskrit", "Avestan", "Russian", "Lithuanian", "Armenian"],
+    affectedLanguages: ["Sanskrit", "Avestan", "Russian", "Lithuanian", "Old Church Slavonic"],
     families: ["Indo-European", "Indo-Iranian", "Balto-Slavic"],
     sections: [
       {
@@ -1291,7 +1247,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
       {
         heading: "The change",
         body: [
-          "In many Spanish lineages, Latin initial f weakened to h and later became silent in standard pronunciation. The spelling h still marks that history in words such as hijo."
+          "In many Spanish lineages, Latin initial f weakened to h and later became silent in standard pronunciation. The spelling h still marks that history in words such as humo."
         ]
       },
       {
@@ -1305,7 +1261,7 @@ export const soundChangeArticles: SoundChangeArticle[] = [
         body: [
           "Each graph starts from a Latin source and compares Spanish ",
           { text: "reflexes", termId: "reflex" },
-          " with Romance ",
+          " with source or Romance ",
           { text: "cognates", termId: "cognate" },
           " that did not take the Spanish f to h shift."
         ]
@@ -1313,70 +1269,70 @@ export const soundChangeArticles: SoundChangeArticle[] = [
     ],
     examples: [
       {
-        id: "filius-f-to-h",
-        title: "f becomes h before i",
-        pattern: "Latin initial f → Spanish h before i",
+        id: "fumus-f-to-h",
+        title: "f becomes h before u",
+        pattern: "Latin initial f → Spanish h before u",
         explanation:
-          "Son words show Spanish hijo beside Latin fīlius, which preserves the older f spelling in the connected graph.",
+          "Smoke words show Spanish humo beside Latin fūmus, which preserves the older f spelling in the connected graph.",
         shiftedLabel: "Spanish reflexes with h",
-        comparisonLabel: "Romance cognates with f-like sounds",
+        comparisonLabel: "Latin source form with f",
         annotations: [
           {
-            id: "filius-f-to-h-shifted-spanish",
+            id: "fumus-f-to-h-shifted-spanish",
             targetGroupId: "shifted",
             target: {
               langCode: "es",
-              word: "hijo"
+              word: "humo"
             },
             tone: "shifted",
             title: "Spanish branch with h",
             body:
-              "This branch shows Latin initial f weakening on the path to Spanish hijo.",
+              "This branch shows Latin initial f weakening on the path to Spanish humo.",
             placement: "above-right"
           },
           {
-            id: "filius-f-to-h-unchanged-portuguese",
+            id: "fumus-f-to-h-unchanged-latin",
             targetGroupId: "comparisons",
             target: {
               langCode: "la",
-              word: "fīlius"
+              word: "fūmus"
             },
             tone: "unchanged",
             title: "Branch with f",
             body:
-              "This comparison branch did not take the Spanish f to h shift. Latin fīlius keeps the f-family contrast.",
+              "This comparison branch did not take the Spanish f to h shift. Latin fūmus keeps the f-family contrast.",
             placement: "above-left"
           }
         ],
         shifted: [
           {
-            id: "hijo-es-f-to-h",
-            label: "Spanish hijo",
+            id: "humo-es-f-to-h",
+            label: "Spanish humo",
             from: {
-              languageCode: "itc-pro",
-              languageName: "Proto-Italic",
-              term: "*fīlios"
+              languageCode: "la",
+              languageName: "Latin",
+              term: "fūmus"
             },
             to: {
               languageCode: "es",
               languageName: "Spanish",
-              term: "hijo"
+              term: "humo"
             }
           }
         ],
         comparisons: [
           {
-            id: "filius-la-f-to-h",
-            label: "Latin fīlius",
+            id: "fumus-la-f-to-h",
+            label: "Latin fūmus",
             from: {
-              languageCode: "itc-pro",
-              languageName: "Proto-Italic",
-              term: "*fīlios"
+              languageCode: "la",
+              languageName: "Latin",
+              term: "fūmus"
             },
             to: {
               languageCode: "la",
               languageName: "Latin",
-              term: "fīlius"
+              term: "fūmus"
             }
           }
         ]

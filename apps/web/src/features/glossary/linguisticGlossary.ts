@@ -22,7 +22,9 @@ export type LinguisticGlossaryTerm = {
   label: string;
   aliases: string[];
   shortDefinition: string;
+  definitionSegments?: GlossaryTextSegment[];
   example?: string;
+  exampleSegments?: GlossaryTextSegment[];
 };
 
 export type GlossaryTermSegment = {
@@ -39,6 +41,13 @@ export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, Linguisti
     aliases: ["affricates"],
     shortDefinition:
       "A consonant that starts with a full stop in airflow and releases into a fricative.",
+    definitionSegments: [
+      "A consonant that starts with a full ",
+      { text: "stop", termId: "stop-consonant" },
+      " in airflow and releases into a ",
+      { text: "fricative", termId: "fricative" },
+      "."
+    ],
     example: "The sounds written ts, ch, and pf are common affricates."
   },
   "aspirated-voiced-stop": {
@@ -47,6 +56,11 @@ export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, Linguisti
     aliases: ["aspirated voiced stops"],
     shortDefinition:
       "A stop consonant made with vocal-cord vibration and a small burst of breath after the release.",
+    definitionSegments: [
+      "A ",
+      { text: "stop consonant", termId: "stop-consonant" },
+      " made with vocal-cord vibration and a small burst of breath after the release."
+    ],
     example: "Many reconstructed Indo-European sounds written bh, dh, and gh are aspirated voiced stops."
   },
   cognate: {
@@ -68,6 +82,11 @@ export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, Linguisti
     label: "Doublet",
     aliases: ["doublets"],
     shortDefinition: "Two words in the same language that descend from the same older source by different paths.",
+    definitionSegments: [
+      "Two ",
+      { text: "cognate", termId: "cognate" },
+      " words in the same language that descend from the same older source by different paths."
+    ],
     example: "English warranty and guarantee are doublets."
   },
   "front-vowel": {
@@ -103,6 +122,11 @@ export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, Linguisti
     label: "Palatalization",
     aliases: ["palatalized"],
     shortDefinition: "A sound change where a consonant moves toward a y-like or sh-like pronunciation.",
+    definitionSegments: [
+      "A sound change where a consonant moves toward a y-like or sh-like ",
+      { text: "palatal", termId: "palatal" },
+      " pronunciation."
+    ],
     example: "Latin c before e or i was palatalized in many Romance languages."
   },
   reflex: {
@@ -110,6 +134,13 @@ export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, Linguisti
     label: "Reflex",
     aliases: ["reflexes"],
     shortDefinition: "A later form that descends from an older sound, word, or reconstructed source.",
+    definitionSegments: [
+      "A later form that ",
+      { text: "descends", termId: "descendant" },
+      " from an older sound, word, or ",
+      { text: "reconstructed", termId: "reconstructed" },
+      " source."
+    ],
     example: "English father is a Germanic reflex of an older Indo-European kinship word."
   },
   reconstructed: {
@@ -145,6 +176,11 @@ export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, Linguisti
     label: "Voiced stop",
     aliases: ["voiced stops"],
     shortDefinition: "A stop consonant made while the vocal cords vibrate.",
+    definitionSegments: [
+      "A ",
+      { text: "stop consonant", termId: "stop-consonant" },
+      " made while the vocal cords vibrate."
+    ],
     example: "The sounds b, d, and g are voiced stops in English."
   },
   "voiceless-stop": {
@@ -152,6 +188,11 @@ export const linguisticGlossaryTerms: Record<LinguisticGlossaryTermId, Linguisti
     label: "Voiceless stop",
     aliases: ["voiceless stops"],
     shortDefinition: "A stop consonant made without vocal-cord vibration.",
+    definitionSegments: [
+      "A ",
+      { text: "stop consonant", termId: "stop-consonant" },
+      " made without vocal-cord vibration."
+    ],
     example: "The sounds p, t, and k are voiceless stops in English."
   }
 };

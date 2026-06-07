@@ -863,7 +863,17 @@ export function isCuratedSourceLanguageAtlasPair(
 export const searchTermsQuerySchema = z.object({
   query: z.string(),
   langCode: z.string().min(1).optional(),
+  langCodes: z.array(z.string().trim().min(1)).max(50).optional(),
+  hasAncestors: z.boolean().optional(),
   limit: z.number().int().min(1).max(50)
+}).superRefine((query, context) => {
+  if (query.langCode && query.langCodes) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["langCodes"],
+      message: "Use either langCode or langCodes, not both"
+    });
+  }
 });
 
 export type SearchTermsQuery = z.infer<typeof searchTermsQuerySchema>;

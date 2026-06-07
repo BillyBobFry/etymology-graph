@@ -786,6 +786,7 @@ export class PostgresGraphRepository implements GraphRepository {
 
   /** Finds candidate term nodes by normalized word while keeping search SQL out of handlers. */
   public async searchTerms(query: SearchTermsQuery): Promise<SearchTermsResult> {
+    const languageCodes = searchLanguageCodes(query);
     const normalizedQuery = query.langCode
       ? normalizeCanonicalGraphWord(query.langCode, query.query)
       : normalizeWord(query.query);
@@ -818,7 +819,17 @@ export class PostgresGraphRepository implements GraphRepository {
           ON languages.code = graph_nodes.lang_code
         ${LEXICAL_SUMMARY_LATERAL_SQL}
         WHERE graph_nodes.normalized_word LIKE $1 ESCAPE E'\\\\'
-          AND ($2::TEXT IS NULL OR graph_nodes.lang_code = $2)
+          AND (cardinality($2::TEXT[]) = 0 OR graph_nodes.lang_code = ANY($2::TEXT[]))
+          AND (
+            $6::BOOLEAN = FALSE
+            OR EXISTS (
+              SELECT 1
+              FROM graph_edge_walk_mv ancestor_candidate
+              WHERE ancestor_candidate.from_node_id = graph_nodes.id
+                AND ancestor_candidate.edge_type = ANY($7::TEXT[])
+                AND ancestor_candidate.default_ancestor_walk_candidate
+            )
+          )
         ORDER BY
           CASE
             WHEN graph_nodes.normalized_word = $3 THEN 0
@@ -830,7 +841,15 @@ export class PostgresGraphRepository implements GraphRepository {
           graph_nodes.word
         LIMIT $5
       `,
-      [containsPattern, query.langCode ?? null, normalizedQuery, prefixPattern, query.limit]
+      [
+        containsPattern,
+        languageCodes,
+        normalizedQuery,
+        prefixPattern,
+        query.limit,
+        query.hasAncestors ?? false,
+        ANCESTOR_TRAVERSAL_EDGE_TYPES
+      ]
     );
 
     return {
@@ -2151,6 +2170,15 @@ function mapLanguageDetailRow(row: LanguageDetailRow): LanguageDetail {
     descriptionUpdatedAt: row.description_updated_at?.toISOString(),
     graphNodeCount: row.graph_node_count
   };
+}
+
+/** Resolves single- and multi-language term search into one SQL array parameter. */
+function searchLanguageCodes(query: SearchTermsQuery): string[] {
+  if (query.langCodes) {
+    return query.langCodes;
+  }
+
+  return query.langCode ? [query.langCode] : [];
 }
 
 /** Maps database naming into the graph DTO used by API handlers and clients. */

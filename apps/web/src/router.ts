@@ -6,6 +6,7 @@ import DoubletsView from "./views/DoubletsView.vue";
 import EtymologySearchView from "./views/EtymologySearchView.vue";
 import { findSoundChangeArticle } from "./features/soundChanges/soundChanges";
 import EtymologyView from "./views/EtymologyView.vue";
+import GlossaryView from "./views/GlossaryView.vue";
 import HomeView from "./views/HomeView.vue";
 import LanguageDetailView from "./views/LanguageDetailView.vue";
 import LanguageTermsView from "./views/LanguageTermsView.vue";
@@ -144,6 +145,14 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: "/glossary",
+    name: "glossary",
+    component: GlossaryView,
+    meta: {
+      title: "Glossary"
+    }
+  },
+  {
     path: "/:pathMatch(.*)*",
     name: "not-found",
     component: NotFoundView,
@@ -161,6 +170,13 @@ export const router = createRouter({
   scrollBehavior: (to, from, savedPosition) => {
     if (savedPosition) {
       return savedPosition;
+    }
+
+    if (to.hash) {
+      return {
+        el: to.hash,
+        top: 24
+      };
     }
 
     const top = { left: 0, top: 0 };

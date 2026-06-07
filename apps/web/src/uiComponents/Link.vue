@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { RouterLink, type RouteLocationRaw } from "vue-router";
 
-type LinkVariant = "inline" | "plain";
+type LinkVariant = "inline" | "list" | "plain";
 
 defineOptions({
   inheritAttrs: false
@@ -28,6 +28,7 @@ const baseClass =
 const variantClasses: Record<LinkVariant, string> = {
   inline:
     "rounded-[2px] font-bold text-text underline decoration-accent/45 decoration-1 underline-offset-[0.2em] hover:text-accent hover:decoration-accent",
+  list: "rounded-[2px] font-label text-sm text-text-muted hover:text-text",
   plain: "rounded-[3px]"
 };
 const linkClass = computed(() => [

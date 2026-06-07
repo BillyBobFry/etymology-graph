@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRouter } from "vue-router";
 
 import { starterQueriesForLanguage } from "../features/terms/starterQueries";
 import { useSearchLanguageStore } from "../features/terms/searchLanguageStore";
@@ -8,7 +7,6 @@ import EtymologyStarterQueries from "../features/terms/EtymologyStarterQueries.v
 import TermSearchForm from "../features/terms/TermSearchForm.vue";
 import PageMain from "../uiComponents/PageMain.vue";
 
-const router = useRouter();
 const searchLanguageStore = useSearchLanguageStore();
 const etymologyStarterSet = computed(() =>
   starterQueriesForLanguage(searchLanguageStore.selectedSearchLanguage, "etymology")
@@ -18,17 +16,6 @@ const etymologyStarterHelpText = computed(() =>
     ? "Showing English starting points until this language has curated examples."
     : "Start with terms curated for the selected language."
 );
-
-/** Sends known starter terms to the language route they were curated for. */
-function openStarterTerm(term: string): void {
-  void router.push({
-    name: "etymology",
-    params: {
-      langCode: etymologyStarterSet.value.langCode,
-      term
-    }
-  });
-}
 </script>
 
 <template>
@@ -76,7 +63,7 @@ function openStarterTerm(term: string): void {
           {{ etymologyStarterHelpText }}
         </p>
       </div>
-      <EtymologyStarterQueries :queries="etymologyStarterSet.queries" @select="openStarterTerm" />
+      <EtymologyStarterQueries :lang-code="etymologyStarterSet.langCode" :queries="etymologyStarterSet.queries" />
     </section>
   </PageMain>
 </template>

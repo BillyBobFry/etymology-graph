@@ -62,13 +62,15 @@ const props = withDefaults(
     initialTerm?: string | null;
     targetRouteName?: string;
     compact?: boolean;
+    hasAncestors?: boolean;
   }>(),
   {
     langCode: null,
     initialLangCode: null,
     initialTerm: null,
     targetRouteName: "etymology",
-    compact: false
+    compact: false,
+    hasAncestors: true
   }
 );
 
@@ -91,6 +93,7 @@ const languages = computed(() => languagesQuery.data.value?.languages ?? []);
 const searchQueryInput = computed<SearchTermsQuery>(() => ({
   query: selectedLangCode.value ? searchQueryText.value : "",
   langCode: selectedLangCode.value,
+  hasAncestors: props.hasAncestors,
   limit: 12
 }));
 

@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { Menu, Moon } from "@lucide/vue";
+import { Menu, Moon, Search } from "@lucide/vue";
 import { useTitle } from "@vueuse/core";
 import * as navigationMenu from "@zag-js/navigation-menu";
 import { normalizeProps, useMachine, type PropTypes } from "@zag-js/vue";
 import { computed, onMounted, ref } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 
+import AppFooter from "./AppFooter.vue";
 import LingraphicLogo from "./features/brand/LingraphicLogo.vue";
+import CommandPalette from "./features/commandPalette/CommandPalette.vue";
+import { useCommandPalette } from "./features/commandPalette/useCommandPalette";
 import { useLanguagesQuery } from "./features/languages/useLanguagesQuery";
 import { siteTitle, type RouteDocumentTitle, type RouteDocumentTitleContext } from "./router";
 import IconButton from "./uiComponents/IconButton.vue";
@@ -24,6 +27,7 @@ type SectionNavItem = {
 const route = useRoute();
 const languagesQuery = useLanguagesQuery();
 const themePreference = ref<ThemePreference>("light");
+const { isCommandPaletteOpen, openCommandPalette, setCommandPaletteOpen } = useCommandPalette();
 const mobileSectionsItem = {
   value: "sections"
 };
@@ -181,7 +185,7 @@ function preferredSystemTheme(): ThemePreference {
 </script>
 
 <template>
-  <div class="min-h-screen">
+  <div class="flex min-h-screen flex-col">
     <header class="mx-auto flex max-w-5xl flex-col gap-4 px-6 pt-6">
       <div class="flex items-center justify-between gap-3">
         <div class="flex min-w-0 flex-1 items-center gap-3">
@@ -229,6 +233,16 @@ function preferredSystemTheme(): ThemePreference {
           </RouterLink>
         </div>
         <IconButton
+          label="Search commands"
+          class="shrink-0"
+          variant="secondary"
+          size="sm"
+          :active="isCommandPaletteOpen"
+          @click="openCommandPalette"
+        >
+          <Search :size="16" stroke-width="2.75" aria-hidden="true" />
+        </IconButton>
+        <IconButton
           label="Dark mode"
           class="shrink-0"
           variant="secondary"
@@ -253,5 +267,7 @@ function preferredSystemTheme(): ThemePreference {
       </nav>
     </header>
     <RouterView />
+    <AppFooter />
+    <CommandPalette :open="isCommandPaletteOpen" @update:open="setCommandPaletteOpen" />
   </div>
 </template>

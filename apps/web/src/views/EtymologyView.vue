@@ -245,17 +245,6 @@ function goToEtymologySearch(): void {
   void router.push({ name: "etymology-search" });
 }
 
-/** Sends known starter terms to the language route they were curated for. */
-function openStarterTerm(term: string): void {
-  void router.push({
-    name: "etymology",
-    params: {
-      langCode: etymologyStarterSet.value.langCode,
-      term
-    }
-  });
-}
-
 /** Extracts a single typed route parameter from Vue Router's param shape. */
 function firstRouteParam(param: string | string[] | undefined): string | null {
   if (Array.isArray(param)) {
@@ -564,7 +553,7 @@ watch(
             {{ etymologyStarterHelpText }}
           </p>
         </div>
-        <EtymologyStarterQueries :queries="etymologyStarterSet.queries" @select="openStarterTerm" />
+        <EtymologyStarterQueries :lang-code="etymologyStarterSet.langCode" :queries="etymologyStarterSet.queries" />
       </section>
       <div
         v-else-if="graphStatus === 'loading'"

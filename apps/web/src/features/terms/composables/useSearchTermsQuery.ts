@@ -46,6 +46,14 @@ export async function fetchSearchTerms(
     params.set("langCode", query.langCode);
   }
 
+  if (query.langCodes) {
+    params.set("langCodes", query.langCodes.join(","));
+  }
+
+  if (query.hasAncestors) {
+    params.set("hasAncestors", "true");
+  }
+
   const response = await fetch(buildApiUrl(`/api/search?${params.toString()}`), { signal });
 
   if (!response.ok) {

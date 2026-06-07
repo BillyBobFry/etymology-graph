@@ -43,11 +43,6 @@ function languageLabel(term: { langCode: string; langName?: string }): string {
   return term.langName ?? term.langCode;
 }
 
-/** Keeps entry counts compact while still revealing when a group is sampled. */
-function entryCountLabel(group: DoubletGroup): string {
-  return `${group.entryCount} ${group.entryCount === 1 ? "entry" : "entries"}`;
-}
-
 /** Shows the sampled target-language terms first because they are the doublet set users browse. */
 function doubletSetLabel(group: DoubletGroup): string {
   const preview = group.entries.slice(0, 5).map((entry) => entry.word).join(", ");
@@ -94,7 +89,6 @@ function entryLabel(entry: TermEntrySummary): string {
             </span>
           </span>
           <span class="flex shrink-0 items-center gap-2 tabular-nums">
-            <Badge>{{ entryCountLabel(groupForId(itemId)!) }}</Badge>
             <Badge>{{ groupForId(itemId)!.minDepth }} {{ groupForId(itemId)!.minDepth === 1 ? "step" : "steps" }}</Badge>
           </span>
         </span>

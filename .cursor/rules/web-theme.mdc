@@ -50,10 +50,12 @@ alwaysApply: false
 - Dense indexes and long result lists should read like atlas lists, not card stacks. Prefer `border-y` plus `divide-y` rows and subtle hover fills over per-row borders, shadows, or raised slips.
 - Treat contained surfaces as archival slips laid on parchment, not glossy app cards. Use translucent warm paper fills such as `bg-surface/55`, `bg-surface/60`, or `bg-surface/65` so the page texture can breathe through.
 - Use lighter fills for nested clickable slips, around `bg-surface/45`, with hover states that rise only slightly, such as `hover:bg-surface/75` or `hover:bg-surface-muted`.
+- Do not put a local paper texture on every surface. The global parchment background already provides texture; add per-component paper grain only when the element should feel like a separate tactile object, such as a solid CTA, selected control, popover, feature card, or compact reference slip.
+- For nested navigational/reference slips, prefer a restrained treatment: light `bg-surface/35` to `bg-surface/45`, hairline `border-border`, optional `shadow-paper`, subtle paper grain when it clarifies the object, and hover states around `hover:bg-surface/70` or `hover:bg-surface/75`.
 - Keep borders hairline and ink-like with `border-border` or `border-border-strong`. Prefer borders and paper tone over stronger shadows.
 - Keep shadows close and low contrast. `shadow-paper` is enough for most static page surfaces; reserve heavier overlay shadows for floating UI.
 - Keep corners sharp and paper-like. Prefer `rounded-[3px]` for view-level paper slips and `rounded-md` for controls, CTAs, popovers, and reusable component defaults. Reserve full pills for badges and compact metadata only.
-- Primary action buttons may remain solid accent surfaces, but should still use the restrained paper geometry, usually `rounded-md` rather than `rounded-lg`.
+- Primary action buttons may remain solid accent surfaces and can carry a quiet paper-fiber texture, but should still use restrained paper geometry, usually `rounded-md` rather than `rounded-lg`. Keep ghost/transparent controls visually flat unless an active state needs connection to an open surface.
 
 ## Typography
 
