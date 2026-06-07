@@ -9,3 +9,4 @@ wikidata_downloads/*
 !wikidata_downloads/.gitkeep
 
 backups/
+tsconfig.tsbuildinfo

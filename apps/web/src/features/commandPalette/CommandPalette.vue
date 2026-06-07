@@ -58,6 +58,7 @@ type DocumentOverflowState = {
 const router = useRouter();
 const dialogElement = ref<HTMLDialogElement | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
+const resultsScroller = ref<HTMLElement | null>(null);
 const documentOverflowBeforeDialog = ref<DocumentOverflowState | null>(null);
 const searchLanguageStore = useSearchLanguageStore();
 const languagesQuery = useLanguagesQuery();
@@ -186,9 +187,13 @@ watchDebounced(
 );
 watch(visibleItems, () => {
   highlightedIndex.value = Math.min(highlightedIndex.value, Math.max(visibleItems.value.length - 1, 0));
+  void scrollHighlightedItemIntoView();
 });
 watch(queryText, () => {
   highlightedIndex.value = 0;
+});
+watch(highlightedIndex, () => {
+  void scrollHighlightedItemIntoView();
 });
 
 onBeforeUnmount(() => {
@@ -286,6 +291,36 @@ function moveHighlight(delta: number): void {
   }
 
   highlightedIndex.value = (highlightedIndex.value + delta + visibleItems.value.length) % visibleItems.value.length;
+}
+
+/** Keeps keyboard navigation visually aligned with the active descendant. */
+async function scrollHighlightedItemIntoView(): Promise<void> {
+  await nextTick();
+
+  const scroller = resultsScroller.value;
+  const highlightedItem = visibleItems.value[highlightedIndex.value];
+
+  if (!scroller || !highlightedItem) {
+    return;
+  }
+
+  const highlightedElement = document.getElementById(highlightedItem.id);
+
+  if (!highlightedElement) {
+    return;
+  }
+
+  const scrollerBounds = scroller.getBoundingClientRect();
+  const itemBounds = highlightedElement.getBoundingClientRect();
+
+  if (itemBounds.bottom > scrollerBounds.bottom) {
+    scroller.scrollTop += itemBounds.bottom - scrollerBounds.bottom;
+    return;
+  }
+
+  if (itemBounds.top < scrollerBounds.top) {
+    scroller.scrollTop -= scrollerBounds.top - itemBounds.top;
+  }
 }
 
 /** Opens the highlighted command when the user presses Enter. */
@@ -400,7 +435,7 @@ function isApplePlatform(): boolean {
                 type="text"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="Search commands or open a term..."
+                placeholder="Search commands..."
                 :aria-activedescendant="hasVisibleItems ? visibleItems[highlightedIndex]?.id : undefined"
                 aria-controls="command-palette-results"
                 aria-expanded="true"
@@ -420,7 +455,7 @@ function isApplePlatform(): boolean {
             </div>
           </div>
 
-          <div class="max-h-[min(28rem,calc(100vh-12rem))] overflow-y-auto p-2">
+          <div ref="resultsScroller" class="max-h-[min(28rem,calc(100vh-12rem))] overflow-y-auto p-2">
             <ul
               v-if="hasVisibleItems"
               id="command-palette-results"
