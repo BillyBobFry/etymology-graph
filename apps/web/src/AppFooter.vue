@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LingraphicLogo from "./features/brand/LingraphicLogo.vue";
 import Link from "./uiComponents/Link.vue";
 
 const githubRepositoryUrl = "https://github.com/BillyBobFry/etymology-graph";
@@ -10,9 +11,7 @@ const wiktionaryUrl = "https://www.wiktionary.org/";
     <div class="border-t border-border-strong pt-5">
       <div class="grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <div class="max-w-2xl">
-          <p class="font-label text-xs font-bold uppercase tracking-[0.14em]">
-            Lingraphic
-          </p>
+          <LingraphicLogo class="text-base!" />
           <p class="mt-2 text-sm leading-6">
             An archival language atlas for tracing word lineages. Built from
             <Link :href="wiktionaryUrl" target="_blank">Wiktionary</Link>
