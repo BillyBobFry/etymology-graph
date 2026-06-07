@@ -18,6 +18,7 @@ const props = withDefaults(
     ariaInvalid?: boolean;
     ariaDescribedby?: string;
     inputAttrs?: TextFieldBaseInputAttrs;
+    inputClass?: string;
   }>(),
   {
     id: undefined,
@@ -30,7 +31,8 @@ const props = withDefaults(
     required: false,
     ariaInvalid: false,
     ariaDescribedby: undefined,
-    inputAttrs: () => ({})
+    inputAttrs: () => ({}),
+    inputClass: undefined
   }
 );
 
@@ -64,7 +66,10 @@ function updateModel(event: Event): void {
     :required="required"
     :aria-invalid="ariaInvalid"
     :aria-describedby="ariaDescribedby"
-    class="min-w-0 rounded-md border border-border-strong bg-surface-raised px-4 py-3 font-sans text-base font-normal text-text outline-none transition placeholder:text-text-muted/70 hover:border-accent focus:border-accent focus:ring-2 focus:ring-accent/25 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-text-muted disabled:opacity-75 read-only:bg-surface-muted"
+    :class="[
+      'w-full min-w-0 rounded-md border border-border-strong bg-surface-raised px-4 py-3 font-sans text-base font-normal text-text outline-none transition placeholder:text-text-muted/70 hover:border-accent focus:border-accent focus:ring-2 focus:ring-accent/25 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-text-muted disabled:opacity-75 read-only:bg-surface-muted',
+      inputClass
+    ]"
     @input="updateModel"
   />
 </template>

@@ -68,7 +68,7 @@ function resolveDescribedBy(): string | undefined {
 </script>
 
 <template>
-  <label class="grid gap-2 font-label text-sm font-bold text-text" :for="inputId">
+  <label class="grid min-w-0 gap-2 font-label text-sm font-bold text-text" :for="inputId">
     <span class="flex items-center justify-between gap-3">
       <span>{{ label }}</span>
       <Badge v-if="required">
@@ -76,21 +76,30 @@ function resolveDescribedBy(): string | undefined {
       </Badge>
     </span>
 
-    <TextFieldBase
-      :id="inputId"
-      :model-value="modelValue"
-      :type="type"
-      :name="name"
-      :placeholder="placeholder"
-      :autocomplete="autocomplete"
-      :disabled="disabled"
-      :readonly="readonly"
-      :required="required"
-      :aria-invalid="Boolean(error)"
-      :aria-describedby="describedBy"
-      :input-attrs="inputAttrs"
-      @update:model-value="emit('update:modelValue', $event)"
-    />
+    <div class="min-w-0" :class="$slots.inputSuffix ? 'relative' : undefined">
+      <TextFieldBase
+        :id="inputId"
+        :model-value="modelValue"
+        :type="type"
+        :name="name"
+        :placeholder="placeholder"
+        :autocomplete="autocomplete"
+        :disabled="disabled"
+        :readonly="readonly"
+        :required="required"
+        :aria-invalid="Boolean(error)"
+        :aria-describedby="describedBy"
+        :input-attrs="inputAttrs"
+        :input-class="$slots.inputSuffix ? 'pr-11' : undefined"
+        @update:model-value="emit('update:modelValue', $event)"
+      />
+      <div
+        v-if="$slots.inputSuffix"
+        class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
+      >
+        <slot name="inputSuffix" />
+      </div>
+    </div>
 
     <span
       v-if="error || helpText"

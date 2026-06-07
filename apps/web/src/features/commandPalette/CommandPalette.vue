@@ -12,7 +12,7 @@ import { useLanguagesQuery } from "../languages/useLanguagesQuery";
 import { useSearchTermsQuery } from "../terms/composables/useSearchTermsQuery";
 import { useSearchLanguageStore } from "../terms/searchLanguageStore";
 import { commandPaletteActions, type CommandPaletteAction } from "./commandPaletteActions";
-import CommandPaletteHotkey from "./CommandPaletteHotkey.vue";
+import KeyboardHotkey from "../../uiComponents/KeyboardHotkey.vue";
 import { commandPaletteTermSearchLanguageCodes } from "./commandPaletteTermSearchLanguages";
 
 type CommandPaletteTermItem = {
@@ -524,7 +524,7 @@ function isApplePlatform(): boolean {
           </div>
           <footer class="items-center justify-between gap-3 border-t border-border bg-surface/55 px-4 py-3 text-xs text-text-muted hidden md:flex">
             <span class="font-label font-bold uppercase tracking-[0.12em]">Toggle palette</span>
-            <CommandPaletteHotkey :keys="openShortcutKeys" />
+            <KeyboardHotkey :keys="openShortcutKeys" />
           </footer>
         </section>
       </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watchDebounced } from "@vueuse/core";
+import { useEventListener, watchDebounced } from "@vueuse/core";
 import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
@@ -8,6 +8,8 @@ import { type GraphNode, type Language, type SearchTermsQuery } from "@etymology
 import LanguageSelector from "../languages/LanguageSelector.vue";
 import { useLanguagesQuery } from "../languages/useLanguagesQuery";
 import Combobox from "../../uiComponents/Combobox.vue";
+import KeyboardHotkey from "../../uiComponents/KeyboardHotkey.vue";
+import { isKeyboardTypingTarget } from "../../utils/isKeyboardTypingTarget";
 import { useSearchTermsQuery } from "./composables/useSearchTermsQuery";
 import { fallbackSearchLanguage } from "./searchLanguageStore";
 
@@ -164,6 +166,46 @@ watch(() => props.initialTerm, syncInitialTerm);
 watch(searchTerm, clearSelectionWhenInputChanges);
 watchDebounced(searchTerm, updateSearchQuery, { debounce: searchDebounceMs });
 watch(selectedSearchResultId, openSearchResult);
+
+useEventListener(window, "keydown", handleTermSearchFocusShortcut);
+
+/** Focuses the term field from `/` when the user is not already typing elsewhere. */
+function handleTermSearchFocusShortcut(event: KeyboardEvent): void {
+  if (event.key !== "/" || event.repeat || event.metaKey || event.ctrlKey || event.altKey) {
+    return;
+  }
+
+  if (isKeyboardTypingTarget(document.activeElement)) {
+    return;
+  }
+
+  event.preventDefault();
+  resetTermInputForShortcut();
+  focusTermSearchField();
+}
+
+/** Clears the current term so the `/` shortcut starts a fresh word search. */
+function resetTermInputForShortcut(): void {
+  searchTerm.value = "";
+  selectedSearchResultId.value = undefined;
+  searchQueryText.value = "";
+}
+
+/** Moves keyboard focus to the term combobox, or the language picker when term search is unavailable. */
+function focusTermSearchField(): void {
+  const termInput = document.getElementById(`${props.idPrefix}-term`);
+
+  if (termInput instanceof HTMLInputElement && !termInput.disabled) {
+    termInput.focus();
+    return;
+  }
+
+  const languageInput = document.getElementById(`${props.idPrefix}-language`);
+
+  if (languageInput instanceof HTMLInputElement) {
+    languageInput.focus();
+  }
+}
 
 /** Picks a language from route state, shared selection, or the first imported language. */
 function chooseInitialLanguage(availableLanguages: Language[]): void {
@@ -369,6 +411,11 @@ function hasLanguage(availableLanguages: Language[], langCode: string): boolean 
       loading-text="Searching terms"
       close-on-empty
     >
+      <template #inputSuffix>
+        <span class="hidden md:inline-flex">
+          <KeyboardHotkey :keys="['/']" />
+        </span>
+      </template>
       <template #option="{ option }">
         <span class="font-label font-bold">{{ option.label }}</span>
         <span class="text-xs leading-5 text-text-muted">{{ option.description }}</span>

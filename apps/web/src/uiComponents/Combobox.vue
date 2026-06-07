@@ -90,6 +90,7 @@ const emit = defineEmits<{
 defineSlots<{
   option?: (props: { option: ComboboxOption; selected: boolean; highlighted: boolean }) => unknown;
   empty?: () => unknown;
+  inputSuffix?: () => unknown;
 }>();
 
 const generatedId = useId();
@@ -300,8 +301,8 @@ watch(() => props.closeOnEmpty && !inputValue.value.trim(), (shouldClose) => {
 </script>
 
 <template>
-  <div v-bind="api.getRootProps()" class="relative">
-    <div v-bind="api.getControlProps()">
+  <div v-bind="api.getRootProps()" class="relative min-w-0">
+    <div v-bind="api.getControlProps()" class="min-w-0">
       <TextField
         :id="inputId"
         :model-value="api.inputValue"
@@ -316,7 +317,11 @@ watch(() => props.closeOnEmpty && !inputValue.value.trim(), (shouldClose) => {
         :readonly="readonly"
         :required="required"
         :input-attrs="inputAttrs"
-      />
+      >
+        <template v-if="$slots.inputSuffix" #inputSuffix>
+          <slot name="inputSuffix" />
+        </template>
+      </TextField>
     </div>
 
     <Teleport to="body">
