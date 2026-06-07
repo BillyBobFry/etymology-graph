@@ -216,9 +216,6 @@ const shouldShowExploreTray = computed(
     !areExploreSuggestionsVisible.value &&
     !isGraphNodeDetailOpen.value
 );
-const shouldReserveExploreTraySpace = computed(
-  () => hasExploreSuggestionsContent.value && !isGraphNodeDetailOpen.value
-);
 
 useIntersectionObserver(
   graphResultRef,
@@ -529,7 +526,6 @@ watch(
     <section
       ref="graphResultRef"
       class="scroll-mt-6 grid gap-5"
-      :class="shouldReserveExploreTraySpace ? 'pb-36 md:pb-32' : ''"
     >
       <section
         v-if="graphStatus === 'idle' || graphStatus === 'empty'"
@@ -586,21 +582,21 @@ watch(
           @node-details-open-change="isGraphNodeDetailOpen = $event"
         />
       </template>
-    </section>
 
-    <EtymologyExploreTray
-      :key="routeLabel"
-      :show="shouldShowExploreTray"
-      :similar-terms="similarTerms"
-      :cognates="visibleCognates"
-      :selected-cognate-ids="selectedCognateIds"
-      :similar-terms-loading="similarTermsQuery.isPending.value"
-      :similar-terms-error="similarTermsQuery.isError.value"
-      :cognates-loading="cognatesQuery.isPending.value"
-      :cognates-checking="isCheckingCognateGraphs"
-      :cognates-error="cognatesQuery.isError.value"
-      :cognate-expansion-error="cognateExpansionError"
-      @toggle-cognate="handleToggleCognateInGraph"
-    />
+      <EtymologyExploreTray
+        :key="routeLabel"
+        :show="shouldShowExploreTray"
+        :similar-terms="similarTerms"
+        :cognates="visibleCognates"
+        :selected-cognate-ids="selectedCognateIds"
+        :similar-terms-loading="similarTermsQuery.isPending.value"
+        :similar-terms-error="similarTermsQuery.isError.value"
+        :cognates-loading="cognatesQuery.isPending.value"
+        :cognates-checking="isCheckingCognateGraphs"
+        :cognates-error="cognatesQuery.isError.value"
+        :cognate-expansion-error="cognateExpansionError"
+        @toggle-cognate="handleToggleCognateInGraph"
+      />
+    </section>
   </PageMain>
 </template>

@@ -99,7 +99,7 @@ const preventInactiveLinkClick = (event: MouseEvent): void => {
     120px 120px;
 }
 
-:global(.dark) .button-paper {
+.dark .button-paper {
   background-image:
     linear-gradient(
       180deg,

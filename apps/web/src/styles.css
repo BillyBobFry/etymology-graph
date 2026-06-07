@@ -47,6 +47,8 @@
   --theme-accent: oklch(0.47 0.105 156);
   --theme-accent-contrast: oklch(0.99 0.01 88);
   --theme-accent-soft: oklch(0.9 0.07 151);
+  --theme-page-wash-shadow: color-mix(in oklch, var(--theme-background) 90%, black);
+  --theme-page-wash-light: color-mix(in oklch, var(--theme-background) 94%, white);
   --theme-danger: oklch(0.47 0.16 30);
   --theme-graph-node: oklch(0.99 0.01 88);
   --theme-graph-root: oklch(0.27 0.055 75);
@@ -73,6 +75,8 @@
     --theme-accent: oklch(0.69 0.105 153);
     --theme-accent-contrast: oklch(0.16 0.026 74);
     --theme-accent-soft: oklch(0.31 0.052 151);
+    --theme-page-wash-shadow: color-mix(in oklch, var(--theme-background) 97%, black);
+    --theme-page-wash-light: color-mix(in oklch, var(--theme-background) 98%, white);
     --theme-danger: oklch(0.73 0.13 31);
     --theme-graph-node: oklch(0.27 0.028 73);
     --theme-graph-root: oklch(0.8 0.09 148);
@@ -99,6 +103,8 @@
   --theme-accent: oklch(0.69 0.105 153);
   --theme-accent-contrast: oklch(0.16 0.026 74);
   --theme-accent-soft: oklch(0.31 0.052 151);
+  --theme-page-wash-shadow: color-mix(in oklch, var(--theme-background) 97%, black);
+  --theme-page-wash-light: color-mix(in oklch, var(--theme-background) 98%, white);
   --theme-danger: oklch(0.73 0.13 31);
   --theme-graph-node: oklch(0.27 0.028 73);
   --theme-graph-root: oklch(0.8 0.09 148);
@@ -130,25 +136,25 @@
       linear-gradient(
         170deg,
         transparent 0%,
-        transparent 12%,
-        color-mix(in oklch, var(--theme-background) 90%, black) 36%,
-        transparent 64%,
+        transparent 18%,
+        var(--theme-page-wash-shadow) 45%,
+        transparent 76%,
         transparent 100%
       ),
       linear-gradient(
         14deg,
         transparent 0%,
-        transparent 28%,
-        color-mix(in oklch, var(--theme-background) 94%, white) 56%,
-        transparent 82%,
+        transparent 34%,
+        var(--theme-page-wash-light) 62%,
+        transparent 90%,
         transparent 100%
       ),
       linear-gradient(
         188deg,
         transparent 0%,
-        transparent 18%,
-        color-mix(in oklch, var(--theme-background) 93%, black) 52%,
-        transparent 84%,
+        transparent 24%,
+        var(--theme-page-wash-shadow) 58%,
+        transparent 94%,
         transparent 100%
       ),
       radial-gradient(ellipse at 22% 18%, color-mix(in oklch, var(--theme-accent) 7%, transparent), transparent 42rem),
@@ -176,9 +182,9 @@
       no-repeat,
       repeat,
       repeat,
-      no-repeat,
-      no-repeat,
-      no-repeat,
+      repeat-y,
+      repeat-y,
+      repeat-y,
       no-repeat,
       no-repeat;
     background-size:
@@ -190,9 +196,9 @@
       100% 100%,
       96px 96px,
       96px 96px,
-      100% 132rem,
-      100% 168rem,
-      100% 196rem,
+      100% 82rem,
+      100% 96rem,
+      100% 118rem,
       104rem 128rem,
       128rem 152rem;
   }

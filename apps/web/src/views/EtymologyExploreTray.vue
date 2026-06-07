@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import * as collapsible from "@zag-js/collapsible";
 import { normalizeProps, useMachine, type PropTypes } from "@zag-js/vue";
-import { onClickOutside } from "@vueuse/core";
-import { computed, ref, useId, watch } from "vue";
+import { onClickOutside, useEventListener, useResizeObserver } from "@vueuse/core";
+import { computed, nextTick, ref, useId, watch } from "vue";
 
 import type { GraphNode, SimilarTerm } from "@etymology-graph/graph";
 
@@ -27,7 +27,10 @@ const emit = defineEmits<{
 }>();
 
 const isOpen = ref(false);
+const isTrayFloating = ref(false);
+const normalFlowMarkerRef = ref<HTMLElement | null>(null);
 const trayRef = ref<HTMLElement | null>(null);
+const triggerRef = ref<HTMLElement | null>(null);
 const generatedId = useId();
 const relatedCount = computed(() => props.similarTerms.length + props.cognates.length);
 const hasCognates = computed(() => props.cognates.length > 0);
@@ -62,6 +65,9 @@ const service = useMachine(
 const api = computed(() => collapsible.connect<PropTypes>(service, normalizeProps));
 
 onClickOutside(trayRef, handleOutsideTrayClick);
+useEventListener(window, "resize", updateTrayFloatingState);
+useEventListener(window, "scroll", updateTrayFloatingState, { passive: true });
+useResizeObserver(triggerRef, updateTrayFloatingState);
 
 /** Hides the floating panel once the inline suggestions are visible again. */
 watch(
@@ -69,8 +75,13 @@ watch(
   (show) => {
     if (!show) {
       isOpen.value = false;
+      isTrayFloating.value = false;
+      return;
     }
-  }
+
+    void nextTick(updateTrayFloatingState);
+  },
+  { immediate: true }
 );
 
 /** Keeps Zag's collapsible state in sync with local close-on-hide behavior. */
@@ -86,14 +97,39 @@ function handleOutsideTrayClick(): void {
 
   api.value.setOpen(false);
 }
+
+/** Detects when sticky positioning has lifted the tray away from its normal slot. */
+function updateTrayFloatingState(): void {
+  const marker = normalFlowMarkerRef.value;
+  const tray = trayRef.value;
+
+  if (!props.show || !marker || !tray || hasOnlySimilarTerms.value) {
+    isTrayFloating.value = false;
+    return;
+  }
+
+  const triggerHeight = triggerRef.value?.getBoundingClientRect().height ?? tray.getBoundingClientRect().height;
+  const markerTop = marker.getBoundingClientRect().top + window.scrollY;
+  const normalTriggerBottom = markerTop + triggerHeight;
+  const stickyBottomInset = Number.parseFloat(window.getComputedStyle(tray).bottom) || 0;
+  const stickyBottomLimit = window.scrollY + window.innerHeight - stickyBottomInset;
+
+  isTrayFloating.value = normalTriggerBottom > stickyBottomLimit + 1;
+}
 </script>
 
 <template>
+  <div ref="normalFlowMarkerRef" class="h-0" aria-hidden="true" />
   <div
-    v-if="show"
     ref="trayRef"
     v-bind="api.getRootProps()"
-    class="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-900 overflow-hidden rounded-md border border-border-strong bg-surface-raised/95 shadow-overlay backdrop-blur-sm md:inset-x-auto md:right-4 md:w-[min(430px,calc(100vw-2rem))]"
+    class="sticky bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-900 mx-3 flex overflow-hidden rounded-md border border-border-strong bg-surface-raised/95 shadow-overlay backdrop-blur-sm ease md:mx-0 md:ml-auto md:w-[min(430px,calc(100vw-2rem))]"
+    :class="[
+      isTrayFloating ? 'flex-col-reverse' : 'flex-col',
+      show ? 'opacity-100' : 'pointer-events-none opacity-0'
+    ]"
+    :aria-hidden="!show"
+    :inert="!show"
   >
     <div
       v-if="hasOnlySimilarTerms"
@@ -123,6 +159,7 @@ function handleOutsideTrayClick(): void {
 
     <button
       v-else
+      ref="triggerRef"
       v-bind="api.getTriggerProps()"
       type="button"
       class="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
@@ -137,7 +174,7 @@ function handleOutsideTrayClick(): void {
       </span>
       <span
         v-bind="api.getIndicatorProps()"
-        class="text-accent transition-[color,transform] duration-[180ms] ease data-[state=open]:rotate-180 data-[state=open]:text-text-muted"
+        class="text-accent transition-[color,transform] duration-180 ease data-[state=open]:rotate-180 data-[state=open]:text-text-muted"
         aria-hidden="true"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -151,7 +188,8 @@ function handleOutsideTrayClick(): void {
         v-if="api.visible && !hasOnlySimilarTerms"
         id="floating-etymology-explore-panel"
         v-bind="api.getContentProps()"
-        class="explore-tray-panel-grid border-t border-border bg-surface/80"
+        class="explore-tray-panel-grid bg-surface/80"
+        :class="isTrayFloating ? 'border-b border-border' : 'border-t border-border'"
       >
         <div class="overflow-hidden">
           <div class="max-h-[min(68dvh,520px)] overflow-y-auto p-4">
