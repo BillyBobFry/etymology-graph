@@ -768,7 +768,7 @@ export class PostgresGraphRepository implements GraphRepository {
           ON languages.code = graph_nodes.lang_code
         ${LEXICAL_SUMMARY_LATERAL_SQL}
         WHERE graph_nodes.lang_code = $1
-          AND ($2::TEXT = '' OR graph_nodes.normalized_word LIKE $3 ESCAPE E'\\\\')
+          AND ($2::TEXT = '' OR search_unaccent(graph_nodes.normalized_word) LIKE search_unaccent($3::TEXT) ESCAPE E'\\\\')
           AND (
             $6::BOOLEAN = false
             OR EXISTS (
@@ -916,7 +916,7 @@ export class PostgresGraphRepository implements GraphRepository {
         LEFT JOIN languages
           ON languages.code = graph_nodes.lang_code
         ${LEXICAL_SUMMARY_LATERAL_SQL}
-        WHERE graph_nodes.normalized_word LIKE $1 ESCAPE E'\\\\'
+        WHERE search_unaccent(graph_nodes.normalized_word) LIKE search_unaccent($1::TEXT) ESCAPE E'\\\\'
           AND (cardinality($2::TEXT[]) = 0 OR graph_nodes.lang_code = ANY($2::TEXT[]))
           AND (
             $6::BOOLEAN = FALSE
@@ -931,8 +931,10 @@ export class PostgresGraphRepository implements GraphRepository {
         ORDER BY
           CASE
             WHEN graph_nodes.normalized_word = $3 THEN 0
-            WHEN graph_nodes.normalized_word LIKE $4 ESCAPE E'\\\\' THEN 1
-            ELSE 2
+            WHEN search_unaccent(graph_nodes.normalized_word) = search_unaccent($3::TEXT) THEN 1
+            WHEN graph_nodes.normalized_word LIKE $4 ESCAPE E'\\\\' THEN 2
+            WHEN search_unaccent(graph_nodes.normalized_word) LIKE search_unaccent($4::TEXT) ESCAPE E'\\\\' THEN 3
+            ELSE 4
           END,
           graph_nodes.lang_code,
           graph_nodes.normalized_word,
