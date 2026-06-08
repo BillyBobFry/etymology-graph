@@ -1,0 +1,50 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH || '~/etymology-graph' }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Configure SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          install -m 600 /dev/null ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Copy source to VPS
+        run: |
+          set -euo pipefail
+          tar \
+            --exclude='.git' \
+            --exclude='.env' \
+            --exclude='node_modules' \
+            --exclude='wikidata_downloads' \
+            -czf - . \
+            | ssh -i ~/.ssh/deploy_key -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+              "set -euo pipefail; mkdir -p $DEPLOY_PATH; cd $DEPLOY_PATH; find . -mindepth 1 -maxdepth 1 ! -name .env ! -name wikidata_downloads -exec rm -rf {} +; tar -xzf -"
+
+      - name: Restart Compose stack
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            "set -euo pipefail; cd $DEPLOY_PATH; test -f .env || { echo 'Missing .env on VPS deploy path'; exit 1; }; docker compose -f docker-compose.prod.yml up -d --build; docker image prune -f"
