@@ -1027,7 +1027,7 @@ export class PostgresGraphRepository implements GraphRepository {
     };
   }
 
-  /** Lists explicit Wiktionary cognate links without repeating the seed's own ancestor path. */
+  /** Lists cross-language cognate links without returning ancestors, descendants, or same-language terms. */
   public async findCognates(query: CognatesQuery): Promise<CognatesResult> {
     const normalizedWord = normalizeCanonicalGraphWord(query.langCode, query.word);
     const result = await this.pool.query<BaseNodeRow>(
@@ -1039,7 +1039,7 @@ export class PostgresGraphRepository implements GraphRepository {
           SELECT DISTINCT ancestor_walk.node_id
           FROM ancestor_walk
         ),
-        explicit_cognate_node_ids AS (
+        linked_cognate_node_ids AS (
           SELECT DISTINCT
             CASE
               WHEN graph_edges.from_node_id = anchor_resolved.node_id THEN graph_edges.to_node_id
@@ -1053,10 +1053,10 @@ export class PostgresGraphRepository implements GraphRepository {
               OR graph_edges.to_node_id = anchor_resolved.node_id
             )
           WHERE anchor_resolved.node_id IS NOT NULL
-            AND (
-              anchor_resolved.entry_id IS NULL
-              OR graph_edges.declaring_entry_id = anchor_resolved.entry_id
-            )
+            AND CASE
+              WHEN graph_edges.from_node_id = anchor_resolved.node_id THEN graph_edges.to_lang_code
+              ELSE graph_edges.from_lang_code
+            END <> $1
             AND NOT EXISTS (
               SELECT 1
               FROM ancestor_walk
@@ -1069,13 +1069,13 @@ export class PostgresGraphRepository implements GraphRepository {
         ),
         candidate_anchor_entries AS (
           SELECT
-            explicit_cognate_node_ids.node_id,
+            linked_cognate_node_ids.node_id,
             candidate_entry.entry_id
-          FROM explicit_cognate_node_ids
+          FROM linked_cognate_node_ids
           LEFT JOIN LATERAL (
             SELECT lexical_entries.id AS entry_id
             FROM lexical_entries
-            WHERE lexical_entries.node_id = explicit_cognate_node_ids.node_id
+            WHERE lexical_entries.node_id = linked_cognate_node_ids.node_id
             ORDER BY
               lexical_entries.etymology_number ASC NULLS FIRST,
               lexical_entries.pos ASC NULLS FIRST,
@@ -1150,17 +1150,25 @@ export class PostgresGraphRepository implements GraphRepository {
             AND NOT next_edge.to_node_id = ANY(candidate_walk.path)
         ),
         cognate_node_ids AS (
-          SELECT DISTINCT explicit_cognate_node_ids.node_id
-          FROM explicit_cognate_node_ids
+          SELECT DISTINCT linked_cognate_node_ids.node_id
+          FROM linked_cognate_node_ids
           WHERE EXISTS (
             SELECT 1
             FROM candidate_walk
             JOIN seed_graph_node_ids
               ON seed_graph_node_ids.node_id = candidate_walk.node_id
-            WHERE candidate_walk.candidate_node_id = explicit_cognate_node_ids.node_id
+            WHERE candidate_walk.candidate_node_id = linked_cognate_node_ids.node_id
               AND candidate_walk.depth > 0
           )
-          ORDER BY explicit_cognate_node_ids.node_id
+            AND NOT EXISTS (
+              SELECT 1
+              FROM candidate_walk
+              JOIN anchor_resolved
+                ON anchor_resolved.node_id = candidate_walk.node_id
+              WHERE candidate_walk.candidate_node_id = linked_cognate_node_ids.node_id
+                AND candidate_walk.depth > 0
+            )
+          ORDER BY linked_cognate_node_ids.node_id
           LIMIT $7
         )
         SELECT

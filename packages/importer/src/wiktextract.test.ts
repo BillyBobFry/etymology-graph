@@ -728,6 +728,66 @@ describe("previewEntry", () => {
     expect(edgeIds).not.toContain("enm:cing:inherited_from:ang:cing:from:gem-pro:*kuningaz:entry:noun:0");
   });
 
+  it("infers broad modern cognate groups from descendant lists", () => {
+    const entry: WiktextractEntry = {
+      word: "bʰréh₂tēr",
+      lang: "Proto-Indo-European",
+      lang_code: "ine-pro",
+      pos: "noun",
+      descendants: [
+        {
+          lang: "English",
+          lang_code: "en",
+          word: "brother"
+        },
+        {
+          lang: "Old English",
+          lang_code: "ang",
+          word: "brōþor"
+        },
+        {
+          lang: "Russian",
+          lang_code: "ru",
+          word: "брат"
+        },
+        {
+          lang: "Bengali",
+          lang_code: "bn",
+          word: "ভাই"
+        },
+        {
+          lang: "Turkish",
+          lang_code: "tr",
+          word: "birader",
+          raw_tags: ["borrowed"]
+        },
+        {
+          lang: "Malayalam",
+          lang_code: "ml",
+          word: "സഹോദരൻ"
+        },
+        {
+          lang: "Sanskrit",
+          lang_code: "sa",
+          word: "भ्रातृ"
+        }
+      ]
+    };
+
+    const edgeIds = previewStructuredEdgeIds(entry);
+
+    expect(edgeIds).toEqual(
+      expect.arrayContaining([
+        "bn:ভাই:cognate_with:en:brother:from:ine-pro:*bʰréh₂tēr:entry:noun:0",
+        "en:brother:cognate_with:ru:брат:from:ine-pro:*bʰréh₂tēr:entry:noun:0",
+        "en:brother:cognate_with:tr:birader:from:ine-pro:*bʰréh₂tēr:entry:noun:0",
+        "ml:സഹോദരൻ:cognate_with:ru:брат:from:ine-pro:*bʰréh₂tēr:entry:noun:0"
+      ])
+    );
+    expect(edgeIds).not.toContain("ang:brōþor:cognate_with:en:brother:from:ine-pro:*bʰréh₂tēr:entry:noun:0");
+    expect(edgeIds).not.toContain("en:brother:cognate_with:sa:भ्रातृ:from:ine-pro:*bʰréh₂tēr:entry:noun:0");
+  });
+
   it("keeps a borrowed same-sentence ancestry chain", () => {
     const entry: WiktextractEntry = {
       word: "substance",

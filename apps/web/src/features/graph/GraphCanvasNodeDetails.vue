@@ -10,6 +10,7 @@ import Button from "../../uiComponents/Button.vue";
 import IconButton from "../../uiComponents/IconButton.vue";
 import Link from "../../uiComponents/Link.vue";
 import Tooltip from "../../uiComponents/Tooltip.vue";
+import IpaPronunciation from "../pronunciation/IpaPronunciation.vue";
 import { useLanguageDetailQuery } from "../languages/useLanguageDetailQuery";
 import type { PositionedGraphNode } from "./composables/useGraphLayout";
 
@@ -111,9 +112,15 @@ function relationshipNodeLabel(node: PositionedGraphNode): string {
     </div>
 
     <dl v-if="detailItems.length > 0" :class="inlineDetailListClass">
-      <template v-if="formatDetailedIpa(node)">
+      <template v-if="node.lexicalSummary?.ipa">
         <dt class="sr-only">Pronunciation</dt>
-        <dd :class="inlineDetailItemClass">{{ formatDetailedIpa(node) }}</dd>
+        <dd :class="inlineDetailItemClass">
+          <IpaPronunciation
+            :ipa="node.lexicalSummary.ipa"
+            :label="node.lexicalSummary.ipaLabel"
+            subtle
+          />
+        </dd>
       </template>
       <template v-if="node.lexicalSummary?.pos">
         <dt class="sr-only">Part of speech</dt>

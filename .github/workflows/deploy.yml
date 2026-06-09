@@ -15,9 +15,9 @@ jobs:
     name: Deploy to VPS
     runs-on: ubuntu-latest
     env:
-      DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH || '~/etymology-graph' }}
+      DEPLOY_PATH: ~/etymology-graph
       VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+      VPS_PORT: 22
       VPS_USER: ${{ secrets.VPS_USER }}
     steps:
       - name: Check out repository
@@ -37,11 +37,18 @@ jobs:
           tar \
             --exclude='.git' \
             --exclude='.env' \
+            --exclude='backups' \
             --exclude='node_modules' \
             --exclude='wikidata_downloads' \
             -czf - . \
             | ssh -i ~/.ssh/deploy_key -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
-              "set -euo pipefail; mkdir -p $DEPLOY_PATH; cd $DEPLOY_PATH; find . -mindepth 1 -maxdepth 1 ! -name .env ! -name wikidata_downloads -exec rm -rf {} +; tar -xzf -"
+              "set -euo pipefail; mkdir -p $DEPLOY_PATH; cd $DEPLOY_PATH; find . -mindepth 1 -maxdepth 1 ! -name .env ! -name backups ! -name wikidata_downloads -exec rm -rf {} +; tar -xzf -"
+
+      - name: Apply database migrations
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            "set -euo pipefail; cd $DEPLOY_PATH; test -f .env || { echo 'Missing .env on VPS deploy path'; exit 1; }; bash scripts/apply-db-migrations.sh"
 
       - name: Restart Compose stack
         run: |

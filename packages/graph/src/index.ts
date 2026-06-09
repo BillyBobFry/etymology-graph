@@ -16,26 +16,6 @@ export const edgeTypeSchema = z.enum(EDGE_TYPES);
 
 export type EdgeType = z.infer<typeof edgeTypeSchema>;
 
-export const lexicalPronunciationSchema = z.object({
-  ipa: z.string(),
-  tags: z.array(z.string()).optional(),
-  label: z.string().optional(),
-  note: z.string().optional(),
-  audio: z.string().optional(),
-  oggUrl: z.string().optional(),
-  mp3Url: z.string().optional()
-});
-
-export type LexicalPronunciation = z.infer<typeof lexicalPronunciationSchema>;
-
-export const lexicalSenseSchema = z.object({
-  gloss: z.string(),
-  tags: z.array(z.string()).optional(),
-  rawTags: z.array(z.string()).optional()
-});
-
-export type LexicalSense = z.infer<typeof lexicalSenseSchema>;
-
 export const lexicalSummarySchema = z.object({
   ipa: z.string().optional(),
   ipaLabel: z.string().optional(),
@@ -68,9 +48,6 @@ export const lexicalEntrySchema = z.object({
   primaryIpa: z.string().optional(),
   primaryIpaLabel: z.string().optional(),
   primaryGloss: z.string().optional(),
-  pronunciations: z.array(lexicalPronunciationSchema),
-  senses: z.array(lexicalSenseSchema),
-  etymologyText: z.string().optional(),
   sourceLineNumber: z.number().int().min(1).optional(),
   sourceByteOffset: z.number().int().min(0).optional()
 });

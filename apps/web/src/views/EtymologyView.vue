@@ -28,6 +28,7 @@ import {
 } from "../features/graph/composables/useAncestorGraphQuery";
 import { useChildTermsGraphQuery } from "../features/graph/composables/useChildTermsGraphQuery";
 import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
+import IpaPronunciation from "../features/pronunciation/IpaPronunciation.vue";
 import { useCognatesQuery } from "../features/terms/composables/useCognatesQuery";
 import { useSimilarTermsQuery } from "../features/terms/composables/useSimilarTermsQuery";
 import { useTermEntrySelection } from "../features/terms/composables/useTermEntrySelection";
@@ -140,6 +141,7 @@ const selectedLanguageLabel = computed(() => {
   return languages.value.find((language) => language.code === langCode.value)?.canonicalName ?? langCode.value;
 });
 const selectedEntryPronunciation = computed(() => entrySelection.selectedEntry.value?.primaryIpa);
+const selectedEntryPronunciationLabel = computed(() => entrySelection.selectedEntry.value?.primaryIpaLabel);
 const selectedEntryDefinition = computed(() => entrySelection.selectedEntry.value?.primaryGloss);
 const hasSelectedEntryContext = computed(
   () => Boolean(selectedLanguageLabel.value) || Boolean(selectedEntryPronunciation.value) || Boolean(selectedEntryDefinition.value)
@@ -457,7 +459,11 @@ watch(
         <template v-if="selectedEntryPronunciation">
           <dt class="sr-only">Pronunciation</dt>
           <dd class="after:mx-3 after:text-text-page-muted after:content-['·'] last:after:hidden">
-            {{ selectedEntryPronunciation }}
+            <IpaPronunciation
+              :ipa="selectedEntryPronunciation"
+              :label="selectedEntryPronunciationLabel"
+              subtle
+            />
           </dd>
         </template>
         <template v-if="selectedEntryDefinition">

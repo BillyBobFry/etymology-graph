@@ -10,12 +10,11 @@ MS1 imports one lexical entry per Wiktextract record and stores:
 
 - `pos`
 - `etymology_number`
-- `etymology_text`
-- all IPA pronunciation records from `sounds[]`, including Wiktextract `tags`, notes, audio file names, and audio URLs
-- all displayable glosses from `senses[].glosses`, plus normalized and raw tags
+- the first displayable IPA pronunciation and label from `sounds[]`
+- the first displayable gloss from `senses[].glosses`
 - source line and byte offset metadata for debugging import behavior
 
-The table also stores derived summary columns:
+The compact display columns are:
 
 - `primary_ipa`
 - `primary_ipa_label`
@@ -48,7 +47,7 @@ English · /ˈɒɹ.ɪnd͡ʒ/ Received Pronunciation · noun · orange fruit
 
 ## Intentional Non-Goals
 
-MS1 does not normalize pronunciations and senses into separate relational tables. Full pronunciation and sense data is stored as JSONB on `lexical_entries`, with summary columns for current UI/API needs. Split this later if the app needs to query individual senses, filter by accent, search definitions, or add pronunciation-specific features.
+MS1 does not persist full pronunciation arrays, sense arrays, or freeform etymology prose in `lexical_entries`. Add normalized child tables later if the app needs to query individual senses, filter by accent, search definitions, show source prose, or add pronunciation-specific features.
 
 MS1 does not add audio playback, pronunciation preference settings, sense tabs, synonym/hypernym graphs, translations, or derived-term expansion.
 
@@ -63,6 +62,6 @@ The homograph-identity project (see `docs/projects/homographNodeIdentity.md`) ex
 ## Later Follow-Up Ideas
 
 - Promote `lexical_pronunciations` and `lexical_senses` to separate tables if filtering, search, or analytics need them.
-- Add audio playback using the preserved Wiktextract audio URLs.
+- Add audio playback by persisting selected Wiktextract audio URLs in a purpose-built table.
 - Add preferred pronunciation labels by locale, for example Received Pronunciation, General American, Australian, or regional variants.
 - Add semantic "similar terms" from `term_embeddings` (see `docs/projects/termEmbeddings.md`) without making embeddings part of `lexical_entries` or `graph_nodes`.

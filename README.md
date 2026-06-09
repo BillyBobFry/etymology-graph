@@ -90,7 +90,7 @@ pnpm import:db:structured
 public UI coverage terms, and writes `wikidata_downloads/seeds/structured-ancestry-seed.jsonl`.
 `pnpm import:batch-preview:structured` validates resumable batch processing against that generated
 seed. `pnpm import:db:structured` writes nodes, lexical entries, and graph edges into Postgres, then
-refreshes the `graph_edge_walk_mv` materialized view after a full import.
+refreshes the `graph_edge_walk_mv` materialized view and prunes isolated graph nodes after a full import.
 
 The import scripts write checkpoints under `wikidata_downloads/checkpoints/`. If you regenerate the
 seed from scratch, delete or change the matching checkpoint before reimporting, otherwise the importer

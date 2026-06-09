@@ -102,12 +102,12 @@ Because the DB is readonly between imports:
 
 1. Run structured seed extraction.
 2. Run structured DB import.
-3. `import:db:structured` refreshes `graph_edge_walk_mv` after full batch processing.
+3. `import:db:structured` refreshes `graph_edge_walk_mv` and prunes isolated graph nodes after full batch processing.
 4. Refresh any curated source-language layer matches.
 5. Run `pnpm embeddings:refresh:english` to embed new or changed English terms.
 6. Serve API traffic from the refreshed read models.
 
-For local development, the import script's plain `REFRESH MATERIALIZED VIEW graph_edge_walk_mv` is enough. Limited smoke runs with `IMPORT_LIMIT_RECORDS` skip this refresh by default; set `IMPORT_REFRESH_GRAPH_EDGE_WALK=true` to force it or `IMPORT_REFRESH_GRAPH_EDGE_WALK=false` to skip it explicitly. If refresh time becomes visible in deployment, use a build-then-swap table strategy or `REFRESH MATERIALIZED VIEW CONCURRENTLY` where unique indexes allow it.
+For local development, the import script's plain `REFRESH MATERIALIZED VIEW graph_edge_walk_mv` is enough. Limited smoke runs with `IMPORT_LIMIT_RECORDS` skip this refresh and isolated-node pruning by default; set `IMPORT_REFRESH_GRAPH_EDGE_WALK=true` or `IMPORT_PRUNE_ISOLATED_GRAPH=true` to force either step explicitly. If refresh time becomes visible in deployment, use a build-then-swap table strategy or `REFRESH MATERIALIZED VIEW CONCURRENTLY` where unique indexes allow it.
 
 Embedding refreshes are content-hash based and can be rerun after imports. The first implementation is English-only and uses OpenAI `text-embedding-3-small`; keep provider-specific generation in importer/admin jobs rather than API request handling.
 

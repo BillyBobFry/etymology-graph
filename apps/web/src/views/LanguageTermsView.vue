@@ -7,6 +7,7 @@ import type { GraphNode } from "@etymology-graph/graph";
 
 import { useLanguageDetailQuery } from "../features/languages/useLanguageDetailQuery";
 import { useLanguageTermsQuery } from "../features/languages/useLanguageTermsQuery";
+import IpaPronunciation from "../features/pronunciation/IpaPronunciation.vue";
 import Button from "../uiComponents/Button.vue";
 import Link from "../uiComponents/Link.vue";
 import PageMain from "../uiComponents/PageMain.vue";
@@ -111,10 +112,9 @@ function clearSearch(): void {
   submitSearch();
 }
 
-/** Uses lexical summaries to keep each term slip compact but useful. */
-function termSummary(term: GraphNode): string {
+/** Uses non-pronunciation summary fields beside the interactive IPA guide. */
+function termSummaryDetails(term: GraphNode): string {
   const parts = [
-    term.lexicalSummary?.ipa,
     term.lexicalSummary?.pos,
     term.lexicalSummary?.definition
   ].filter((part): part is string => Boolean(part));
@@ -185,18 +185,35 @@ function termSummary(term: GraphNode): string {
 
       <template v-else>
         <div class="divide-y divide-border border-y border-border-strong">
-          <Link
+          <article
             v-for="term in terms"
             :key="term.id"
-            variant="plain"
             class="grid gap-2 px-2 py-4 transition hover:bg-surface/35 sm:px-3"
-            :to="{ name: 'etymology', params: { langCode: term.langCode, term: term.word } }"
           >
-            <span class="text-2xl font-black tracking-[-0.04em] text-text">{{ term.word }}</span>
-            <span v-if="termSummary(term)" class="text-sm leading-6 text-text-muted">
-              {{ termSummary(term) }}
+            <Link
+              variant="plain"
+              class="w-fit text-2xl font-black tracking-[-0.04em] text-text hover:text-accent"
+              :to="{ name: 'etymology', params: { langCode: term.langCode, term: term.word } }"
+            >
+              {{ term.word }}
+            </Link>
+            <span
+              v-if="term.lexicalSummary?.ipa || termSummaryDetails(term)"
+              class="flex flex-wrap items-baseline gap-x-2 text-sm leading-6 text-text-muted"
+            >
+              <IpaPronunciation
+                v-if="term.lexicalSummary?.ipa"
+                :ipa="term.lexicalSummary.ipa"
+                subtle
+              />
+              <template v-if="term.lexicalSummary?.ipa && termSummaryDetails(term)">
+                <span aria-hidden="true">·</span>
+              </template>
+              <span v-if="termSummaryDetails(term)">
+                {{ termSummaryDetails(term) }}
+              </span>
             </span>
-          </Link>
+          </article>
         </div>
 
         <div ref="infiniteScrollSentinel" class="min-h-1" aria-hidden="true"></div>

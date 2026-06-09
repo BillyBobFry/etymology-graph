@@ -9,6 +9,9 @@
     "lint": "eslint .",
     "prepare": "node scripts/prepare-husky.mjs",
     "db:refresh:prod": "bash scripts/refresh-prod-db.sh",
+    "db:dump:copy-to-vps": "bash scripts/copy-latest-db-dump-to-vps.sh",
+    "db:restore:latest-vps": "bash scripts/restore-latest-db-dump.sh",
+    "db:migrate:vps": "bash scripts/apply-db-migrations.sh",
     "typecheck": "pnpm --filter @etymology-graph/graph build && pnpm -r typecheck",
     "test:importer": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer test",
     "import:sample": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer import:sample",
@@ -21,7 +24,7 @@
     "atlas:refresh:source-languages": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer atlas:refresh:source-languages",
     "embeddings:refresh:english": "pnpm --filter @etymology-graph/importer embeddings:refresh:english",
     "import:batch-preview:structured": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer import:batch-preview:structured",
-    "import:db:structured": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer import:db:structured",
+    "import:db:structured": "pnpm --filter @etymology-graph/graph build && pnpm --filter @etymology-graph/importer import:db:structured && pnpm --filter @etymology-graph/importer graph:prune:isolated",
     "graph:reset:structured": "pnpm --filter @etymology-graph/importer graph:reset:structured",
     "llm:etymology": "pnpm --filter @etymology-graph/importer llm:etymology"
   },

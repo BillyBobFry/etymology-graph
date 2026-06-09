@@ -14,6 +14,13 @@ export type GraphImportResult = {
   lexicalEntryCount: number;
 };
 
+export type PruneIsolatedGraphDataResult = {
+  embeddingCount: number;
+  lexicalEntryCount: number;
+  nodeCount: number;
+  sourceLanguageLayerMatchCount: number;
+};
+
 export type GraphEdgeWalkRefreshPolicyInput = {
   limitRecords: number | undefined;
   refreshOverride: string | undefined;
@@ -31,6 +38,108 @@ export function shouldRefreshGraphEdgeWalkMaterializedView(input: GraphEdgeWalkR
 /** Refreshes the API edge read model after imports because graph endpoints read from the materialized view. */
 export async function refreshGraphEdgeWalkMaterializedView(client: Pool | PoolClient): Promise<void> {
   await client.query("REFRESH MATERIALIZED VIEW graph_edge_walk_mv");
+}
+
+/** Removes graph nodes that cannot appear in traversal or search-connected views, plus their durable embeddings. */
+export async function pruneIsolatedGraphData(client: PoolClient): Promise<PruneIsolatedGraphDataResult> {
+  await client.query("BEGIN");
+
+  try {
+    await client.query("DROP TABLE IF EXISTS isolated_graph_nodes_to_prune");
+    await client.query("DROP TABLE IF EXISTS isolated_lexical_entries_to_prune");
+    await client.query(
+      `
+        CREATE TEMP TABLE isolated_graph_nodes_to_prune
+        ON COMMIT DROP
+        AS
+        SELECT graph_nodes.id, graph_nodes.lang_code, graph_nodes.normalized_word
+        FROM graph_nodes
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM graph_edges
+          WHERE graph_edges.from_node_id = graph_nodes.id
+        )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM graph_edges
+            WHERE graph_edges.to_node_id = graph_nodes.id
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM lexical_entries
+            JOIN graph_edges
+              ON graph_edges.declaring_entry_id = lexical_entries.id
+            WHERE lexical_entries.node_id = graph_nodes.id
+          )
+      `
+    );
+    await client.query("CREATE INDEX isolated_graph_nodes_to_prune_id_idx ON isolated_graph_nodes_to_prune (id)");
+    await client.query(
+      "CREATE INDEX isolated_graph_nodes_to_prune_lookup_idx ON isolated_graph_nodes_to_prune (lang_code, normalized_word)"
+    );
+    await client.query(
+      `
+        CREATE TEMP TABLE isolated_lexical_entries_to_prune
+        ON COMMIT DROP
+        AS
+        SELECT lexical_entries.id
+        FROM lexical_entries
+        JOIN isolated_graph_nodes_to_prune
+          ON isolated_graph_nodes_to_prune.id = lexical_entries.node_id
+      `
+    );
+    await client.query("CREATE INDEX isolated_lexical_entries_to_prune_id_idx ON isolated_lexical_entries_to_prune (id)");
+
+    const embeddingResult = await client.query(
+      `
+        DELETE FROM term_embeddings
+        USING isolated_graph_nodes_to_prune
+        WHERE term_embeddings.lang_code = isolated_graph_nodes_to_prune.lang_code
+          AND term_embeddings.normalized_word = isolated_graph_nodes_to_prune.normalized_word
+      `
+    );
+    const sourceLanguageLayerMatchByEntryResult = await client.query(
+      `
+        DELETE FROM source_language_layer_matches
+        USING isolated_lexical_entries_to_prune
+        WHERE source_language_layer_matches.entry_id = isolated_lexical_entries_to_prune.id
+      `
+    );
+    const sourceLanguageLayerMatchByNodeResult = await client.query(
+      `
+        DELETE FROM source_language_layer_matches
+        USING isolated_graph_nodes_to_prune
+        WHERE source_language_layer_matches.matched_ancestor_node_id = isolated_graph_nodes_to_prune.id
+      `
+    );
+    const lexicalEntryResult = await client.query(
+      `
+        DELETE FROM lexical_entries
+        USING isolated_lexical_entries_to_prune
+        WHERE lexical_entries.id = isolated_lexical_entries_to_prune.id
+      `
+    );
+    const nodeResult = await client.query(
+      `
+        DELETE FROM graph_nodes
+        USING isolated_graph_nodes_to_prune
+        WHERE graph_nodes.id = isolated_graph_nodes_to_prune.id
+      `
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      embeddingCount: embeddingResult.rowCount ?? 0,
+      lexicalEntryCount: lexicalEntryResult.rowCount ?? 0,
+      nodeCount: nodeResult.rowCount ?? 0,
+      sourceLanguageLayerMatchCount:
+        (sourceLanguageLayerMatchByEntryResult.rowCount ?? 0) + (sourceLanguageLayerMatchByNodeResult.rowCount ?? 0)
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  }
 }
 
 /** Upserts one previewed Wiktextract batch with bulk SQL so remote imports do not pay per-row latency. */
@@ -114,9 +223,6 @@ async function upsertLexicalEntries(client: PoolClient, lexicalEntries: LexicalE
         primary_ipa,
         primary_ipa_label,
         primary_gloss,
-        pronunciations,
-        senses,
-        etymology_text,
         source_line_number,
         source_byte_offset,
         source
@@ -132,9 +238,6 @@ async function upsertLexicalEntries(client: PoolClient, lexicalEntries: LexicalE
         primary_ipa,
         primary_ipa_label,
         primary_gloss,
-        pronunciations,
-        senses,
-        etymology_text,
         source_line_number,
         source_byte_offset,
         'wiktextract'
@@ -149,9 +252,6 @@ async function upsertLexicalEntries(client: PoolClient, lexicalEntries: LexicalE
         primary_ipa TEXT,
         primary_ipa_label TEXT,
         primary_gloss TEXT,
-        pronunciations JSONB,
-        senses JSONB,
-        etymology_text TEXT,
         source_line_number INTEGER,
         source_byte_offset BIGINT
       )
@@ -165,9 +265,6 @@ async function upsertLexicalEntries(client: PoolClient, lexicalEntries: LexicalE
         primary_ipa = EXCLUDED.primary_ipa,
         primary_ipa_label = EXCLUDED.primary_ipa_label,
         primary_gloss = EXCLUDED.primary_gloss,
-        pronunciations = EXCLUDED.pronunciations,
-        senses = EXCLUDED.senses,
-        etymology_text = EXCLUDED.etymology_text,
         source_line_number = EXCLUDED.source_line_number,
         source_byte_offset = EXCLUDED.source_byte_offset
     `,
@@ -184,9 +281,6 @@ async function upsertLexicalEntries(client: PoolClient, lexicalEntries: LexicalE
           primary_ipa: lexicalEntry.primaryIpa ?? null,
           primary_ipa_label: lexicalEntry.primaryIpaLabel ?? null,
           primary_gloss: lexicalEntry.primaryGloss ?? null,
-          pronunciations: lexicalEntry.pronunciations,
-          senses: lexicalEntry.senses,
-          etymology_text: lexicalEntry.etymologyText ?? null,
           source_line_number: lexicalEntry.sourceLineNumber ?? null,
           source_byte_offset: lexicalEntry.sourceByteOffset ?? null
         }))

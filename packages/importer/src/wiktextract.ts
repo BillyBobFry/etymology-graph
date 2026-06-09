@@ -11,9 +11,7 @@ import {
   normalizeWord,
   type GraphEdge,
   type GraphNode,
-  type LexicalEntry,
-  type LexicalPronunciation,
-  type LexicalSense
+  type LexicalEntry
 } from "@etymology-graph/graph";
 
 type WiktextractTemplate = {
@@ -163,6 +161,36 @@ const sourceDirectedAncestryEdgeTypes = new Set<GraphEdge["type"]>([
 ]);
 
 const uncertaintyTags = ["uncertain", "possibly", "possible", "perhaps", "maybe"] as const;
+const inferredDescendantCognateTemplateName = "descendant_cognate_group";
+const maxInferredDescendantCognateTerms = 64;
+const historicalLanguageCodes = new Set([
+  "ae",
+  "akk",
+  "arc",
+  "cu",
+  "dum",
+  "enm",
+  "frk",
+  "frm",
+  "fro",
+  "gmh",
+  "goh",
+  "got",
+  "grc",
+  "la",
+  "non",
+  "odt",
+  "orv",
+  "osp",
+  "ota",
+  "peo",
+  "pi",
+  "sa",
+  "sga",
+  "xcl"
+]);
+const historicalLanguageNamePattern =
+  /^(?:Ancient|Classical|Early|Imperial|Late|Medieval|Middle|New|Old|Ottoman|Proto|Vulgar)\b|(?:Church Slavonic|Sanskrit)$/iu;
 
 const etymologyTreeLanguageCodesByName = new Map<string, string>([
   ["English", "en"],
@@ -210,6 +238,11 @@ type TemplateChainTransition = "continue" | "resetToRoot" | "resetToBranchBase" 
 type SeedTargetMatch = {
   index: number;
   target: SeedTarget;
+};
+
+type DescendantCognateCandidate = {
+  node: GraphNode;
+  uncertain: boolean;
 };
 
 export type SeedTargetIndex = {
@@ -472,7 +505,7 @@ export function previewEntry(entry: WiktextractEntry, sourceMetadata?: ImportSou
     ...ancestryEdgesWithRoots,
     ...affixBaseEdges,
     ...compoundEdges,
-    ...extractDescendantEdges(entry, currentNode, nodesById, declaringEntryId)
+    ...extractDescendantEdges(entry, currentNode, nodesById, declaringEntryId, false)
   ];
   const lexicalEntries = [makeLexicalEntry(entry, currentNode, declaringEntryId, sourceMetadata)];
 
@@ -513,7 +546,7 @@ export function previewStructuredEntry(entry: WiktextractEntry, sourceMetadata?:
     ...alternativeFormEdges,
     ...compoundEdges,
     ...extractRelationshipTemplateEdges(entry, currentNode, nodesById, declaringEntryId),
-    ...extractDescendantEdges(entry, currentNode, nodesById, declaringEntryId),
+    ...extractDescendantEdges(entry, currentNode, nodesById, declaringEntryId, true),
     ...extractDerivedEdges(entry, currentNode, nodesById, declaringEntryId)
   ];
   const lexicalEntries = [makeLexicalEntry(entry, currentNode, declaringEntryId, sourceMetadata)];
@@ -1676,7 +1709,8 @@ function extractDescendantEdges(
   entry: WiktextractEntry,
   currentNode: GraphNode,
   nodesById: Map<string, GraphNode>,
-  declaringEntryId: string
+  declaringEntryId: string,
+  inferModernCognates: boolean
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
@@ -1691,7 +1725,14 @@ function extractDescendantEdges(
     edges
   );
 
-  return edges;
+  if (!inferModernCognates) {
+    return edges;
+  }
+
+  return [
+    ...edges,
+    ...extractDescendantCognateEdges(entry.descendants ?? [], entry.etymology_number, declaringEntryId, nodesById)
+  ];
 }
 
 /** Extracts terms Wiktextract explicitly lists as derived from this entry. */
@@ -1762,6 +1803,95 @@ function appendDescendantEdges(
       edges
     );
   }
+}
+
+/** Infers broad modern-language cognate groups from descendants that share this declaring entry. */
+function extractDescendantCognateEdges(
+  descendants: WiktextractDescendant[],
+  etymologyNumber: number | undefined,
+  declaringEntryId: string,
+  nodesById: Map<string, GraphNode>
+): GraphEdge[] {
+  const candidates = descendantCognateCandidates(descendants).slice(0, maxInferredDescendantCognateTerms);
+  const edges: GraphEdge[] = [];
+
+  for (const [fromIndex, fromCandidate] of candidates.entries()) {
+    for (const toCandidate of candidates.slice(fromIndex + 1)) {
+      const [fromNode, toNode] = orderedNodePair(fromCandidate.node, toCandidate.node);
+
+      nodesById.set(fromNode.id, fromNode);
+      nodesById.set(toNode.id, toNode);
+      edges.push({
+        id: makeGraphEdgeId(fromNode.id, "cognate_with", toNode.id, declaringEntryId),
+        fromNodeId: fromNode.id,
+        toNodeId: toNode.id,
+        type: "cognate_with",
+        source: "wiktextract",
+        etymologyNumber,
+        templateName: inferredDescendantCognateTemplateName,
+        uncertain: fromCandidate.uncertain || toCandidate.uncertain,
+        declaringEntryId
+      });
+    }
+  }
+
+  return edges;
+}
+
+/** Collects one broad modern descendant per graph node from the same pruned tree used for ancestry edges. */
+function descendantCognateCandidates(descendants: WiktextractDescendant[]): DescendantCognateCandidate[] {
+  const candidatesByNodeId = new Map<string, DescendantCognateCandidate>();
+  collectDescendantCognateCandidates(descendants, candidatesByNodeId);
+
+  return [...candidatesByNodeId.values()];
+}
+
+/** Walks descendant trees after same-language pruning so cognate inference shares ancestry noise controls. */
+function collectDescendantCognateCandidates(
+  descendants: WiktextractDescendant[],
+  candidatesByNodeId: Map<string, DescendantCognateCandidate>
+): void {
+  const primaryDescendants = firstDescendantPerLanguage(descendants);
+  const nestedDescendantOwnerIndexes = descendantVariantChildOwnerIndexes(primaryDescendants);
+
+  for (const [descendantIndex, descendant] of primaryDescendants.entries()) {
+    if (descendant.lang_code && descendant.word && descendantIsModernCognateCandidate(descendant)) {
+      const node = makeNode(descendant.lang_code, descendant.word);
+      candidatesByNodeId.set(node.id, {
+        node,
+        uncertain: descendantIsUncertain(descendant)
+      });
+    }
+
+    collectDescendantCognateCandidates(
+      ownedNestedDescendants(descendant.descendants ?? [], nestedDescendantOwnerIndexes, descendantIndex),
+      candidatesByNodeId
+    );
+  }
+}
+
+/** Keeps the inferred cognate set broad while excluding proto and clearly historical language stages. */
+function descendantIsModernCognateCandidate(descendant: WiktextractDescendant): boolean {
+  if (!descendant.lang_code || !descendant.word || descendant.word.startsWith("*")) {
+    return false;
+  }
+
+  const languageCode = descendant.lang_code.toLocaleLowerCase();
+  const languageName = descendant.lang ?? "";
+
+  return (
+    !languageCode.endsWith("-pro") &&
+    !languageCode.includes("-pro-") &&
+    !languageCode.includes("-old") &&
+    !languageCode.includes("-cla") &&
+    !historicalLanguageCodes.has(languageCode) &&
+    !historicalLanguageNamePattern.test(languageName)
+  );
+}
+
+/** Stabilizes symmetric cognate edge IDs so pair generation does not depend on source order. */
+function orderedNodePair(firstNode: GraphNode, secondNode: GraphNode): [GraphNode, GraphNode] {
+  return firstNode.id.localeCompare(secondNode.id) <= 0 ? [firstNode, secondNode] : [secondNode, firstNode];
 }
 
 /** Keeps the first sibling descendant for each language so spelling variants do not fan out ancestry. */
@@ -2300,10 +2430,8 @@ function makeLexicalEntry(
   declaringEntryId: string,
   sourceMetadata: ImportSourceMetadata | undefined
 ): LexicalEntry {
-  const pronunciations = extractPronunciations(entry.sounds ?? []);
-  const senses = extractSenses(entry.senses ?? []);
-  const primaryPronunciation = pronunciations[0];
-  const primarySense = senses[0];
+  const primaryPronunciation = extractPrimaryPronunciation(entry.sounds ?? []);
+  const primaryGloss = extractPrimaryGloss(entry.senses ?? []);
 
   return {
     id: declaringEntryId,
@@ -2315,52 +2443,41 @@ function makeLexicalEntry(
     etymologyNumber: entry.etymology_number,
     primaryIpa: primaryPronunciation?.ipa,
     primaryIpaLabel: primaryPronunciation?.label,
-    primaryGloss: primarySense?.gloss,
-    pronunciations,
-    senses,
-    etymologyText: entry.etymology_text,
+    primaryGloss,
     sourceLineNumber: sourceMetadata?.lineNumber,
     sourceByteOffset: sourceMetadata?.byteOffset
   };
 }
 
-/** Keeps only IPA pronunciation records while preserving accent, region, note, and audio context. */
-function extractPronunciations(sounds: WiktextractSound[]): LexicalPronunciation[] {
-  return sounds.flatMap((sound) => {
+/** Picks the first displayable IPA because runtime graph views only render a compact pronunciation summary. */
+function extractPrimaryPronunciation(sounds: WiktextractSound[]): { ipa: string; label: string | undefined } | undefined {
+  for (const sound of sounds) {
     const ipa = sound.ipa?.trim();
 
     if (!ipa) {
-      return [];
+      continue;
     }
 
     const tags = normalizeStringList(sound.tags);
     const label = tags.length > 0 ? tags.map(formatWiktextractTag).join(", ") : undefined;
 
-    return [
-      {
-        ipa,
-        tags: tags.length > 0 ? tags : undefined,
-        label,
-        note: trimOptional(sound.note),
-        audio: trimOptional(sound.audio),
-        oggUrl: trimOptional(sound.ogg_url),
-        mp3Url: trimOptional(sound.mp3_url)
-      }
-    ];
-  });
+    return { ipa, label };
+  }
+
+  return undefined;
 }
 
-/** Extracts displayable glosses while retaining normalized and raw Wiktionary tags. */
-function extractSenses(senses: WiktextractSense[]): LexicalSense[] {
-  return senses.flatMap((sense) => {
+/** Picks the first displayable gloss because full sense JSON is no longer persisted in production. */
+function extractPrimaryGloss(senses: WiktextractSense[]): string | undefined {
+  for (const sense of senses) {
     const glosses = normalizeStringList(sense.glosses);
 
-    return glosses.map((gloss) => ({
-      gloss,
-      tags: normalizeStringList(sense.tags),
-      rawTags: normalizeStringList(sense.raw_tags)
-    }));
-  });
+    if (glosses[0]) {
+      return glosses[0];
+    }
+  }
+
+  return undefined;
 }
 
 /** Normalizes optional Wiktextract arrays into compact string lists for JSON storage. */

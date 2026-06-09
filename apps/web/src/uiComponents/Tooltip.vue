@@ -9,6 +9,8 @@ const props = withDefaults(
     id?: string;
     positioning?: tooltip.Props["positioning"];
     contentClass?: string;
+    openDelay?: number;
+    closeDelay?: number;
   }>(),
   {
     id: undefined,
@@ -17,7 +19,9 @@ const props = withDefaults(
       strategy: "fixed",
       gutter: 6
     }),
-    contentClass: ""
+    contentClass: "",
+    openDelay: 180,
+    closeDelay: 120,
   }
 );
 
@@ -28,13 +32,15 @@ type TriggerButtonProps = Omit<ButtonHTMLAttributes, "type"> & {
 const generatedId = useId();
 const tooltipId = computed(() => props.id ?? `tooltip-${generatedId}`);
 const service = useMachine(
-  tooltip.machine as unknown as Parameters<typeof useMachine>[0],
+  tooltip.machine,
   computed(() => ({
     id: tooltipId.value,
+    interactive: true,
     closeOnClick: false,
     closeOnPointerDown: false,
-    closeDelay: 120,
-    openDelay: 180,
+    closeOnScroll: false,
+    closeDelay: props.closeDelay,
+    openDelay: props.openDelay,
     positioning: props.positioning
   }))
 ) as unknown as tooltip.Service;

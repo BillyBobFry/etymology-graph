@@ -15,6 +15,7 @@ import GraphEvidencePanel from "../graph/GraphEvidencePanel.vue";
 import type { GraphLayoutPreset } from "../graph/composables/useGraphLayout";
 import { formatIpaPronunciation } from "../graph/graphNodeDisplay";
 import type { GraphNodeAnnotation, GraphNodeAnnotationTarget } from "../graph/graphAnnotations";
+import IpaPronunciation from "../pronunciation/IpaPronunciation.vue";
 
 type GraphEvidenceStatus = "idle" | "loading" | "success" | "empty" | "error";
 
@@ -94,7 +95,7 @@ const graphStatus = computed<GraphEvidenceStatus>(() => {
 
 /** Targets group annotations at every branch-specific node below the shared root. */
 function resolveAnnotationTarget(annotation: SoundChangeGraphAnnotation): GraphNodeAnnotation {
-  const { targetGroupId: _targetGroupId, ...graphAnnotation } = annotation;
+  const graphAnnotation = graphAnnotationFromSoundChangeAnnotation(annotation);
   const branchTargets = annotation.targetGroupId
     ? branchTargetsForGroup(annotation.targetGroupId)
     : undefined;
@@ -109,6 +110,20 @@ function resolveAnnotationTarget(annotation: SoundChangeGraphAnnotation): GraphN
     target: primaryTarget,
     additionalTargets: [...additionalTargets, ...(graphAnnotation.additionalTargets ?? [])],
     fallbackTargets: [graphAnnotation.target, ...(graphAnnotation.fallbackTargets ?? [])]
+  };
+}
+
+/** Drops sound-change-only targeting metadata before passing annotations to the graph renderer. */
+function graphAnnotationFromSoundChangeAnnotation(annotation: SoundChangeGraphAnnotation): GraphNodeAnnotation {
+  return {
+    id: annotation.id,
+    target: annotation.target,
+    additionalTargets: annotation.additionalTargets,
+    fallbackTargets: annotation.fallbackTargets,
+    tone: annotation.tone,
+    title: annotation.title,
+    body: annotation.body,
+    placement: annotation.placement
   };
 }
 
@@ -259,7 +274,7 @@ function pathFromNodeToRoot(graph: EtymologyGraph, startNodeId: string, rootNode
               </span>
               <template v-if="ipaByLineageId.get(lineage.id)">
                 <span class="text-sm text-text-muted">
-                  {{ ipaByLineageId.get(lineage.id) }}
+                  <IpaPronunciation :ipa="ipaByLineageId.get(lineage.id) ?? ''" subtle />
                 </span>
               </template>
             </dd>

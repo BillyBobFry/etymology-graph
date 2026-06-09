@@ -68,6 +68,14 @@ for migration in db/migrations/*.sql; do
 done
 ```
 
+For the VPS Docker Compose deployment, use the ledger-backed migration runner instead:
+
+```bash
+pnpm db:migrate:vps
+```
+
+The runner creates `schema_migrations`, records already-applied migrations, and applies only new files. On an existing VPS database with no ledger yet, it baselines migrations through `016` before applying newer migrations. Override that one-time default with `MIGRATION_BASELINE_THROUGH` if needed.
+
 Then load language names and the structured ancestry graph:
 
 ```bash
@@ -79,6 +87,8 @@ pnpm embeddings:refresh:english
 ```
 
 Record the structured seed, import checkpoint paths, and embedding model for each deploy. The raw Wiktextract dump remains local/generated input and should not be copied into app images or static bundles.
+
+`pnpm import:db:structured` prunes graph nodes with no edges after full imports, along with any matching `term_embeddings` rows. Limited imports with `IMPORT_LIMIT_RECORDS` skip pruning unless `IMPORT_PRUNE_ISOLATED_GRAPH=true` is set.
 
 `term_embeddings` is keyed by `(lang_code, normalized_word, model)` and has no foreign key to `graph_nodes`, so embeddings can survive graph table rebuilds. Rerun `pnpm embeddings:refresh:english` after imports so new or changed English terms are embedded.
 
