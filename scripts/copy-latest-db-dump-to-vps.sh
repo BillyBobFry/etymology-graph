@@ -2,7 +2,10 @@
 set -euo pipefail
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root_dir"
+
 backup_dir="$root_dir/backups"
+local_env_file="$root_dir/.env"
 
 VPS_HOST="${VPS_HOST:-vps.lingraphic.com}"
 VPS_USER="${VPS_USER:-will}"
@@ -10,28 +13,57 @@ VPS_PORT="${VPS_PORT:-22}"
 VPS_DEPLOY_PATH="${VPS_DEPLOY_PATH:-/home/$VPS_USER/etymology-graph}"
 REMOTE_DUMP_DIR="${REMOTE_DUMP_DIR:-$VPS_DEPLOY_PATH/backups}"
 
-if [[ ! -d "$backup_dir" ]]; then
-  echo "Missing local backup directory: $backup_dir" >&2
-  exit 1
+mkdir -p "$backup_dir"
+
+read_database_url() {
+  node --input-type=module - "$1" <<'NODE'
+import { readFileSync } from "node:fs";
+
+const envPath = process.argv[2];
+const contents = readFileSync(envPath, "utf8");
+const line = contents
+  .split(/\r?\n/u)
+  .map((candidate) => candidate.trim())
+  .find((candidate) => candidate.startsWith("DATABASE_URL=") || candidate.startsWith("export DATABASE_URL="));
+
+if (!line) {
+  process.exit(1);
+}
+
+const rawValue = line.replace(/^export\s+/u, "").replace(/^DATABASE_URL=/u, "").trim();
+const quote = rawValue[0];
+const value = (quote === '"' || quote === "'") && rawValue.endsWith(quote)
+  ? rawValue.slice(1, -1)
+  : rawValue;
+
+process.stdout.write(value);
+NODE
+}
+
+if [[ -f "$local_env_file" ]]; then
+  LOCAL_DATABASE_URL="${LOCAL_DATABASE_URL:-$(read_database_url "$local_env_file" || true)}"
+else
+  LOCAL_DATABASE_URL="${LOCAL_DATABASE_URL:-}"
 fi
 
-latest_dump="$(
-  python3 - "$backup_dir" <<'PY'
-from pathlib import Path
-import sys
+timestamp="$(date +%Y%m%d-%H%M%S)"
+latest_dump="$backup_dir/local-db-$timestamp.sql.gz"
 
-backup_dir = Path(sys.argv[1])
-dumps = sorted(backup_dir.glob("*.sql.gz"), key=lambda path: path.stat().st_mtime, reverse=True)
+echo "Creating local database dump at $latest_dump..."
 
-if not dumps:
-    sys.exit(1)
+if [[ -n "${LOCAL_DATABASE_URL:-}" ]] && command -v pg_dump >/dev/null 2>&1; then
+  pg_dump --no-owner --no-acl "$LOCAL_DATABASE_URL" | gzip > "$latest_dump"
+else
+  command -v docker >/dev/null 2>&1 || {
+    echo "Either pg_dump or docker is required to create the local database dump." >&2
+    exit 1
+  }
 
-print(dumps[0])
-PY
-)" || {
-  echo "No .sql.gz dumps found in $backup_dir" >&2
-  exit 1
-}
+  docker compose up -d postgres
+  docker exec etymology-graph-postgres \
+    pg_dump --no-owner --no-acl -U postgres -d etymology_graph \
+    | gzip > "$latest_dump"
+fi
 
 printf -v quoted_remote_dump_dir "%q" "$REMOTE_DUMP_DIR"
 

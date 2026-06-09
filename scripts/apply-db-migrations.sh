@@ -97,7 +97,6 @@ for migration in "$migrations_dir"/*.sql; do
 
   {
     printf "BEGIN;\n"
-    printf "\\echo Applying %s\n" "$filename"
     while IFS= read -r line || [[ -n "$line" ]]; do
       printf "%s\n" "$line"
     done < "$migration"
