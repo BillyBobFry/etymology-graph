@@ -15,6 +15,7 @@ import GraphEvidencePanel from "../graph/GraphEvidencePanel.vue";
 import type { GraphLayoutPreset } from "../graph/composables/useGraphLayout";
 import { formatIpaPronunciation } from "../graph/graphNodeDisplay";
 import type { GraphNodeAnnotation, GraphNodeAnnotationTarget } from "../graph/graphAnnotations";
+import { primaryGraphNodeHighlights } from "../graph/graphNodeHighlights";
 import IpaPronunciation from "../pronunciation/IpaPronunciation.vue";
 
 type GraphEvidenceStatus = "idle" | "loading" | "success" | "empty" | "error";
@@ -45,18 +46,20 @@ const graphLayoutPreset = computed<GraphLayoutPreset>(() =>
     ? { type: "doublet-arms", rootNodeId: comparisonGraphRootNodeId.value }
     : { type: "auto" }
 );
-const highlightedGraphNodeIds = computed(() => {
+const graphNodeHighlights = computed(() => {
   const graph = comparisonGraph.value;
 
   if (!graph) {
     return [];
   }
 
-  return [...props.example.shifted, ...props.example.comparisons].flatMap((lineage) => {
-    const node = findGraphNode(graph, lineage.to.languageCode, lineage.to.term);
+  return primaryGraphNodeHighlights(
+    [...props.example.shifted, ...props.example.comparisons].flatMap((lineage) => {
+      const node = findGraphNode(graph, lineage.to.languageCode, lineage.to.term);
 
-    return node ? [node.id] : [];
-  });
+      return node ? [node.id] : [];
+    })
+  );
 });
 /** Indexes imported IPA by editorial lineage so the overview can stay data-driven. */
 const ipaByLineageId = computed(() => {
@@ -287,7 +290,7 @@ function pathFromNodeToRoot(graph: EtymologyGraph, startNodeId: string, rootNode
       :status="graphStatus"
       :graph="comparisonGraph"
       :layout-preset="graphLayoutPreset"
-      :highlighted-node-ids="highlightedGraphNodeIds"
+      :node-highlights="graphNodeHighlights"
       :show-controls="false"
       :annotations="resolvedAnnotations"
       :loading-label="`Loading ${example.title} comparison graph...`"

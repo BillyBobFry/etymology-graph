@@ -7,6 +7,7 @@ import { plainTextFromGlossarySegments } from "../features/glossary/linguisticGl
 import GraphEvidencePanel from "../features/graph/GraphEvidencePanel.vue";
 import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLayout";
 import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
+import { primaryGraphNodeHighlights } from "../features/graph/graphNodeHighlights";
 import { soundChangeArticles } from "../features/soundChanges/soundChanges";
 import { useComparisonSetQuery } from "../features/soundChanges/useComparisonSetQuery";
 import Button from "../uiComponents/Button.vue";
@@ -16,6 +17,7 @@ import {
   featuredDoubletExamples,
   featuredEtymologyExamples
 } from "./homeFeaturedExamples";
+import Divider from "../uiComponents/Divider.vue";
 
 const dayInMs = 86_400_000;
 const featuredHomepageGraphCacheTime = dayInMs;
@@ -39,19 +41,21 @@ const featuredEtymologyGraph = computed(() => featuredEtymologyGraphQuery.data.v
 const featuredDoubletGraph = computed(() => featuredDoubletGraphQuery.data.value?.graph ?? null);
 const featuredEtymologyGraphStatus = computed(() => graphEvidenceStatus(featuredEtymologyGraphQuery));
 const featuredDoubletGraphStatus = computed(() => graphEvidenceStatus(featuredDoubletGraphQuery));
-const featuredEtymologyHighlightedNodeIds = computed(() =>
-  featuredEtymologyGraph.value ? [featuredEtymologyGraph.value.rootNodeId] : []
+const featuredEtymologyNodeHighlights = computed(() =>
+  primaryGraphNodeHighlights(featuredEtymologyGraph.value ? [featuredEtymologyGraph.value.rootNodeId] : [])
 );
 const featuredDoubletLayoutPreset = computed<GraphLayoutPreset>(() =>
   featuredDoubletGraph.value
     ? { type: "doublet-arms", rootNodeId: featuredDoubletGraph.value.rootNodeId }
     : { type: "auto" }
 );
-const featuredDoubletHighlightedNodeIds = computed(() =>
-  highlightedTermNodeIds(
-    featuredDoubletGraph.value,
-    featuredDoubletExample.primaryTerm.langCode,
-    featuredDoubletExample.expectedSameLanguageTerms
+const featuredDoubletNodeHighlights = computed(() =>
+  primaryGraphNodeHighlights(
+    highlightedTermNodeIds(
+      featuredDoubletGraph.value,
+      featuredDoubletExample.primaryTerm.langCode,
+      featuredDoubletExample.expectedSameLanguageTerms
+    )
   )
 );
 
@@ -100,7 +104,7 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
 
 <template>
   <PageMain>
-    <section class="border-b border-border-strong pb-10">
+    <section>
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Etymology graph
       </p>
@@ -111,8 +115,11 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
         Search etymologies, compare doublets, and read sound-change articles built from Wiktionary data.
       </p>
     </section>
+    <Divider class="mb-12 sm:mb-24" />
 
-    <section class="grid gap-5 border-b border-border pb-10" aria-labelledby="home-etymology-heading">
+    <div class="space-y-36 sm:space-y-52">
+
+    <section class="grid gap-5 pb-10" aria-labelledby="home-etymology-heading">
       <div class="grid gap-6 lg:grid-cols-[minmax(260px,0.45fr)_minmax(0,1fr)] lg:items-stretch">
         <div class="grid content-between gap-6">
           <div>
@@ -127,14 +134,14 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
             </p>
           </div>
 
-          <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
-            <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-muted">
+          <div>
+            <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-page-muted">
               Featured today
             </p>
             <h3 class="text-xl font-bold leading-tight">
               {{ featuredEtymologyExample.exampleTitle }}
             </h3>
-            <p class="mt-3 leading-7 text-text-muted">
+            <p class="mt-3 leading-7 text-text-page-muted">
               {{ featuredEtymologyExample.exampleText }}
             </p>
             <Button
@@ -151,7 +158,8 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
         <GraphEvidencePanel
           :status="featuredEtymologyGraphStatus"
           :graph="featuredEtymologyGraph"
-          :highlighted-node-ids="featuredEtymologyHighlightedNodeIds"
+          :node-highlights="featuredEtymologyNodeHighlights"
+          class="lg:w-full lg:max-w-3xl lg:justify-self-end"
           loading-label="Loading featured etymology..."
           empty-text="This example is not in the index yet."
           error-text="This featured etymology could not load."
@@ -159,7 +167,7 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
       </div>
     </section>
 
-    <section class="grid gap-5 border-b border-border pb-10" aria-labelledby="home-doublets-heading">
+    <section class="grid gap-5 pb-10" aria-labelledby="home-doublets-heading">
       <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.45fr)] lg:items-stretch">
         <div class="grid content-between gap-6 lg:order-2">
           <div>
@@ -174,14 +182,14 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
             </p>
           </div>
 
-          <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
-            <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-muted">
+          <div>
+            <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-page-muted">
               Featured today
             </p>
             <h3 class="text-xl font-bold leading-tight">
               {{ featuredDoubletExample.exampleTitle }}
             </h3>
-            <p class="mt-3 leading-7 text-text-muted">
+            <p class="mt-3 leading-7 text-text-page-muted">
               {{ featuredDoubletExample.exampleText }}
             </p>
             <div class="mt-5 flex flex-col gap-3">
@@ -214,8 +222,8 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
           :status="featuredDoubletGraphStatus"
           :graph="featuredDoubletGraph"
           :layout-preset="featuredDoubletLayoutPreset"
-          :highlighted-node-ids="featuredDoubletHighlightedNodeIds"
-          class="lg:order-1"
+          :node-highlights="featuredDoubletNodeHighlights"
+          class="lg:order-1 lg:w-full lg:max-w-3xl lg:justify-self-start"
           loading-label="Loading featured doublet graph..."
           empty-text="This doublet example is not in the index yet."
           error-text="This featured doublet graph could not load."
@@ -223,8 +231,8 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
       </div>
     </section>
 
-    <section class="grid gap-5 border-b border-border pb-10" aria-labelledby="home-sound-changes-heading">
-      <div class="grid gap-6 lg:grid-cols-[minmax(260px,0.45fr)_minmax(0,1fr)] lg:items-start">
+    <section class="grid gap-5 pb-10" aria-labelledby="home-sound-changes-heading">
+      <div class="grid gap-6 lg:gap-36 lg:grid-cols-[minmax(260px,0.45fr)_minmax(0,1fr)] lg:items-start">
         <div class="grid content-between gap-6">
           <div>
             <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
@@ -244,31 +252,31 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
           </Button>
         </div>
 
-        <div class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper">
-          <div class="mb-5 border-b border-border pb-4">
-            <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-muted">
+        <div class="grid gap-5">
+          <div>
+            <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-page-muted">
               Current articles
             </p>
             <h3 class="text-2xl font-bold leading-tight">
               Sound-change articles
             </h3>
-            <p class="mt-3 max-w-2xl leading-7 text-text-muted">
+            <p class="mt-3 max-w-2xl leading-7 text-text-page-muted">
               Start with a named sound change, then open examples that compare related words.
             </p>
           </div>
 
-          <div class="grid gap-3">
+          <div class="grid auto-rows-fr grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-2">
             <RouterLink
               v-for="article in featuredSoundChangeArticles"
               :key="article.slug"
               :to="{ name: 'sound-change-article', params: { slug: article.slug } }"
-              class="grid gap-2 rounded-[3px] border border-border bg-surface/45 p-4 text-left transition hover:border-border-strong hover:bg-surface/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              class="grid h-full gap-2 rounded-[3px] bg-surface/30 p-4 text-left transition hover:bg-surface/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <span class="font-label text-xs font-black uppercase tracking-[0.12em] text-text-muted">
+              <span class="font-label text-xs font-black uppercase tracking-[0.12em] text-text-page-muted">
                 {{ article.families.join(" / ") }}
               </span>
               <span class="text-lg font-bold leading-tight text-text">{{ article.title }}</span>
-              <span class="text-sm leading-6 text-text-muted">
+              <span class="text-sm leading-6 text-text-page-muted">
                 {{ plainTextFromGlossarySegments(article.overview) }}
               </span>
             </RouterLink>
@@ -278,7 +286,7 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
     </section>
 
     <section class="grid gap-5" aria-labelledby="home-word-lineages-heading">
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.45fr)] lg:items-start">
+      <div class="grid gap-6 lg:gap-36 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.45fr)] lg:items-start">
         <div class="grid gap-6 lg:order-2">
           <div>
             <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
@@ -305,38 +313,38 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
           </Button>
         </div>
 
-        <div class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper lg:order-1">
-          <div class="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4">
+        <div class="grid gap-5 lg:order-1">
+          <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-muted">
+              <p class="mb-2 font-label text-xs font-black uppercase tracking-[0.14em] text-text-page-muted">
                 Featured today
               </p>
               <h3 class="text-2xl font-bold leading-tight">
                 {{ featuredAncestorLanguageExample.exampleTitle }}
               </h3>
-              <p class="mt-3 max-w-2xl leading-7 text-text-muted">
+              <p class="mt-3 max-w-2xl leading-7 text-text-page-muted">
                 {{ featuredAncestorLanguageExample.exampleText }}
               </p>
             </div>
-            <p class="rounded-full border border-border bg-surface/65 px-3 py-1 font-label text-xs font-black uppercase tracking-[0.12em] text-text-muted">
+            <p class="font-label text-xs font-black uppercase tracking-[0.12em] text-text-page-muted">
               {{ featuredAncestorLanguageExample.descendantLanguage }} to {{ featuredAncestorLanguageExample.ancestorLanguage }}
             </p>
           </div>
 
-          <div class="grid gap-3">
+          <div class="grid auto-rows-fr grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-2">
             <RouterLink
               v-for="link in featuredAncestorLanguageExample.links"
               :key="link.term"
               :to="{ name: 'etymology', params: { langCode: featuredAncestorLanguageExample.descendantLangCode, term: link.term } }"
-              class="grid gap-2 rounded-[3px] border border-border bg-surface/45 p-4 text-left transition hover:border-border-strong hover:bg-surface/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              class="grid h-full content-center gap-2 rounded-[3px] bg-surface/30 p-4 text-left transition hover:bg-surface/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span class="text-lg font-bold leading-tight text-text">{{ link.term }}</span>
-                <span class="font-label text-xs font-black uppercase tracking-[0.12em] text-text-muted">
+                <span class="font-label text-xs font-black uppercase tracking-[0.12em] text-text-page-muted">
                   reaches {{ link.ancestor }}
                 </span>
               </span>
-              <span class="text-sm leading-6 text-text-muted">{{ link.note }}</span>
+              <span class="text-sm leading-6 text-text-page-muted">{{ link.note }}</span>
             </RouterLink>
           </div>
 
@@ -351,5 +359,6 @@ function highlightedTermNodeIds(graph: EtymologyGraph | null, langCode: string, 
         </div>
       </div>
     </section>
+  </div>
   </PageMain>
 </template>

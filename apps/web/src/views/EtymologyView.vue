@@ -20,6 +20,7 @@ import EtymologyStarterQueries from "../features/terms/EtymologyStarterQueries.v
 import EtymologyExploreSuggestions from "./EtymologyExploreSuggestions.vue";
 import EtymologyExploreTray from "./EtymologyExploreTray.vue";
 import GraphCanvas from "../features/graph/GraphCanvas.vue";
+import { primaryGraphNodeHighlights } from "../features/graph/graphNodeHighlights";
 import TermSearchForm from "../features/terms/TermSearchForm.vue";
 import {
   ancestorGraphQueryKey,
@@ -127,11 +128,11 @@ const selectedCognateIds = computed(() =>
   visibleCognates.value.filter((cognate) => isCognateInSelectedGraph(cognate)).map((cognate) => cognate.id)
 );
 const selectedGraph = computed(() => expandedGraph.value ?? ancestorGraphQuery.data.value?.graph ?? null);
-const highlightedGraphNodeIds = computed(() => {
+const graphNodeHighlights = computed(() => {
   const rootNodeId = selectedGraph.value?.rootNodeId;
-  const highlightedNodeIds = rootNodeId ? [rootNodeId] : [];
+  const rootHighlightNodeIds = rootNodeId ? [rootNodeId] : [];
 
-  return [...new Set([...highlightedNodeIds, ...selectedCognateIds.value])];
+  return primaryGraphNodeHighlights([...new Set([...rootHighlightNodeIds, ...selectedCognateIds.value])]);
 });
 const selectedLanguageLabel = computed(() => {
   if (!langCode.value) {
@@ -484,7 +485,7 @@ watch(
           Choose a language, then search its words
         </h2>
       </div>
-      <div class="grid gap-5 rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
+      <div class="grid gap-5 rounded-[3px] border border-border bg-surface/55 p-5">
         <div ref="exploreSuggestionsRef">
           <EtymologyExploreSuggestions
             id-prefix="inline-etymology-explore"
@@ -529,23 +530,23 @@ watch(
     >
       <section
         v-if="graphStatus === 'idle' || graphStatus === 'empty'"
-        class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper"
+        class="grid max-w-4xl gap-5 py-4"
         aria-labelledby="etymology-empty-starters"
       >
-        <p v-if="graphStatus === 'idle'" class="mb-4 text-text-muted">
+        <p v-if="graphStatus === 'idle'" class="text-text-page-muted">
           This etymology route is missing a term or language code.
         </p>
-        <p v-else class="mb-4 text-text-muted">
+        <p v-else class="text-text-page-muted">
           No source path in the index for {{ routeLabel }}.
         </p>
-        <div class="mb-5">
-          <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+        <div>
+          <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
             Starting points
           </p>
           <h2 id="etymology-empty-starters" class="text-2xl font-bold leading-tight">
             Example words with source paths
           </h2>
-          <p class="mt-1 text-sm leading-6 text-text-muted">
+          <p class="mt-1 text-sm leading-6 text-text-page-muted">
             {{ etymologyStarterHelpText }}
           </p>
         </div>
@@ -577,7 +578,7 @@ watch(
         </p>
         <GraphCanvas
           :graph="selectedGraph"
-          :highlighted-node-ids="highlightedGraphNodeIds"
+          :node-highlights="graphNodeHighlights"
           @load-children="handleLoadChildren"
           @node-details-open-change="isGraphNodeDetailOpen = $event"
         />

@@ -8,7 +8,7 @@ import PageMain from "../uiComponents/PageMain.vue";
 
 <template>
   <PageMain>
-    <section class="grid gap-5 border-b border-border-strong pb-8">
+    <section class="grid gap-5 pb-8">
       <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Sound changes
       </p>
@@ -40,22 +40,22 @@ import PageMain from "../uiComponents/PageMain.vue";
         <article
           v-for="article in soundChangeArticles"
           :key="article.slug"
-          class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper"
+          class="rounded-[3px] bg-surface/35 p-5 transition hover:bg-surface/55"
         >
           <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div class="grid gap-3">
               <div>
-                <p class="font-label text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
+                <p class="font-label text-xs font-bold uppercase tracking-[0.14em] text-text-page-muted">
                   {{ article.families.join(" / ") }}
                 </p>
                 <h3 class="mt-2 text-3xl font-black tracking-tighter">
                   {{ article.title }}
                 </h3>
               </div>
-              <p class="max-w-3xl leading-7 text-text-muted">
+              <p class="max-w-3xl leading-7 text-text-page-muted">
                 {{ plainTextFromGlossarySegments(article.overview) }}
               </p>
-              <p class="text-sm text-text-muted">
+              <p class="text-sm text-text-page-muted">
                 Affects: {{ article.affectedLanguages.join(", ") }}
               </p>
             </div>

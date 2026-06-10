@@ -8,6 +8,7 @@ import { z } from "zod";
 import {
   comparisonSetQuerySchema,
   DEFAULT_ANCESTOR_MAX_DEPTH,
+  descendantsQuerySchema,
   EDGE_TYPES,
   similarTermsQuerySchema,
   sourceLanguageLayersQuerySchema
@@ -55,6 +56,29 @@ const childTermsQuerySchema = z.object({
   word: z.string().trim().min(1),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   ...entryAnchorShape
+});
+
+const terminalLangCodesHttpSchema = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value) => {
+    if (!value) {
+      return undefined;
+    }
+
+    const terminalLangCodes = (Array.isArray(value) ? value : [value])
+      .flatMap((rawValue) => rawValue.split(","))
+      .map((langCode) => langCode.trim())
+      .filter((langCode) => langCode.length > 0);
+
+    return Array.from(new Set(terminalLangCodes));
+  });
+
+const descendantsHttpQuerySchema = descendantsQuerySchema.extend({
+  maxDepth: z.coerce.number().int().min(1).max(12).default(8),
+  limit: z.coerce.number().int().min(1).max(300).default(120),
+  terminalLangCodes: terminalLangCodesHttpSchema,
+  etymologyNumber: z.coerce.number().int().min(0).optional()
 });
 
 const doubletsQuerySchema = z.object({
@@ -410,6 +434,22 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
     }
 
     return graphRepository.findChildTerms(parsedQuery.data);
+  });
+
+  server.get("/api/descendants", async (request, reply) => {
+    const parsedQuery = descendantsHttpQuerySchema.safeParse(request.query);
+
+    if (!parsedQuery.success) {
+      return reply.code(400).send({
+        error: "Invalid descendants query",
+        issues: parsedQuery.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      });
+    }
+
+    return graphRepository.findDescendants(parsedQuery.data);
   });
 
   server.get("/api/doublets", async (request, reply) => {

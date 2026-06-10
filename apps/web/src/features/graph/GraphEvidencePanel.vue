@@ -4,6 +4,7 @@ import type { EtymologyGraph, GraphTraversalNode } from "@etymology-graph/graph"
 import Skeleton from "../../uiComponents/Skeleton.vue";
 import GraphCanvas from "./GraphCanvas.vue";
 import type { GraphNodeAnnotation } from "./graphAnnotations";
+import type { GraphNodeHighlight } from "./graphNodeHighlights";
 import type { GraphLayoutPreset } from "./composables/useGraphLayout";
 
 type GraphEvidenceStatus = "idle" | "loading" | "success" | "empty" | "error";
@@ -13,7 +14,7 @@ withDefaults(
     status: GraphEvidenceStatus;
     graph: EtymologyGraph | null;
     layoutPreset?: GraphLayoutPreset;
-    highlightedNodeIds?: string[];
+    nodeHighlights?: GraphNodeHighlight[];
     showControls?: boolean;
     annotations?: GraphNodeAnnotation[];
     loadingLabel?: string;
@@ -22,7 +23,7 @@ withDefaults(
   }>(),
   {
     layoutPreset: () => ({ type: "auto" }),
-    highlightedNodeIds: () => [],
+    nodeHighlights: () => [],
     showControls: true,
     annotations: () => [],
     loadingLabel: "Loading graph...",
@@ -79,7 +80,7 @@ const emit = defineEmits<{
       v-else-if="graph"
       :graph="graph"
       :layout-preset="layoutPreset"
-      :highlighted-node-ids="highlightedNodeIds"
+      :node-highlights="nodeHighlights"
       :show-controls="showControls"
       :annotations="annotations"
       @load-children="emit('load-children', $event)"

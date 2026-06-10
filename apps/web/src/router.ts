@@ -12,6 +12,7 @@ import LanguageDetailView from "./views/LanguageDetailView.vue";
 import LanguageTermsView from "./views/LanguageTermsView.vue";
 import LogoStudyView from "./views/LogoStudyView.vue";
 import NotFoundView from "./views/NotFoundView.vue";
+import PieDescendantsView from "./views/PieDescendantsView.vue";
 import SoundChangeArticleView from "./views/SoundChangeArticleView.vue";
 import SoundChangesView from "./views/SoundChangesView.vue";
 
@@ -91,6 +92,14 @@ const routes: RouteRecordRaw[] = [
     component: AncestorLanguageSearchView,
     meta: {
       title: "Source Languages"
+    }
+  },
+  {
+    path: "/pie-descendants",
+    name: "pie-descendants",
+    component: PieDescendantsView,
+    meta: {
+      title: "PIE Descendants"
     }
   },
   {

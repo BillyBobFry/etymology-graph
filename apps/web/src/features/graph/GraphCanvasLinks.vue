@@ -4,13 +4,15 @@ import { edgeLabel, edgeLegendItems, edgeTypeClass, markerUrlForEdgeType, relati
 
 defineProps<{
   links: PositionedGraphLink[];
+  focusedLinkIds?: ReadonlySet<string>;
   hasResolvedEndpoints: (link: PositionedGraphLink) => boolean;
   linkEndpointX: (link: PositionedGraphLink, endpoint: LinkEndpoint) => number;
   linkEndpointY: (link: PositionedGraphLink, endpoint: LinkEndpoint) => number;
 }>();
 
 const graphLinkClass =
-  "stroke-[color-mix(in_oklch,var(--relationship-color,var(--theme-graph-edge))_72%,transparent)] stroke-2 [stroke-linecap:round]";
+  "stroke-[color-mix(in_oklch,var(--relationship-color,var(--theme-graph-edge))_72%,transparent)] stroke-2 transition-opacity duration-150 ease-in [stroke-linecap:round]";
+const dimmedGraphLinkClass = "opacity-25";
 const uncertainGraphLinkClass = "[stroke-dasharray:6_7]";
 </script>
 
@@ -46,7 +48,12 @@ const uncertainGraphLinkClass = "[stroke-dasharray:6_7]";
     <g v-for="link in links" :key="link.id">
       <line
         v-if="hasResolvedEndpoints(link)"
-        :class="[graphLinkClass, relationshipColorClass(link.type), link.uncertain && uncertainGraphLinkClass]"
+        :class="[
+          graphLinkClass,
+          relationshipColorClass(link.type),
+          focusedLinkIds && !focusedLinkIds.has(link.id) && dimmedGraphLinkClass,
+          link.uncertain && uncertainGraphLinkClass
+        ]"
         :marker-end="markerUrlForEdgeType(link.type)"
         :x1="linkEndpointX(link, 'target')"
         :y1="linkEndpointY(link, 'target')"

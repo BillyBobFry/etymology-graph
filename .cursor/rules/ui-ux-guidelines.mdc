@@ -25,6 +25,15 @@ alwaysApply: false
 - Prefer progressive disclosure for dense etymology data. Show the most important relationship first, then reveal metadata, source details, and raw text on demand.
 - Show languages by canonical name in user-facing UI. Do not display language codes such as `en`, `pgd`, or `ine-pro` unless the canonical name is unavailable and the code is the only fallback.
 
+## Visual Hierarchy
+
+- Build hierarchy with content order first: lead with the task, result, or selected relationship, then place supporting metadata and controls where they naturally follow.
+- Use spacing, grouping, alignment, indentation, type size, type weight, label style, and muted text before adding a bordered box or new surface.
+- Prefer open page composition for headings, explanations, short option groups, and simple result summaries. A larger gap, clearer label, or tighter grouping is usually better than another card.
+- Reserve borders, fills, shadows, and raised surfaces for boundaries the user needs to understand or interact with: forms, popovers, selected states, dense lists, graph details, and recoverable notices.
+- When scanning is the problem, try row rhythm, section labels, dividers, and progressive disclosure before splitting content into many independent cards.
+- Do not over-apply list rows. Compact grids are often better for small, similarly shaped choices with short labels and one-line descriptions.
+
 ## Loading Skeletons
 
 - Use `Skeleton.vue` when a primary content frame has a predictable shape and loading would otherwise leave a large blank area, such as result lists, entry detail panels, graph side panels, and stable search result regions.

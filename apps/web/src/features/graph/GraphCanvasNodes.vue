@@ -5,11 +5,13 @@ import { computed } from "vue";
 import type { PositionedGraphNode } from "./composables/useGraphLayout";
 import { graphNodeRadius } from "./graphCanvasConstants";
 import { formatIpaPronunciation, nodeAriaLabel } from "./graphNodeDisplay";
+import type { GraphNodeHighlightTone, GraphNodeHighlight } from "./graphNodeHighlights";
 
 const props = defineProps<{
   nodes: PositionedGraphNode[];
-  highlightedNodeIds: string[];
+  nodeHighlights: GraphNodeHighlight[];
   selectedNodeId?: string;
+  focusedNodeIds?: ReadonlySet<string>;
   contextNodeId?: string;
   contextMenuOpen: boolean;
   zoom: number;
@@ -29,13 +31,16 @@ const emit = defineEmits<{
   keydown: [event: KeyboardEvent, node: PositionedGraphNode];
 }>();
 
-const graphNodeClass = "group outline-none";
+const graphNodeClass = "group outline-none transition-opacity duration-150 ease-in";
+const dimmedGraphNodeClass = "opacity-30";
 const draggableGraphNodeClass = "cursor-grab";
 const draggingGraphNodeClass = "cursor-grabbing";
 const graphNodeCircleClass =
   "fill-graph-node stroke-descendant stroke-[3] transition-[fill,filter,stroke,stroke-width] duration-150 ease-in [filter:drop-shadow(0_1px_2px_color-mix(in_oklch,var(--theme-text)_16%,transparent))] group-hover:fill-surface-raised group-hover:stroke-accent group-hover:stroke-[5] group-hover:[filter:drop-shadow(0_2px_4px_color-mix(in_oklch,var(--theme-text)_22%,transparent))] group-focus-visible:fill-surface-raised group-focus-visible:stroke-accent group-focus-visible:stroke-[5] group-focus-visible:[filter:drop-shadow(0_2px_4px_color-mix(in_oklch,var(--theme-text)_22%,transparent))]";
-const highlightedGraphNodeCircleClass =
-  "fill-graph-root stroke-ancestor stroke-[4] group-hover:fill-[color-mix(in_oklch,var(--theme-graph-root)_86%,var(--theme-accent))] group-focus-visible:fill-[color-mix(in_oklch,var(--theme-graph-root)_86%,var(--theme-accent))]";
+const primaryGraphNodeCircleClass =
+  "!fill-graph-root !stroke-ancestor !stroke-[4] group-hover:!fill-[color-mix(in_oklch,var(--theme-graph-root)_86%,var(--theme-accent))] group-focus-visible:!fill-[color-mix(in_oklch,var(--theme-graph-root)_86%,var(--theme-accent))]";
+const terminalGraphNodeCircleClass =
+  "!fill-surface-muted !stroke-border-strong !stroke-[4] group-hover:!fill-surface-raised group-hover:!stroke-text-muted group-focus-visible:!fill-surface-raised group-focus-visible:!stroke-text-muted";
 const selectedGraphNodeCircleClass = "!stroke-accent !stroke-[5]";
 const contextOpenGraphNodeCircleClass = "!fill-surface-muted !stroke-accent !stroke-[5]";
 const draggingGraphNodeCircleClass = "!fill-surface-raised !stroke-accent !stroke-[5]";
@@ -50,11 +55,11 @@ const graphNodeMetaFontSize = computed(() => labelBaseSize(12, 18) * dampenedLab
 const graphNodeWordLabelY = computed(() => graphNodeRadius + labelBaseSize(18, 24));
 const graphNodeLanguageLabelY = computed(() => graphNodeRadius + labelBaseSize(34, 46));
 const graphNodeIpaLabelY = computed(() => graphNodeRadius + labelBaseSize(50, 68));
-const highlightedNodeIdSet = computed(() => new Set(props.highlightedNodeIds));
+const nodeHighlightToneById = computed(() => new Map(props.nodeHighlights.map((highlight) => [highlight.nodeId, highlight.tone])));
 
 /** Starts node dragging only when the current surface can safely own drag gestures. */
 function handlePointerDown(event: PointerEvent, node: PositionedGraphNode): void {
-  if (!props.canDragNodes) {
+  if (!canDragNode(node)) {
     return;
   }
 
@@ -63,7 +68,7 @@ function handlePointerDown(event: PointerEvent, node: PositionedGraphNode): void
 
 /** Keeps disabled mobile node drags from swallowing canvas pan and scroll gestures. */
 function handlePointerMove(event: PointerEvent, node: PositionedGraphNode): void {
-  if (!props.canDragNodes) {
+  if (!canDragNode(node)) {
     return;
   }
 
@@ -72,7 +77,7 @@ function handlePointerMove(event: PointerEvent, node: PositionedGraphNode): void
 
 /** Completes node dragging only for surfaces that started a node drag. */
 function handlePointerUp(event: PointerEvent, node: PositionedGraphNode): void {
-  if (!props.canDragNodes) {
+  if (!canDragNode(node)) {
     return;
   }
 
@@ -94,6 +99,32 @@ function labelBaseSize(desktopSize: number, mobileSize: number): number {
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
+
+/** Keeps lineage focus visual-only so dimmed nodes can still be selected directly. */
+function isNodeDimmed(node: PositionedGraphNode): boolean {
+  return props.focusedNodeIds ? !props.focusedNodeIds.has(node.id) : false;
+}
+
+/** Allows focused nodes to be repositioned while faded nodes remain click-only targets. */
+function canDragNode(node: PositionedGraphNode): boolean {
+  return props.canDragNodes && !isNodeDimmed(node);
+}
+
+/** Resolves the semantic highlight tone into the node's SVG circle styling. */
+function graphNodeHighlightClass(tone: GraphNodeHighlightTone | undefined): string | false {
+  switch (tone) {
+    case "primary":
+      return primaryGraphNodeCircleClass;
+    case "terminal":
+      return terminalGraphNodeCircleClass;
+    case undefined:
+      return false;
+    default: {
+      const exhaustiveTone: never = tone;
+      return exhaustiveTone;
+    }
+  }
+}
 </script>
 
 <template>
@@ -102,7 +133,12 @@ function clamp(value: number, min: number, max: number): number {
       v-for="node in nodes"
       :key="node.id"
       v-bind="usesDesktopGraphLayout ? getContextTriggerProps({ value: node.id }) : {}"
-      :class="[graphNodeClass, canDragNodes && draggableGraphNodeClass, isNodeDragging(node) && draggingGraphNodeClass]"
+      :class="[
+        graphNodeClass,
+        isNodeDimmed(node) && dimmedGraphNodeClass,
+        canDragNode(node) && draggableGraphNodeClass,
+        isNodeDragging(node) && draggingGraphNodeClass
+      ]"
       :transform="`translate(${nodeX(node)}, ${nodeY(node)})`"
       role="button"
       tabindex="0"
@@ -119,7 +155,7 @@ function clamp(value: number, min: number, max: number): number {
       <circle
         :class="[
           graphNodeCircleClass,
-          highlightedNodeIdSet.has(node.id) && highlightedGraphNodeCircleClass,
+          graphNodeHighlightClass(nodeHighlightToneById.get(node.id)),
           node.id === selectedNodeId && selectedGraphNodeCircleClass,
           usesDesktopGraphLayout && node.id === contextNodeId && contextMenuOpen && contextOpenGraphNodeCircleClass,
           isNodeDragging(node) && draggingGraphNodeCircleClass

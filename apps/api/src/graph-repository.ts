@@ -9,6 +9,8 @@ import type {
   CognatesResult,
   ComparisonSetQuery,
   ComparisonSetResult,
+  DescendantsQuery,
+  DescendantsResult,
   DoubletGroupsQuery,
   DoubletGroupsResult,
   DoubletsQuery,
@@ -41,6 +43,7 @@ export type GraphRepository = {
   findAncestorPath(query: AncestorPathQuery): Promise<AncestorPathResult>;
   findComparisonSet(query: ComparisonSetQuery): Promise<ComparisonSetResult>;
   findChildTerms(query: ChildTermsQuery): Promise<ChildTermsResult>;
+  findDescendants(query: DescendantsQuery): Promise<DescendantsResult>;
   findCognates(query: CognatesQuery): Promise<CognatesResult>;
   findDoublets(query: DoubletsQuery): Promise<DoubletsResult>;
   findDoubletGroups(query: DoubletGroupsQuery): Promise<DoubletGroupsResult>;

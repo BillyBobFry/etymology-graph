@@ -125,7 +125,7 @@ function termSummaryDetails(term: GraphNode): string {
 
 <template>
   <PageMain>
-    <section class="border-b border-border-strong pb-8">
+    <section class="pb-8">
       <Link v-if="langCode" :to="{ name: 'language-detail', params: { langCode } }">
         Back to language record
       </Link>
@@ -140,7 +140,7 @@ function termSummaryDetails(term: GraphNode): string {
       </p>
     </section>
 
-    <form class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper" @submit.prevent="submitSearch">
+    <form class="rounded-[3px] border border-border bg-surface/55 p-5" @submit.prevent="submitSearch">
       <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <TextField
           v-model="draftSearchQuery"

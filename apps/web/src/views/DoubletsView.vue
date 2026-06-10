@@ -18,6 +18,7 @@ import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLa
 import { useAncestorGraphQuery } from "../features/graph/composables/useAncestorGraphQuery";
 import { useChildTermsGraphQuery } from "../features/graph/composables/useChildTermsGraphQuery";
 import { useDoubletGraphQuery } from "../features/graph/composables/useDoubletGraphQuery";
+import { primaryGraphNodeHighlights } from "../features/graph/graphNodeHighlights";
 import GlossaryText from "../features/glossary/GlossaryText.vue";
 import type { GlossaryTextSegment } from "../features/glossary/linguisticGlossary";
 import { useLanguagesQuery } from "../features/languages/useLanguagesQuery";
@@ -132,7 +133,7 @@ const graphLayoutPreset = computed<GraphLayoutPreset>(() =>
     ? { type: "auto" }
     : { type: "doublet-arms", rootNodeId: selectedGraph.value.rootNodeId }
 );
-const highlightedGraphNodeIds = computed(() => {
+const graphNodeHighlights = computed(() => {
   const graph = selectedGraph.value;
 
   if (!graph) {
@@ -140,10 +141,12 @@ const highlightedGraphNodeIds = computed(() => {
   }
 
   if (isFallbackGraph.value) {
-    return [graph.rootNodeId];
+    return primaryGraphNodeHighlights([graph.rootNodeId]);
   }
 
-  return graph.nodes.filter((node) => node.langCode === langCode.value && node.id !== graph.rootNodeId).map((node) => node.id);
+  return primaryGraphNodeHighlights(
+    graph.nodes.filter((node) => node.langCode === langCode.value && node.id !== graph.rootNodeId).map((node) => node.id)
+  );
 });
 const showFallbackNote = computed(() => isFallbackGraph.value && !fallbackNoteDismissed.value);
 const childTermsStatus = computed<ChildTermsStatus>(() => {
@@ -327,27 +330,27 @@ watch(
     <section ref="graphResultRef" class="scroll-mt-6 grid gap-5">
       <section
         v-if="graphStatus === 'idle' || graphStatus === 'empty'"
-        class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper"
+        class="grid max-w-4xl gap-5 py-4"
         aria-labelledby="doublets-empty-starters"
       >
-        <p v-if="graphStatus === 'idle'" class="mb-4 text-text-muted">
+        <p v-if="graphStatus === 'idle'" class="text-text-page-muted">
           This doublet route is missing a term or language code.
         </p>
-        <p v-else class="mb-4 text-text-muted">
+        <p v-else class="text-text-page-muted">
           No doublet paths are in the index yet for {{ routeLabel }}, and the etymology graph is unavailable.
         </p>
-        <div class="mb-5">
-          <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+        <div>
+          <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
             Starting points
           </p>
           <h2 id="doublets-empty-starters" class="text-2xl font-bold leading-tight">
             Try known doublet cases
           </h2>
-          <p class="mt-1 text-sm leading-6 text-text-muted">
+          <p class="mt-1 text-sm leading-6 text-text-page-muted">
             {{ doubletStarterHelpText }}
           </p>
         </div>
-        <div class="border-y border-border divide-y divide-border">
+        <div class="grid auto-rows-fr grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-2">
           <RouterLink
             v-for="query in doubletStarterSet.queries"
             :key="query.term"
@@ -358,17 +361,13 @@ watch(
                 term: query.term
               }
             }"
-            class="group flex cursor-pointer items-baseline justify-between gap-4 px-1 py-3 text-left transition duration-200 hover:bg-surface/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-3"
+            class="group grid h-full cursor-pointer content-center gap-1 rounded-[3px] bg-surface/30 px-3 py-2.5 text-left transition duration-200 hover:bg-surface/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <span class="min-w-0">
-              <span class="block font-label font-bold leading-none text-text">{{ query.term }}</span>
-              <span class="mt-1 block text-sm leading-5 text-text-muted">{{ query.description }}</span>
+            <span class="font-label text-base font-bold leading-tight text-text transition group-hover:text-accent">
+              {{ query.term }}
             </span>
-            <span
-              class="shrink-0 font-label text-sm font-bold text-text-muted transition group-hover:text-text"
-              aria-hidden="true"
-            >
-              Open
+            <span class="text-sm leading-5 text-text-page-muted transition group-hover:text-text-muted">
+              {{ query.description }}
             </span>
           </RouterLink>
         </div>
@@ -419,7 +418,7 @@ watch(
           <GraphCanvas
             :graph="selectedGraph"
             :layout-preset="graphLayoutPreset"
-            :highlighted-node-ids="highlightedGraphNodeIds"
+            :node-highlights="graphNodeHighlights"
             @load-children="handleLoadChildren"
           />
         </div>

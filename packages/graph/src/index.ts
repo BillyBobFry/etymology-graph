@@ -265,6 +265,23 @@ export const childTermsResultSchema = z.object({
 
 export type ChildTermsResult = z.infer<typeof childTermsResultSchema>;
 
+export const descendantsQuerySchema = z.object({
+  langCode: z.string().trim().min(1),
+  word: z.string().trim().min(1),
+  maxDepth: z.number().int().min(1).max(12),
+  limit: z.number().int().min(1).max(300),
+  terminalLangCodes: z.array(z.string().trim().min(1)).max(100).optional(),
+  ...entryAnchorShape
+});
+
+export type DescendantsQuery = z.infer<typeof descendantsQuerySchema>;
+
+export const descendantsResultSchema = z.object({
+  graph: etymologyGraphSchema.nullable()
+});
+
+export type DescendantsResult = z.infer<typeof descendantsResultSchema>;
+
 export const doubletsQuerySchema = z.object({
   langCode: z.string().trim().min(1),
   word: z.string().trim().min(1),

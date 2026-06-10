@@ -21,13 +21,13 @@ defineProps<{
           term: query.term
         }
       }"
-      class="flex h-full w-full cursor-pointer items-center rounded-[3px] border border-border bg-surface/45 px-3 py-2.5 text-left font-label shadow-paper transition duration-200 hover:border-border-strong hover:bg-surface/75 hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      class="group grid h-full cursor-pointer content-center gap-1 rounded-[3px] bg-surface/30 px-3 py-2.5 text-left transition duration-200 hover:bg-surface/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <span class="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span class="font-bold leading-none text-text">{{ query.term }}</span>
-        <span class="font-sans text-sm font-normal leading-5 text-text-muted">
-          {{ query.description }}
-        </span>
+      <span class="font-label text-base font-bold leading-tight text-text transition group-hover:text-accent">
+        {{ query.term }}
+      </span>
+      <span class="text-sm leading-5 text-text-page-muted transition group-hover:text-text-muted">
+        {{ query.description }}
       </span>
     </RouterLink>
   </div>

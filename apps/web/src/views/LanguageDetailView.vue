@@ -89,7 +89,7 @@ function sourceLabelForUrl(url: string): string {
 <template>
   <PageMain>
     <section v-if="detailStatus === 'loading'" class="grid gap-8" aria-busy="true">
-      <div class="border-b border-border-strong pb-8">
+      <div class="pb-8">
         <Skeleton class="mb-4 h-4 w-40" />
         <Skeleton class="mb-5 h-16 w-full max-w-2xl" />
         <Skeleton class="h-6 w-full max-w-3xl" />
@@ -100,7 +100,7 @@ function sourceLabelForUrl(url: string): string {
       </div>
     </section>
 
-    <section v-else-if="detailStatus === 'error'" class="border-b border-border-strong pb-8">
+    <section v-else-if="detailStatus === 'error'" class="pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Language not found
       </p>
@@ -116,7 +116,7 @@ function sourceLabelForUrl(url: string): string {
     </section>
 
     <template v-else-if="language">
-      <section class="border-b border-border-strong pb-8">
+      <section class="pb-8">
         <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
           Language record
         </p>
@@ -130,8 +130,8 @@ function sourceLabelForUrl(url: string): string {
 
       <section class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div class="grid gap-5">
-          <section class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
-            <p class="mb-3 font-label text-xs text-center font-bold uppercase tracking-[0.14em] text-text-muted">
+          <section class="rounded-[3px] border border-border bg-surface/50 p-5">
+            <p class="mb-3 text-center font-label text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Ancestor trail
             </p>
             <div v-if="language.ancestors.length > 0" class="grid gap-4">
@@ -168,8 +168,8 @@ function sourceLabelForUrl(url: string): string {
 
         </div>
 
-        <aside class="grid content-start gap-4">
-          <section class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
+        <aside class="grid content-start divide-y divide-border rounded-[3px] border border-border bg-surface/40 px-5">
+          <section class="py-5">
             <p class="mb-3 font-label text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Sources
             </p>
@@ -188,7 +188,7 @@ function sourceLabelForUrl(url: string): string {
             </p>
           </section>
 
-          <section class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
+          <section class="py-5">
             <p class="mb-3 font-label text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Family
             </p>
@@ -200,7 +200,7 @@ function sourceLabelForUrl(url: string): string {
             </p>
           </section>
 
-          <section class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
+          <section class="py-5">
             <p class="mb-3 font-label text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Coverage
             </p>

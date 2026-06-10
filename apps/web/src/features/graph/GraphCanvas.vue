@@ -37,25 +37,44 @@ import {
 import { hasImportedLexicalEntry, wiktionaryHrefForNode } from "./graphNodeDisplay";
 import { edgeLabel, isSourceDirectedEdgeType } from "./graphRelationshipDisplay";
 import type { GraphNodeAnnotation } from "./graphAnnotations";
+import type { GraphNodeHighlight } from "./graphNodeHighlights";
 import ContextMenu from "../../uiComponents/ContextMenu.vue";
 
 type ContextMenuInstance = {
   close(): void;
 };
+type GraphOrientationMode = "default" | "fan-out";
+type GraphLineageFocus = {
+  nodeIds: Set<string>;
+  linkIds: Set<string>;
+};
+type LineageStep = {
+  nodeId: string;
+  linkId: string;
+};
+type CanvasPointerState = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  hasMoved: boolean;
+};
 
 const inlineGraphControlsPanRoom = 76;
+const canvasClickDragThreshold = 4;
 
 const props = withDefaults(
   defineProps<{
     graph: EtymologyGraph;
     layoutPreset?: GraphLayoutPreset;
-    highlightedNodeIds?: string[];
+    orientationMode?: GraphOrientationMode;
+    nodeHighlights?: GraphNodeHighlight[];
     showControls?: boolean;
     annotations?: GraphNodeAnnotation[];
   }>(),
   {
     layoutPreset: () => ({ type: "auto" }),
-    highlightedNodeIds: () => [],
+    orientationMode: "default",
+    nodeHighlights: () => [],
     showControls: true,
     annotations: () => []
   }
@@ -82,6 +101,8 @@ const usesDesktopGraphLayout = useMediaQuery("(min-width: 768px)");
 const canDragGraphNodes = computed(() => usesDesktopGraphLayout.value || isGraphExpanded.value);
 const isInlineScrollHandoffEnabled = computed(() => !isGraphExpanded.value);
 const graphNodeBounds = ref<GraphViewportContentBounds | null>(null);
+let canvasPointerState: CanvasPointerState | undefined;
+let suppressNextCanvasClick = false;
 const {
   svgRef,
   panX,
@@ -136,9 +157,13 @@ const {
   setHomeViewport,
   onFreshLayout: closeFloatingGraphUi
 });
-const graphLayoutOrientation = computed<GraphLayoutOrientation>(() =>
-  usesDesktopGraphLayout.value ? "horizontal" : "vertical"
-);
+const graphLayoutOrientation = computed<GraphLayoutOrientation>(() => {
+  if (props.orientationMode === "fan-out") {
+    return usesDesktopGraphLayout.value ? "vertical" : "horizontal";
+  }
+
+  return usesDesktopGraphLayout.value ? "horizontal" : "vertical";
+});
 const {
   suppressNextNodeClick,
   startNodeDrag,
@@ -165,6 +190,39 @@ const {
 });
 const selectedNode = computed(() => nodes.value.find((node) => node.id === selectedNodeId.value));
 const nodesById = computed(() => new Map(nodes.value.map((node) => [node.id, node])));
+const selectedLineageFocus = computed<GraphLineageFocus | undefined>(() => {
+  const selectedId = selectedNodeId.value;
+
+  if (!selectedId) {
+    return undefined;
+  }
+
+  const ancestorsByDescendantId = new Map<string, LineageStep[]>();
+  const descendantsBySourceId = new Map<string, LineageStep[]>();
+
+  for (const link of links.value) {
+    if (!isSourceDirectedEdgeType(link.type)) {
+      continue;
+    }
+
+    appendLineageStep(ancestorsByDescendantId, link.sourceNodeId, {
+      nodeId: link.targetNodeId,
+      linkId: link.id
+    });
+    appendLineageStep(descendantsBySourceId, link.targetNodeId, {
+      nodeId: link.sourceNodeId,
+      linkId: link.id
+    });
+  }
+
+  const nodeIds = new Set([selectedId]);
+  const linkIds = new Set<string>();
+
+  addReachableLineage(selectedId, ancestorsByDescendantId, nodeIds, linkIds);
+  addReachableLineage(selectedId, descendantsBySourceId, nodeIds, linkIds);
+
+  return { nodeIds, linkIds };
+});
 const graphInteractionAriaLabel = computed(() => {
   const graphSummary = `Etymology graph with ${props.graph.nodes.length} words and ${props.graph.edges.length} links.`;
 
@@ -356,6 +414,112 @@ function selectedRelationshipForLink(
   return [];
 }
 
+/** Starts click tracking for every viewport pan gesture that reaches the canvas. */
+function handleCanvasPointerDown(event: PointerEvent): void {
+  if (event.pointerType !== "mouse" || event.button === 0) {
+    suppressNextCanvasClick = false;
+    canvasPointerState = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      hasMoved: false
+    };
+  }
+
+  handlePointerDown(event);
+}
+
+/** Records whether the current canvas gesture moved far enough to count as a drag. */
+function handleCanvasPointerMove(event: PointerEvent): void {
+  updateCanvasPointerMovement(event);
+  handlePointerMove(event);
+}
+
+/** Suppresses the follow-up click after a canvas pan gesture. */
+function handleCanvasPointerUp(event: PointerEvent): void {
+  updateCanvasPointerMovement(event);
+
+  if (canvasPointerState?.pointerId === event.pointerId) {
+    suppressNextCanvasClick = canvasPointerState.hasMoved;
+    canvasPointerState = undefined;
+  }
+
+  handlePointerUp(event);
+}
+
+/** Clears node selection only for true background clicks, not drags or graph marks. */
+function handleCanvasClick(event: MouseEvent): void {
+  if (suppressNextCanvasClick) {
+    suppressNextCanvasClick = false;
+    return;
+  }
+
+  if (!isCanvasBackgroundTarget(event.target)) {
+    return;
+  }
+
+  clearSelectedNode();
+}
+
+/** Measures movement in screen coordinates so the drag guard is independent of zoom. */
+function updateCanvasPointerMovement(event: PointerEvent): void {
+  if (!canvasPointerState || canvasPointerState.pointerId !== event.pointerId) {
+    return;
+  }
+
+  canvasPointerState.hasMoved =
+    canvasPointerState.hasMoved ||
+    Math.hypot(event.clientX - canvasPointerState.startX, event.clientY - canvasPointerState.startY) > canvasClickDragThreshold;
+}
+
+/** Treats the map texture and empty SVG space as background while preserving node and link clicks. */
+function isCanvasBackgroundTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && !target.closest(".graph-nodes, .graph-links");
+}
+
+/** Records a directed lineage step without obscuring the two traversal directions. */
+function appendLineageStep(lineageByNodeId: Map<string, LineageStep[]>, fromNodeId: string, step: LineageStep): void {
+  const existingSteps = lineageByNodeId.get(fromNodeId);
+
+  if (existingSteps) {
+    existingSteps.push(step);
+    return;
+  }
+
+  lineageByNodeId.set(fromNodeId, [step]);
+}
+
+/** Walks every reachable source-directed edge so selected nodes reveal full ancestor and descendant branches. */
+function addReachableLineage(
+  startNodeId: string,
+  lineageByNodeId: Map<string, LineageStep[]>,
+  nodeIds: Set<string>,
+  linkIds: Set<string>
+): void {
+  const visitedNodeIds = new Set([startNodeId]);
+  const pendingNodeIds = [startNodeId];
+
+  while (pendingNodeIds.length > 0) {
+    const currentNodeId = pendingNodeIds.pop();
+
+    if (!currentNodeId) {
+      continue;
+    }
+
+    for (const step of lineageByNodeId.get(currentNodeId) ?? []) {
+      linkIds.add(step.linkId);
+
+      if (visitedNodeIds.has(step.nodeId)) {
+        continue;
+      }
+
+      visitedNodeIds.add(step.nodeId);
+      nodeIds.add(step.nodeId);
+      pendingNodeIds.push(step.nodeId);
+    }
+  }
+}
+
 /** Selects a node so dense lexical metadata can live outside the graph label. */
 function selectNode(node: PositionedGraphNode): void {
   selectedNodeId.value = node.id;
@@ -364,6 +528,11 @@ function selectNode(node: PositionedGraphNode): void {
 
 /** Separates click selection from drag release so repositioning a node does not reopen details. */
 function handleNodeClick(node: PositionedGraphNode): void {
+  if (suppressNextCanvasClick) {
+    suppressNextCanvasClick = false;
+    return;
+  }
+
   if (suppressNextNodeClick.value) {
     suppressNextNodeClick.value = false;
     return;
@@ -515,11 +684,12 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
           tabindex="0"
           aria-keyshortcuts="+ - ArrowUp ArrowDown ArrowLeft ArrowRight 0 Home"
           :aria-label="graphInteractionAriaLabel"
-          @pointerdown="handlePointerDown"
-          @pointermove="handlePointerMove"
-          @pointerup="handlePointerUp"
-          @pointercancel="handlePointerUp"
-          @lostpointercapture="handlePointerUp"
+          @pointerdown="handleCanvasPointerDown"
+          @pointermove="handleCanvasPointerMove"
+          @pointerup="handleCanvasPointerUp"
+          @pointercancel="handleCanvasPointerUp"
+          @lostpointercapture="handleCanvasPointerUp"
+          @click="handleCanvasClick"
           @wheel="handleWheel"
           @dblclick="handleDoubleClick"
           @keydown="handleKeydown"
@@ -534,14 +704,16 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
             />
             <GraphCanvasLinks
               :links="renderedLinks"
+              :focused-link-ids="selectedLineageFocus?.linkIds"
               :has-resolved-endpoints="hasResolvedEndpoints"
               :link-endpoint-x="linkEndpointX"
               :link-endpoint-y="linkEndpointY"
             />
             <GraphCanvasNodes
               :nodes="renderedNodes"
-              :highlighted-node-ids="highlightedNodeIds"
+              :node-highlights="nodeHighlights"
               :selected-node-id="selectedNodeId"
+              :focused-node-ids="selectedLineageFocus?.nodeIds"
               :context-node-id="contextNodeId"
               :context-menu-open="isNodeContextMenuOpen"
               :zoom="zoom"

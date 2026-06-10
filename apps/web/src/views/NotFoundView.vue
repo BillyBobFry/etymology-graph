@@ -5,7 +5,7 @@ import PageMain from "../uiComponents/PageMain.vue";
 
 <template>
   <PageMain>
-    <section class="border-b border-border-strong pb-8">
+    <section class="pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Route not found
       </p>

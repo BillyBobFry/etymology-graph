@@ -15,6 +15,8 @@ import {
   type CognatesResult,
   type ComparisonSetQuery,
   type ComparisonSetResult,
+  type DescendantsQuery,
+  type DescendantsResult,
   type DoubletGroup,
   type DoubletGroupsQuery,
   type DoubletGroupsResult,
@@ -1794,6 +1796,201 @@ export class PostgresGraphRepository implements GraphRepository {
         nodes: nodeResult.rows.map(mapNodeRow),
         edges: mapPublicEdgeRows(edgeResult.rows),
         maxDepth: 1
+      }
+    };
+  }
+
+  /**
+   * Walks descendant edges away from a source term with an explicit depth and size cap so broad roots can
+   * be explored without returning an unreadable graph in one response.
+   */
+  public async findDescendants(query: DescendantsQuery): Promise<DescendantsResult> {
+    const params = [
+      query.langCode,
+      normalizeCanonicalGraphWord(query.langCode, query.word),
+      query.maxDepth,
+      query.limit,
+      query.pos ?? null,
+      query.etymologyNumber ?? null,
+      [...CHILD_TERM_EDGE_TYPES],
+      query.terminalLangCodes ?? []
+    ];
+
+    const [nodeResult, edgeResult] = await Promise.all([
+      this.pool.query<NodeRow>(
+        `
+          WITH RECURSIVE
+            ${ANCHOR_ENTRY_CTE_SQL},
+            descendant_walk AS (
+              SELECT
+                anchor_resolved.node_id AS node_id,
+                graph_nodes.lang_code AS node_lang_code,
+                0 AS depth,
+                NULL::TEXT AS edge_id,
+                ARRAY[anchor_resolved.node_id] AS path,
+                anchor_resolved.entry_id AS seed_entry_id
+              FROM anchor_resolved
+              JOIN graph_nodes
+                ON graph_nodes.id = anchor_resolved.node_id
+
+              UNION ALL
+
+              SELECT
+                next_edge.from_node_id AS node_id,
+                next_edge.from_lang_code AS node_lang_code,
+                descendant_walk.depth + 1 AS depth,
+                next_edge.id AS edge_id,
+                descendant_walk.path || next_edge.from_node_id AS path,
+                descendant_walk.seed_entry_id AS seed_entry_id
+              FROM descendant_walk
+              CROSS JOIN LATERAL (
+                SELECT graph_edges.id, graph_edges.from_node_id, graph_edges.from_lang_code
+                FROM graph_edge_walk_mv graph_edges
+                LEFT JOIN lexical_entries owner_entry
+                  ON owner_entry.id = graph_edges.declaring_entry_id
+                WHERE graph_edges.to_node_id = descendant_walk.node_id
+                  AND graph_edges.edge_type = ANY($7::TEXT[])
+                  AND (
+                    descendant_walk.seed_entry_id IS NULL
+                    OR graph_edges.declaring_entry_id = descendant_walk.seed_entry_id
+                    OR owner_entry.node_id = graph_edges.from_node_id
+                  )
+                  AND NOT graph_edges.from_node_id = ANY(descendant_walk.path)
+                ORDER BY graph_edges.from_node_id
+                LIMIT $4
+              ) next_edge
+              WHERE descendant_walk.depth < $3
+                AND NOT (
+                  descendant_walk.depth > 0
+                  AND descendant_walk.node_lang_code = ANY($8::TEXT[])
+                )
+            ),
+            ranked_nodes AS (
+              SELECT DISTINCT ON (node_id) node_id, depth
+              FROM descendant_walk
+              ORDER BY node_id, depth
+            ),
+            limited_nodes AS (
+              SELECT node_id, depth
+              FROM ranked_nodes
+              ORDER BY depth, node_id
+              LIMIT $4
+            )
+          SELECT
+            graph_nodes.id,
+            graph_nodes.lang_code,
+            languages.canonical_name AS lang_name,
+            graph_nodes.word,
+            graph_nodes.normalized_word,
+            lexical_summary.primary_ipa,
+            lexical_summary.primary_ipa_label,
+            lexical_summary.primary_gloss,
+            lexical_summary.primary_pos,
+            lexical_summary.entry_count,
+            limited_nodes.depth
+          FROM limited_nodes
+          JOIN graph_nodes
+            ON graph_nodes.id = limited_nodes.node_id
+          LEFT JOIN languages
+            ON languages.code = graph_nodes.lang_code
+          ${LEXICAL_SUMMARY_LATERAL_SQL}
+          ORDER BY limited_nodes.depth, graph_nodes.lang_code, graph_nodes.normalized_word
+        `,
+        params
+      ),
+      this.pool.query<EdgeRow>(
+        `
+          WITH RECURSIVE
+            ${ANCHOR_ENTRY_CTE_SQL},
+            descendant_walk AS (
+              SELECT
+                anchor_resolved.node_id AS node_id,
+                graph_nodes.lang_code AS node_lang_code,
+                0 AS depth,
+                NULL::TEXT AS edge_id,
+                ARRAY[anchor_resolved.node_id] AS path,
+                anchor_resolved.entry_id AS seed_entry_id
+              FROM anchor_resolved
+              JOIN graph_nodes
+                ON graph_nodes.id = anchor_resolved.node_id
+
+              UNION ALL
+
+              SELECT
+                next_edge.from_node_id AS node_id,
+                next_edge.from_lang_code AS node_lang_code,
+                descendant_walk.depth + 1 AS depth,
+                next_edge.id AS edge_id,
+                descendant_walk.path || next_edge.from_node_id AS path,
+                descendant_walk.seed_entry_id AS seed_entry_id
+              FROM descendant_walk
+              CROSS JOIN LATERAL (
+                SELECT graph_edges.id, graph_edges.from_node_id, graph_edges.from_lang_code
+                FROM graph_edge_walk_mv graph_edges
+                LEFT JOIN lexical_entries owner_entry
+                  ON owner_entry.id = graph_edges.declaring_entry_id
+                WHERE graph_edges.to_node_id = descendant_walk.node_id
+                  AND graph_edges.edge_type = ANY($7::TEXT[])
+                  AND (
+                    descendant_walk.seed_entry_id IS NULL
+                    OR graph_edges.declaring_entry_id = descendant_walk.seed_entry_id
+                    OR owner_entry.node_id = graph_edges.from_node_id
+                  )
+                  AND NOT graph_edges.from_node_id = ANY(descendant_walk.path)
+                ORDER BY graph_edges.from_node_id
+                LIMIT $4
+              ) next_edge
+              WHERE descendant_walk.depth < $3
+                AND NOT (
+                  descendant_walk.depth > 0
+                  AND descendant_walk.node_lang_code = ANY($8::TEXT[])
+                )
+            ),
+            ranked_nodes AS (
+              SELECT DISTINCT ON (node_id) node_id, depth
+              FROM descendant_walk
+              ORDER BY node_id, depth
+            ),
+            limited_nodes AS (
+              SELECT node_id, depth
+              FROM ranked_nodes
+              ORDER BY depth, node_id
+              LIMIT $4
+            ),
+            selected_edge_ids AS (
+              SELECT DISTINCT descendant_walk.edge_id
+              FROM descendant_walk
+              JOIN limited_nodes
+                ON limited_nodes.node_id = descendant_walk.node_id
+              WHERE descendant_walk.edge_id IS NOT NULL
+            )
+          SELECT
+            ${EDGE_COLUMN_LIST}
+          FROM selected_edge_ids
+          JOIN graph_edge_walk_mv graph_edges
+            ON graph_edges.edge_id = selected_edge_ids.edge_id
+          ORDER BY graph_edges.edge_type, graph_edges.id
+        `,
+        params
+      )
+    ]);
+
+    if (nodeResult.rows.length <= 1 || edgeResult.rows.length === 0) {
+      return { graph: null };
+    }
+
+    const rootNode = nodeResult.rows.find((row) => row.depth === 0);
+
+    if (!rootNode) {
+      throw new Error("Descendants query returned no root node");
+    }
+
+    return {
+      graph: {
+        rootNodeId: rootNode.id,
+        nodes: nodeResult.rows.map(mapNodeRow),
+        edges: mapPublicEdgeRows(edgeResult.rows),
+        maxDepth: query.maxDepth
       }
     };
   }

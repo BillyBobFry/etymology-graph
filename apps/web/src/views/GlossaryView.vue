@@ -33,7 +33,7 @@ const exampleSegmentsForTerm = (term: LinguisticGlossaryTerm): GlossaryTextSegme
 
 <template>
   <PageMain>
-    <section class="grid gap-4 border-b border-border-strong pb-8">
+    <section class="grid gap-4 pb-8">
       <h1 class="text-5xl font-black leading-none tracking-[-0.06em] sm:text-7xl">
         Glossary
       </h1>

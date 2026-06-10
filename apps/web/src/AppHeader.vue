@@ -42,6 +42,8 @@ const isAncestorLanguageRoute = computed(
   () => route.name === "ancestor-language-search" || route.name === "ancestor-language-results"
 );
 
+const isPieDescendantsRoute = computed(() => route.name === "pie-descendants");
+
 const isSoundChangesRoute = computed(
   () => route.name === "sound-changes" || route.name === "sound-change-article"
 );
@@ -85,6 +87,12 @@ const sectionNavItems = computed<SectionNavItem[]>(() => [
     label: "Source languages",
     to: { name: "ancestor-language-search" },
     active: isAncestorLanguageRoute.value
+  },
+  {
+    value: "pie-descendants",
+    label: "PIE descendants",
+    to: { name: "pie-descendants" },
+    active: isPieDescendantsRoute.value
   },
   {
     value: "sound-changes",

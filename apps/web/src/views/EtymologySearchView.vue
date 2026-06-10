@@ -20,7 +20,7 @@ const etymologyStarterHelpText = computed(() =>
 
 <template>
   <PageMain>
-    <section class="border-b border-border-strong pb-8">
+    <section class="pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Etymology
       </p>
@@ -42,7 +42,7 @@ const etymologyStarterHelpText = computed(() =>
           Search for a word
         </h2>
       </div>
-      <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
+      <div class="rounded-[3px] border border-border bg-surface/55 p-5">
         <TermSearchForm
           id-prefix="etymology-search"
           :lang-code="searchLanguageStore.selectedSearchLanguage"
@@ -51,15 +51,15 @@ const etymologyStarterHelpText = computed(() =>
       </div>
     </section>
 
-    <section class="rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper" aria-labelledby="etymology-search-starters">
+    <section class="grid gap-5" aria-labelledby="etymology-search-starters">
       <div class="mb-5">
-        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+        <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
           Starting points
         </p>
         <h2 id="etymology-search-starters" class="text-2xl font-bold leading-tight">
           Example words with source paths
         </h2>
-        <p class="mt-1 text-sm leading-6 text-text-muted">
+        <p class="mt-1 text-sm leading-6 text-text-page-muted">
           {{ etymologyStarterHelpText }}
         </p>
       </div>

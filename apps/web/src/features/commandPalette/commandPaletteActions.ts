@@ -40,6 +40,14 @@ const primaryNavigationActions: CommandPaletteAction[] = [
     to: { name: "ancestor-language-search" }
   },
   {
+    id: "route:pie-descendants",
+    label: "Open PIE descendants",
+    description: "Explore descendants from common Proto-Indo-European words.",
+    group: "Navigate",
+    keywords: ["pie", "proto indo european", "descendants", "roots", "concepts"],
+    to: { name: "pie-descendants" }
+  },
+  {
     id: "route:sound-changes",
     label: "Read sound changes",
     description: "Study pronunciation shifts through examples.",

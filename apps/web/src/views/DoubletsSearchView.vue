@@ -15,6 +15,7 @@ import {
 import DoubletGroupsAccordion from "../features/graph/DoubletGroupsAccordion.vue";
 import GraphEvidencePanel from "../features/graph/GraphEvidencePanel.vue";
 import type { GraphLayoutPreset } from "../features/graph/composables/useGraphLayout";
+import { primaryGraphNodeHighlights } from "../features/graph/graphNodeHighlights";
 import {
   comparisonSetQueryKey,
   fetchComparisonSet,
@@ -81,10 +82,12 @@ const expandedGraphLayoutPreset = computed<GraphLayoutPreset>(() =>
     ? { type: "doublet-arms", rootNodeId: expandedGraphRootNodeId.value }
     : { type: "auto" }
 );
-const expandedGraphHighlightedNodeIds = computed(() =>
-  highlightedTermNodeIds(
-    expandedGraphQuery.data.value?.graph ?? null,
-    expandedGroup.value?.entries.map((entry) => ({ langCode: entry.langCode, word: entry.word })) ?? []
+const expandedGraphNodeHighlights = computed(() =>
+  primaryGraphNodeHighlights(
+    highlightedTermNodeIds(
+      expandedGraphQuery.data.value?.graph ?? null,
+      expandedGroup.value?.entries.map((entry) => ({ langCode: entry.langCode, word: entry.word })) ?? []
+    )
   )
 );
 const resultsStatus = computed<ResultsStatus>(() => {
@@ -270,7 +273,7 @@ function termKey(langCode: string, word: string): string {
 
 <template>
   <PageMain>
-    <section class="border-b border-border-strong pb-8">
+    <section class="pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Doublets
       </p>
@@ -293,7 +296,7 @@ function termKey(langCode: string, word: string): string {
           Choose a language to group its doublets
         </h2>
       </div>
-      <div class="rounded-[3px] border border-border bg-surface/60 p-5 shadow-paper">
+      <div class="rounded-[3px] border border-border bg-surface/55 p-5">
         <LanguageSelector
           id="doublet-groups-language"
           v-model="selectedLangCode"
@@ -304,7 +307,7 @@ function termKey(langCode: string, word: string): string {
     </section>
 
     <section class="grid gap-5" aria-labelledby="doublet-groups-results">
-      <div class="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
+      <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p class="mb-2 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
             {{ resultsStatus === 'idle' ? 'Starting point' : 'Groups' }}
@@ -340,11 +343,11 @@ function termKey(langCode: string, word: string): string {
           :key="item"
           variant="block"
           tone="raised"
-          class="h-25 rounded-[3px] shadow-paper"
+          class="h-25 rounded-[3px]"
         />
       </div>
 
-      <div v-else-if="resultsStatus === 'error'" class="rounded-[3px] border border-danger/50 bg-surface/60 p-5 text-danger shadow-paper">
+      <div v-else-if="resultsStatus === 'error'" class="border-y border-danger/50 py-5 text-danger">
         Could not load doublet groups.
       </div>
 
@@ -370,7 +373,7 @@ function termKey(langCode: string, word: string): string {
             :status="graphStatus"
             :graph="expandedGraphQuery.data.value?.graph ?? null"
             :layout-preset="expandedGraphLayoutPreset"
-            :highlighted-node-ids="expandedGraphHighlightedNodeIds"
+            :node-highlights="expandedGraphNodeHighlights"
             empty-text="No focused graph is available for this group."
           />
         </template>
@@ -388,7 +391,7 @@ function termKey(langCode: string, word: string): string {
           :key="item"
           variant="block"
           tone="raised"
-          class="h-22 rounded-[3px] shadow-paper"
+          class="h-22 rounded-[3px]"
         />
       </div>
       <div v-else-if="groupsQuery.hasNextPage.value" class="flex justify-center pt-2">

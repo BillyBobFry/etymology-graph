@@ -15,6 +15,7 @@ import {
 import AncestorLanguageResultsAccordion from "../features/ancestorLanguage/AncestorLanguageResultsAccordion.vue";
 import AncestorLanguageSearchEmptyState from "../features/ancestorLanguage/AncestorLanguageSearchEmptyState.vue";
 import GraphEvidencePanel from "../features/graph/GraphEvidencePanel.vue";
+import { primaryGraphNodeHighlights } from "../features/graph/graphNodeHighlights";
 import {
   ancestorPathQueryKey,
   fetchAncestorPath,
@@ -423,7 +424,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
 
 <template>
   <PageMain>
-    <section class="border-b border-border-strong pb-8">
+    <section class="pb-8">
       <p class="mb-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
         Source languages
       </p>
@@ -436,18 +437,18 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
     </section>
 
     <section
-      class="grid gap-5 rounded-[3px] border border-border bg-surface/60 p-4 shadow-paper sm:p-5"
+      class="grid gap-6"
       aria-labelledby="ancestor-language-results"
     >
-      <div class="grid gap-5 border-b border-border pb-5 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,18rem)] lg:items-end">
+      <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,18rem)] lg:items-end">
         <div class="grid gap-2">
-          <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
+          <p class="font-label text-sm font-bold uppercase tracking-[0.12em] text-text-page-muted">
             Source language
           </p>
           <h2 id="ancestor-language-results" class="text-3xl font-black leading-tight tracking-[-0.04em] text-text">
             {{ resultHeading }}
           </h2>
-          <p class="max-w-3xl text-base leading-7 text-text-muted">
+          <p class="max-w-3xl text-base leading-7 text-text-page-muted">
             {{ resultSummary }}
           </p>
         </div>
@@ -472,12 +473,12 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
             <p id="source-layer-index-heading" class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
               {{ sourceIndexHeading }}
             </p>
-            <p class="text-sm leading-6 text-text-muted">
+            <p class="text-sm leading-6 text-text-page-muted">
               {{ sourceLayerHelpText }}
             </p>
             <p
               v-if="sourceLayerQuery.isPending.value"
-              class="font-label text-xs font-bold uppercase tracking-[0.12em] text-text-muted"
+              class="font-label text-xs font-bold uppercase tracking-[0.12em] text-text-page-muted"
             >
               Loading coverage
             </p>
@@ -498,7 +499,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
             >
               <button
                 type="button"
-                class="grid h-full w-full cursor-pointer gap-1 rounded-[3px] border border-border bg-surface/45 p-3 text-left transition hover:bg-surface/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-55"
+                class="grid h-full w-full cursor-pointer gap-1 rounded-[3px] border border-border bg-surface/30 p-3 text-left transition hover:bg-surface/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-55"
                 :class="suggestion.ancestorLangCode === ancestorLangCode ? 'border-accent bg-accent-soft text-text' : ''"
                 :aria-pressed="suggestion.ancestorLangCode === ancestorLangCode"
                 @click="selectAncestorLanguage(suggestion.ancestorLangCode)"
@@ -530,7 +531,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
         <div class="min-w-0">
           <div
             v-if="resultsStatus === 'idle'"
-            class="grid min-h-64 place-items-center rounded-[3px] border border-dashed border-border bg-surface/35 p-6 text-center text-text-muted"
+            class="grid min-h-64 place-items-center rounded-[3px] border border-dashed border-border bg-surface/25 p-6 text-center text-text-page-muted"
           >
             <div class="grid max-w-md gap-2">
               <p class="font-label text-sm font-black uppercase tracking-[0.12em] text-text">
@@ -554,11 +555,11 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
               :key="item"
               variant="block"
               tone="raised"
-              class="h-25 rounded-[3px] shadow-paper"
+              class="h-25 rounded-[3px]"
             />
           </div>
 
-          <div v-else-if="resultsStatus === 'error'" class="rounded-[3px] border border-danger/50 bg-surface/60 p-5 text-danger shadow-paper">
+          <div v-else-if="resultsStatus === 'error'" class="border-y border-danger/50 py-5 text-danger">
             Could not load matches for this pair.
           </div>
 
@@ -580,7 +581,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
                 :key="match.entry.id"
                 :status="graphStatus"
                 :graph="expandedGraphQuery.data.value?.graph ?? null"
-                :highlighted-node-ids="[match.entry.nodeId]"
+                :node-highlights="primaryGraphNodeHighlights([match.entry.nodeId])"
               />
             </template>
           </AncestorLanguageResultsAccordion>
@@ -598,7 +599,7 @@ function firstRouteParam(value: string | string[] | undefined): string | undefin
               :key="item"
               variant="block"
               tone="raised"
-              class="h-22 rounded-[3px] shadow-paper"
+              class="h-22 rounded-[3px]"
             />
           </div>
         </div>

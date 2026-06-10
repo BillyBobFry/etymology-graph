@@ -45,7 +45,7 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
 
 <template>
   <PageMain v-if="article">
-    <section class="grid gap-5 border-b border-border-strong pb-8">
+    <section class="grid gap-5 pb-8">
       <Link :to="{ name: 'sound-changes' }">
         Sound changes
       </Link>
@@ -60,7 +60,7 @@ function firstRouteParam(param: string | string[] | undefined): string | null {
           </p>
         </div>
 
-        <dl class="grid gap-4 rounded-[3px] border border-border bg-surface/55 p-5 shadow-paper">
+        <dl class="grid gap-4 rounded-[3px] border border-border bg-surface/45 p-5">
           <div>
             <dt class="font-label text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
               Families
