@@ -1,4 +1,4 @@
-lingraphic.com, www.lingraphic.com, vps.lingraphic.com {
+www.lingraphic.com, vps.lingraphic.com {
   encode zstd gzip
   reverse_proxy app:3000
 }
