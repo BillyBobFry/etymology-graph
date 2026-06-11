@@ -15,6 +15,7 @@ import NotFoundView from "./views/NotFoundView.vue";
 import PieDescendantsView from "./views/PieDescendantsView.vue";
 import SoundChangeArticleView from "./views/SoundChangeArticleView.vue";
 import SoundChangesView from "./views/SoundChangesView.vue";
+import WordDescendantsView from "./views/WordDescendantsView.vue";
 
 export type RouteDocumentTitleContext = {
   languageNameForCode: (langCode: string) => string;
@@ -100,6 +101,14 @@ const routes: RouteRecordRaw[] = [
     component: PieDescendantsView,
     meta: {
       title: "PIE Descendants"
+    }
+  },
+  {
+    path: "/descendants/:langCode/:term",
+    name: "word-descendants",
+    component: WordDescendantsView,
+    meta: {
+      title: wordDescendantsRouteTitle
     }
   },
   {
@@ -216,6 +225,11 @@ function etymologyRouteTitle(route: RouteLocationNormalizedLoaded, context: Rout
 /** Names doublet detail tabs after the selected term. */
 function doubletsRouteTitle(route: RouteLocationNormalizedLoaded, context: RouteDocumentTitleContext): string {
   return termRouteTitle(route, context, "Doublets");
+}
+
+/** Names descendant graph tabs after the selected source term. */
+function wordDescendantsRouteTitle(route: RouteLocationNormalizedLoaded, context: RouteDocumentTitleContext): string {
+  return termRouteTitle(route, context, "Descendants");
 }
 
 /** Names language-filtered doublet lists after their selected result language. */

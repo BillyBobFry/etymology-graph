@@ -58,9 +58,16 @@ type CanvasPointerState = {
   startY: number;
   hasMoved: boolean;
 };
+type ViewportFocusTarget = {
+  panX: number;
+  panY: number;
+  zoom: number;
+};
 
 const inlineGraphControlsPanRoom = 76;
 const canvasClickDragThreshold = 4;
+const focusedNodeMinimumZoom = 0.45;
+const focusedNodeAnimationMs = 240;
 
 const props = withDefaults(
   defineProps<{
@@ -87,7 +94,7 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const searchLanguageStore = useSearchLanguageStore();
-const { getEtymologyRoute, getAncestorLanguageRoute } = useGraphNodeRoutes();
+const { getEtymologyRoute, getAncestorLanguageRoute, getWordDescendantsRoute } = useGraphNodeRoutes();
 const selectedNodeId = ref<string>();
 const contextNodeId = ref<string>();
 const pendingExpansionAnchorNodeId = ref<string>();
@@ -98,11 +105,13 @@ const graphCanvasRoot = ref<HTMLElement | null>(null);
 const isBodyScrollLocked = useScrollLock(() => document.body);
 const nodeContextMenu = ref<ContextMenuInstance | null>(null);
 const usesDesktopGraphLayout = useMediaQuery("(min-width: 768px)");
+const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 const canDragGraphNodes = computed(() => usesDesktopGraphLayout.value || isGraphExpanded.value);
 const isInlineScrollHandoffEnabled = computed(() => !isGraphExpanded.value);
 const graphNodeBounds = ref<GraphViewportContentBounds | null>(null);
 let canvasPointerState: CanvasPointerState | undefined;
 let suppressNextCanvasClick = false;
+let viewportFocusAnimationFrame: number | undefined;
 const {
   svgRef,
   panX,
@@ -117,6 +126,7 @@ const {
   zoomIn,
   zoomOut,
   setHomeViewport,
+  cancelViewportAnimation,
   handlePointerDown,
   handlePointerMove,
   handlePointerUp,
@@ -129,7 +139,8 @@ const {
   minZoom: 0.12,
   contentBounds: graphNodeBounds,
   inlineScrollTopPanRoom: props.showControls ? inlineGraphControlsPanRoom : 0,
-  isInlineScrollHandoffEnabled
+  isInlineScrollHandoffEnabled,
+  prefersReducedMotion
 });
 
 const {
@@ -327,7 +338,12 @@ watch(usesDesktopGraphLayout, (usesDesktopLayout) => {
 useEventListener("keydown", handleDocumentKeydown);
 
 onBeforeUnmount(() => {
+  cancelViewportFocusAnimation();
   isBodyScrollLocked.value = false;
+});
+
+defineExpose({
+  focusNode
 });
 
 /** Expands the graph into an app-level overlay without breaking portalled floating UI. */
@@ -369,11 +385,25 @@ function closeNodeContextMenu(): void {
 
 /** Restores the generated graph layout and clears any manually pinned node positions. */
 function resetGraphLayout(): void {
+  cancelViewportFocusAnimation();
+  cancelViewportAnimation();
   resetLayout(props.graph, graphLayoutOrientation.value, {
     layoutPreset: props.layoutPreset,
     annotations: props.annotations
   });
   resetNodeDrag();
+}
+
+/** Lets the visible zoom-in control interrupt programmatic focus motion. */
+function handleZoomIn(): void {
+  cancelViewportFocusAnimation();
+  zoomIn();
+}
+
+/** Lets the visible zoom-out control interrupt programmatic focus motion. */
+function handleZoomOut(): void {
+  cancelViewportFocusAnimation();
+  zoomOut();
 }
 
 /** Lets users leave the expanded graph with the standard Escape shortcut. */
@@ -416,6 +446,8 @@ function selectedRelationshipForLink(
 
 /** Starts click tracking for every viewport pan gesture that reaches the canvas. */
 function handleCanvasPointerDown(event: PointerEvent): void {
+  cancelViewportFocusAnimation();
+
   if (event.pointerType !== "mouse" || event.button === 0) {
     suppressNextCanvasClick = false;
     canvasPointerState = {
@@ -445,6 +477,24 @@ function handleCanvasPointerUp(event: PointerEvent): void {
   }
 
   handlePointerUp(event);
+}
+
+/** Lets wheel zooming interrupt a programmatic focus animation. */
+function handleCanvasWheel(event: WheelEvent): void {
+  cancelViewportFocusAnimation();
+  handleWheel(event);
+}
+
+/** Lets double-click zooming interrupt a programmatic focus animation. */
+function handleCanvasDoubleClick(event: MouseEvent): void {
+  cancelViewportFocusAnimation();
+  handleDoubleClick(event);
+}
+
+/** Lets keyboard viewport controls interrupt a programmatic focus animation. */
+function handleCanvasKeydown(event: KeyboardEvent): void {
+  cancelViewportFocusAnimation();
+  handleKeydown(event);
 }
 
 /** Clears node selection only for true background clicks, not drags or graph marks. */
@@ -526,6 +576,94 @@ function selectNode(node: PositionedGraphNode): void {
   emit("node-details-open-change", true);
 }
 
+/** Lets nearby result indexes ask the graph to reveal a node without owning graph selection state. */
+function focusNode(nodeId: string): void {
+  const node = nodesById.value.get(nodeId);
+
+  if (!node) {
+    return;
+  }
+
+  cancelViewportAnimation();
+  selectNode(node);
+  animateViewportTo(viewportTargetForNode(node, Math.max(zoom.value, focusedNodeMinimumZoom)));
+}
+
+/** Computes the transform that puts a selected node at the center of the visible graph frame. */
+function viewportTargetForNode(node: PositionedGraphNode, targetZoom: number): ViewportFocusTarget {
+  const frame = viewportFrame.value;
+
+  return {
+    panX: frame.x + frame.width / 2 - nodeX(node) * targetZoom,
+    panY: frame.y + frame.height / 2 - nodeY(node) * targetZoom,
+    zoom: targetZoom
+  };
+}
+
+/** Smoothly moves external focus requests while keeping drag and wheel gestures immediate. */
+function animateViewportTo(target: ViewportFocusTarget): void {
+  cancelViewportFocusAnimation();
+
+  if (prefersReducedMotion.value) {
+    applyViewportTarget(target);
+    return;
+  }
+
+  const start = {
+    panX: panX.value,
+    panY: panY.value,
+    zoom: zoom.value
+  };
+  const startedAt = performance.now();
+
+  const animateFrame = (now: number): void => {
+    const progress = Math.min(Math.max((now - startedAt) / focusedNodeAnimationMs, 0), 1);
+    const easedProgress = easeOutCubic(progress);
+
+    applyViewportTarget({
+      panX: interpolate(start.panX, target.panX, easedProgress),
+      panY: interpolate(start.panY, target.panY, easedProgress),
+      zoom: interpolate(start.zoom, target.zoom, easedProgress)
+    });
+
+    if (progress < 1) {
+      viewportFocusAnimationFrame = window.requestAnimationFrame(animateFrame);
+      return;
+    }
+
+    viewportFocusAnimationFrame = undefined;
+  };
+
+  viewportFocusAnimationFrame = window.requestAnimationFrame(animateFrame);
+}
+
+/** Applies a viewport transform without going through pointer gesture handlers. */
+function applyViewportTarget(target: ViewportFocusTarget): void {
+  panX.value = target.panX;
+  panY.value = target.panY;
+  zoom.value = target.zoom;
+}
+
+/** Stops programmatic viewport motion as soon as the user takes over the canvas. */
+function cancelViewportFocusAnimation(): void {
+  if (viewportFocusAnimationFrame === undefined) {
+    return;
+  }
+
+  window.cancelAnimationFrame(viewportFocusAnimationFrame);
+  viewportFocusAnimationFrame = undefined;
+}
+
+/** Gives the focus animation a quick start and a soft landing. */
+function easeOutCubic(progress: number): number {
+  return 1 - (1 - progress) ** 3;
+}
+
+/** Interpolates a viewport coordinate or zoom value for focus animation frames. */
+function interpolate(start: number, end: number, progress: number): number {
+  return start + (end - start) * progress;
+}
+
 /** Separates click selection from drag release so repositioning a node does not reopen details. */
 function handleNodeClick(node: PositionedGraphNode): void {
   if (suppressNextCanvasClick) {
@@ -598,6 +736,9 @@ function performNodeAction(action: NodeContextAction, node: GraphTraversalNode):
       pendingExpansionAnchorNodeId.value = node.id;
       emit("load-children", node);
       return;
+    case "load-descendants":
+      void router.push(getWordDescendantsRoute(routeParamsForNode(node)));
+      return;
     case "view-etymology":
       void router.push(getEtymologyRoute(routeParamsForNode(node)));
       return;
@@ -655,8 +796,8 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
       :zoom-percentage="zoomPercentage"
       :expanded="isGraphExpanded"
       :uses-desktop-layout="usesDesktopGraphLayout"
-      @zoom-out="zoomOut"
-      @zoom-in="zoomIn"
+      @zoom-out="handleZoomOut"
+      @zoom-in="handleZoomIn"
       @reset="resetGraphLayout"
       @toggle-expanded="toggleGraphExpanded"
     />
@@ -690,9 +831,9 @@ function handleNodeKeydown(event: KeyboardEvent, node: PositionedGraphNode): voi
           @pointercancel="handleCanvasPointerUp"
           @lostpointercapture="handleCanvasPointerUp"
           @click="handleCanvasClick"
-          @wheel="handleWheel"
-          @dblclick="handleDoubleClick"
-          @keydown="handleKeydown"
+          @wheel="handleCanvasWheel"
+          @dblclick="handleCanvasDoubleClick"
+          @keydown="handleCanvasKeydown"
         >
           <g class="graph-viewport" :transform="viewportTransform">
             <GraphCanvasMapTexture

@@ -1,7 +1,9 @@
 import type { EdgeType } from "@etymology-graph/graph";
+
+import { isModernLanguageCode } from "../descendants/descendantGraphScope";
 import type { PositionedGraphNode } from "./composables/useGraphLayout";
 
-export type NodeContextAction = "load-children" | "view-etymology" | "find-source-language-links";
+export type NodeContextAction = "load-children" | "load-descendants" | "view-etymology" | "find-source-language-links";
 
 export type NodeActionItem = {
   value: NodeContextAction;
@@ -36,10 +38,17 @@ const stableNodeActionItems: NodeActionItem[] = [
     description: "Open this word's ancestry graph."
   }
 ];
-
 /** Creates node action copy with optional source and result language context. */
 export function createNodeActionItems(languageContext?: NodeActionLanguageContext): NodeActionItem[] {
   const items = stableNodeActionItems.map((item) => nodeActionItemWithContext(item, languageContext));
+
+  if (languageContext && !isModernLanguageCode(languageContext.sourceLanguageCode)) {
+    items.push({
+      value: "load-descendants",
+      label: `Load ${languageContext.nodeWord} descendants`,
+      description: `Open the full descendant graph for ${nodeActionSubject(languageContext)}.`
+    });
+  }
 
   if (languageContext && languageContext.sourceLanguageCode !== languageContext.targetLanguageCode) {
     items.push({
@@ -74,6 +83,8 @@ function nodeActionItemWithContext(
         label: `View ${languageContext.nodeWord} etymology`,
         description: `Open the ancestry graph for ${nodeActionSubject(languageContext)}.`
       };
+    case "load-descendants":
+      return item;
     case "find-source-language-links":
       return item;
   }
@@ -106,6 +117,7 @@ function sourceLanguageLinksDescription(languageContext?: NodeActionLanguageCont
 export function isNodeContextAction(value: string): value is NodeContextAction {
   return (
     value === "load-children" ||
+    value === "load-descendants" ||
     value === "view-etymology" ||
     value === "find-source-language-links"
   );

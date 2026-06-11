@@ -14,6 +14,7 @@ type GraphNodeRoutes = {
   getEtymologyRoute: (params: GraphNodeRouteParams) => RouteLocationRaw;
   getDoubletsRoute: (params: GraphNodeRouteParams) => RouteLocationRaw;
   getAncestorLanguageRoute: (params: AncestorLanguageRouteParams) => RouteLocationRaw;
+  getWordDescendantsRoute: (params: GraphNodeRouteParams) => RouteLocationRaw;
 };
 
 /** Builds route objects for graph node actions without coupling callers to route names. */
@@ -45,9 +46,19 @@ export const useGraphNodeRoutes = (): GraphNodeRoutes => {
     }
   });
 
+  /** Opens the dedicated descendant graph view for an older source term. */
+  const getWordDescendantsRoute = (params: GraphNodeRouteParams): RouteLocationRaw => ({
+    name: "word-descendants",
+    params: {
+      langCode: params.langCode,
+      term: params.term
+    }
+  });
+
   return {
     getEtymologyRoute,
     getDoubletsRoute,
-    getAncestorLanguageRoute
+    getAncestorLanguageRoute,
+    getWordDescendantsRoute
   };
 };

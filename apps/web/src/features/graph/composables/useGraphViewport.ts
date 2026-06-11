@@ -1,5 +1,5 @@
 import { useElementSize } from "@vueuse/core";
-import { computed, ref, watch, type ComputedRef, type Ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch, type ComputedRef, type Ref } from "vue";
 
 type ViewportPoint = {
   x: number;
@@ -42,6 +42,7 @@ type GraphViewportOptions = {
   inlineScrollTopPanRoom?: number;
   contentBounds?: Readonly<Ref<GraphViewportContentBounds | null>>;
   isInlineScrollHandoffEnabled?: Readonly<Ref<boolean>>;
+  prefersReducedMotion?: Readonly<Ref<boolean>>;
 };
 
 type GraphViewportControls = {
@@ -59,6 +60,7 @@ type GraphViewportControls = {
   zoomOut: () => void;
   resetViewport: () => void;
   setHomeViewport: (viewport: ViewportState) => void;
+  cancelViewportAnimation: () => void;
   handlePointerDown: (event: PointerEvent) => void;
   handlePointerMove: (event: PointerEvent) => void;
   handlePointerUp: (event: PointerEvent) => void;
@@ -76,6 +78,7 @@ const lineWheelPixels = 16;
 const defaultContentVisibleBuffer = 24;
 const viewportChangeEpsilon = 0.01;
 const verticalTouchIntentRatio = 1.15;
+const smoothZoomAnimationMs = 180;
 
 /** Coordinates graph pan and zoom interactions around one SVG viewport transform. */
 export function useGraphViewport(options: GraphViewportOptions): GraphViewportControls {
@@ -97,6 +100,8 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
   const inlineScrollTopPanRoom = options.inlineScrollTopPanRoom ?? 0;
   let lastSinglePointer: ViewportPoint | null = null;
   let lastPinch: PinchSnapshot | null = null;
+  let viewportAnimationFrame: number | undefined;
+  let viewportAnimationTarget: ViewportState | undefined;
 
   /** Enables inline graphs to pass scroll gestures to the page at graph edges. */
   function isInlineScrollHandoffEnabled(): boolean {
@@ -137,8 +142,14 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     }
   );
 
+  onBeforeUnmount(() => {
+    cancelViewportAnimation();
+  });
+
   /** Moves the graph by a viewport-space delta so drag and wheel panning stay natural. */
   function panBy(deltaX: number, deltaY: number): boolean {
+    cancelViewportAnimation();
+
     return applyViewport({
       panX: panX.value + deltaX,
       panY: panY.value + deltaY,
@@ -148,11 +159,21 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
 
   /** Changes zoom around an anchor point so the user's focus stays under the cursor. */
   function zoomTo(nextZoom: number, anchor: ViewportPoint = centerPoint.value): void {
-    const clampedZoom = clamp(nextZoom, minZoom, maxZoom);
-    const worldAnchorX = (anchor.x - panX.value) / zoom.value;
-    const worldAnchorY = (anchor.y - panY.value) / zoom.value;
+    cancelViewportAnimation();
+    applyViewport(viewportForZoom(nextZoom, anchor));
+  }
 
-    applyViewport({
+  /** Computes the viewport needed to zoom without shifting the anchored world point. */
+  function viewportForZoom(
+    nextZoom: number,
+    anchor: ViewportPoint = centerPoint.value,
+    viewport: ViewportState = currentViewport()
+  ): ViewportState {
+    const clampedZoom = clamp(nextZoom, minZoom, maxZoom);
+    const worldAnchorX = (anchor.x - viewport.panX) / viewport.zoom;
+    const worldAnchorY = (anchor.y - viewport.panY) / viewport.zoom;
+
+    return constrainedViewportForContent({
       panX: anchor.x - worldAnchorX * clampedZoom,
       panY: anchor.y - worldAnchorY * clampedZoom,
       zoom: clampedZoom
@@ -164,8 +185,17 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     zoomTo(zoom.value * factor, anchor);
   }
 
+  /** Animates discrete zoom controls without smoothing continuous wheel or pinch input. */
+  function smoothZoomBy(factor: number, anchor: ViewportPoint = centerPoint.value): void {
+    const baseViewport = viewportAnimationTarget ?? currentViewport();
+
+    animateViewportTo(viewportForZoom(baseViewport.zoom * factor, anchor, baseViewport));
+  }
+
   /** Sets the absolute viewport transform, used for graph-aware home positions. */
   function setViewport(viewport: ViewportState): void {
+    cancelViewportAnimation();
+
     applyViewport({
       ...viewport,
       zoom: clamp(viewport.zoom, minZoom, maxZoom)
@@ -185,12 +215,12 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
 
   /** Zooms toward the graph center for the visible plus control and keyboard shortcut. */
   function zoomIn(): void {
-    zoomBy(zoomStep);
+    smoothZoomBy(zoomStep);
   }
 
   /** Zooms away from the graph center for the visible minus control and keyboard shortcut. */
   function zoomOut(): void {
-    zoomBy(1 / zoomStep);
+    smoothZoomBy(1 / zoomStep);
   }
 
   /** Starts pointer tracking so drag and pinch gestures can share the same viewport state. */
@@ -198,6 +228,8 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     if (event.pointerType === "mouse" && event.button !== 0) {
       return;
     }
+
+    cancelViewportAnimation();
 
     const point = clientPointToViewportPoint(event.clientX, event.clientY);
     pointers.set(event.pointerId, point);
@@ -273,6 +305,8 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
 
   /** Supports trackpad pan, trackpad pinch, mouse-wheel zoom, and horizontal wheel gestures. */
   function handleWheel(event: WheelEvent): void {
+    cancelViewportAnimation();
+
     const deltaX = normalizeWheelDelta(event.deltaX, event.deltaMode, viewportFrame.value.height);
     const deltaY = normalizeWheelDelta(event.deltaY, event.deltaMode, viewportFrame.value.height);
 
@@ -300,7 +334,7 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
   /** Treats double-click as a familiar map-style zoom gesture around the clicked point. */
   function handleDoubleClick(event: MouseEvent): void {
     const anchor = clientPointToViewportPoint(event.clientX, event.clientY);
-    zoomBy(event.shiftKey ? 1 / zoomStep : zoomStep, anchor);
+    smoothZoomBy(event.shiftKey ? 1 / zoomStep : zoomStep, anchor);
     event.preventDefault();
   }
 
@@ -362,6 +396,62 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     return {
       x: frame.x + ((clientX - rect.left) / rect.width) * frame.width,
       y: frame.y + ((clientY - rect.top) / rect.height) * frame.height
+    };
+  }
+
+  /** Moves the viewport toward a computed target unless the user prefers reduced motion. */
+  function animateViewportTo(target: ViewportState): void {
+    cancelViewportAnimation();
+
+    if (options.prefersReducedMotion?.value) {
+      applyViewport(target);
+      return;
+    }
+
+    const start = currentViewport();
+    const startedAt = performance.now();
+    viewportAnimationTarget = target;
+
+    const animateFrame = (now: number): void => {
+      const progress = Math.min(Math.max((now - startedAt) / smoothZoomAnimationMs, 0), 1);
+      const easedProgress = easeOutCubic(progress);
+
+      applyViewport({
+        panX: interpolate(start.panX, target.panX, easedProgress),
+        panY: interpolate(start.panY, target.panY, easedProgress),
+        zoom: interpolate(start.zoom, target.zoom, easedProgress)
+      });
+
+      if (progress < 1) {
+        viewportAnimationFrame = window.requestAnimationFrame(animateFrame);
+        return;
+      }
+
+      viewportAnimationFrame = undefined;
+      viewportAnimationTarget = undefined;
+    };
+
+    viewportAnimationFrame = window.requestAnimationFrame(animateFrame);
+  }
+
+  /** Stops in-flight button or double-click zoom transitions before direct manipulation. */
+  function cancelViewportAnimation(): void {
+    viewportAnimationTarget = undefined;
+
+    if (viewportAnimationFrame === undefined) {
+      return;
+    }
+
+    window.cancelAnimationFrame(viewportAnimationFrame);
+    viewportAnimationFrame = undefined;
+  }
+
+  /** Captures the current viewport values before an animation starts. */
+  function currentViewport(): ViewportState {
+    return {
+      panX: panX.value,
+      panY: panY.value,
+      zoom: zoom.value
     };
   }
 
@@ -572,6 +662,7 @@ export function useGraphViewport(options: GraphViewportOptions): GraphViewportCo
     zoomOut,
     resetViewport,
     setHomeViewport,
+    cancelViewportAnimation,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
@@ -589,6 +680,16 @@ function clamp(value: number, min: number, max: number): number {
 /** Treats sub-pixel pan differences as no movement so wheel overscroll can bubble naturally. */
 function hasViewportValueChanged(previousValue: number, nextValue: number): boolean {
   return Math.abs(previousValue - nextValue) > viewportChangeEpsilon;
+}
+
+/** Gives discrete viewport animations a quick start and a soft landing. */
+function easeOutCubic(progress: number): number {
+  return 1 - (1 - progress) ** 3;
+}
+
+/** Interpolates a viewport coordinate or zoom value for animation frames. */
+function interpolate(start: number, end: number, progress: number): number {
+  return start + (end - start) * progress;
 }
 
 /** Checks whether layout bounds are finite before they influence user panning. */

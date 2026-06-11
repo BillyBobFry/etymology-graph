@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Menu, Moon, Search } from "@lucide/vue";
+import { Menu, Moon, Search, Sun } from "@lucide/vue";
 import * as navigationMenu from "@zag-js/navigation-menu";
 import { normalizeProps, useMachine, type PropTypes } from "@zag-js/vue";
 import { computed, onMounted, ref } from "vue";
@@ -25,6 +25,9 @@ const props = defineProps<{
 
 const route = useRoute();
 const themePreference = ref<ThemePreference>("light");
+const themeToggleLabel = computed(() =>
+  themePreference.value === "dark" ? "Switch to light mode" : "Switch to dark mode"
+);
 
 const mobileSectionsItem = {
   value: "sections"
@@ -221,7 +224,7 @@ onMounted(() => {
         <Search :size="16" stroke-width="2.75" aria-hidden="true" />
       </IconButton>
       <IconButton
-        label="Dark mode"
+        :label="themeToggleLabel"
         class="shrink-0"
         variant="secondary"
         size="sm"
@@ -229,7 +232,30 @@ onMounted(() => {
         :aria-pressed="themePreference === 'dark'"
         @click="toggleTheme"
       >
-        <Moon :size="16" stroke-width="2.75" aria-hidden="true" />
+        <Transition
+          mode="out-in"
+          enter-active-class="transition duration-150 ease-out motion-reduce:transition-none"
+          enter-from-class="scale-75 opacity-0 blur-sm"
+          enter-to-class="scale-100 opacity-100 blur-0"
+          leave-active-class="transition duration-100 ease-in motion-reduce:transition-none"
+          leave-from-class="scale-100 opacity-100 blur-0"
+          leave-to-class="scale-125 opacity-0 blur-sm"
+        >
+          <Moon
+            v-if="themePreference === 'dark'"
+            key="dark-mode-icon"
+            :size="16"
+            stroke-width="2.75"
+            aria-hidden="true"
+          />
+          <Sun
+            v-else
+            key="light-mode-icon"
+            :size="16"
+            stroke-width="2.75"
+            aria-hidden="true"
+          />
+        </Transition>
       </IconButton>
     </div>
     <nav class="hidden items-center gap-5 md:flex" aria-label="Primary sections">

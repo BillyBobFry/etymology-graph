@@ -1853,6 +1853,7 @@ export class PostgresGraphRepository implements GraphRepository {
                   AND (
                     descendant_walk.seed_entry_id IS NULL
                     OR graph_edges.declaring_entry_id = descendant_walk.seed_entry_id
+                    OR owner_entry.node_id = ANY(descendant_walk.path)
                     OR owner_entry.node_id = graph_edges.from_node_id
                   )
                   AND NOT graph_edges.from_node_id = ANY(descendant_walk.path)
@@ -1934,6 +1935,7 @@ export class PostgresGraphRepository implements GraphRepository {
                   AND (
                     descendant_walk.seed_entry_id IS NULL
                     OR graph_edges.declaring_entry_id = descendant_walk.seed_entry_id
+                    OR owner_entry.node_id = ANY(descendant_walk.path)
                     OR owner_entry.node_id = graph_edges.from_node_id
                   )
                   AND NOT graph_edges.from_node_id = ANY(descendant_walk.path)
