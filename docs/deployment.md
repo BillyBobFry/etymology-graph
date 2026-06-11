@@ -18,6 +18,8 @@ PORT=3000
 HOST=0.0.0.0
 ```
 
+The VPS Compose deployment passes `PGHOST`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD` to the app instead of constructing a `DATABASE_URL`. Keep `POSTGRES_PASSWORD` set in `.env`; do not rely on the local `postgres` default in production. The VPS migration runner syncs the database role password from `POSTGRES_PASSWORD` before applying migrations so an existing Docker volume does not keep an old password.
+
 Required for embedding refresh/admin jobs:
 
 ```bash

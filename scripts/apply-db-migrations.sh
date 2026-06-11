@@ -41,6 +41,10 @@ sql_literal() {
   printf "'%s'" "$(printf "%s" "$1" | sed "s/'/''/g")"
 }
 
+sql_identifier() {
+  printf '"%s"' "$(printf "%s" "$1" | sed 's/"/""/g')"
+}
+
 version_for_migration() {
   local filename="$1"
   local version="${filename%%_*}"
@@ -55,6 +59,11 @@ version_for_migration() {
 
 echo "Ensuring Postgres is healthy..."
 docker compose -f "$compose_file" up -d postgres
+
+if [[ -n "${POSTGRES_PASSWORD:-}" ]]; then
+  echo "Ensuring database role password matches .env..."
+  psql_exec -c "ALTER ROLE $(sql_identifier "$POSTGRES_USER") WITH PASSWORD $(sql_literal "$POSTGRES_PASSWORD");"
+fi
 
 echo "Ensuring schema_migrations ledger exists..."
 psql_exec <<'SQL'

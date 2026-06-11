@@ -22,9 +22,14 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-etymology_graph}
+      DATABASE_URL: ""
       HOST: 0.0.0.0
       NODE_OPTIONS: ${NODE_OPTIONS:---max-old-space-size=384}
+      PGDATABASE: ${POSTGRES_DB:-etymology_graph}
+      PGHOST: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env before starting production Compose}
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-postgres}
       PORT: 3000
     expose:
       - "3000"

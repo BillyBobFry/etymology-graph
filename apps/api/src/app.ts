@@ -175,6 +175,14 @@ const sourceLanguageLayersHttpQuerySchema = z.object({
 });
 
 const REFERENCE_DATA_CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=604800";
+const INTERNAL_SERVER_ERROR_RESPONSE = {
+  error: "Internal server error"
+};
+
+type HttpError = Error & {
+  status?: number;
+  statusCode?: number;
+};
 
 /** Builds a strong validator for reference payloads that change only after imports. */
 function etagForPayload(payload: string): string {
@@ -195,6 +203,27 @@ function ifNoneMatchIncludes(
 
     return normalizedCandidate === etag || normalizedCandidate === "*";
   });
+}
+
+/** Normalizes thrown values so error responses never need to expose raw internals. */
+function errorMessageForResponse(error: unknown): string {
+  return error instanceof Error ? error.message : "Request failed";
+}
+
+/** Preserves intentional HTTP failures while treating unknown errors as server faults. */
+function statusCodeForError(error: unknown): number {
+  if (!(error instanceof Error)) {
+    return 500;
+  }
+
+  const httpError = error as HttpError;
+  const statusCode = httpError.statusCode ?? httpError.status;
+
+  if (typeof statusCode === "number" && Number.isInteger(statusCode) && statusCode >= 400 && statusCode <= 599) {
+    return statusCode;
+  }
+
+  return 500;
 }
 
 /** Reads optional browser origins for split frontend/API deployments. */
@@ -226,6 +255,20 @@ export function buildServer({ graphRepository, staticAssetsDir }: BuildServerOpt
   const corsOrigins = resolveCorsOrigins();
 
   server.register(compress);
+
+  server.setErrorHandler((error, request, reply) => {
+    const statusCode = statusCodeForError(error);
+
+    request.log.error({ err: error }, "Request failed");
+
+    if (statusCode >= 500) {
+      return reply.code(statusCode).send(INTERNAL_SERVER_ERROR_RESPONSE);
+    }
+
+    return reply.code(statusCode).send({
+      error: errorMessageForResponse(error)
+    });
+  });
 
   if (corsOrigins !== undefined) {
     server.register(cors, {
